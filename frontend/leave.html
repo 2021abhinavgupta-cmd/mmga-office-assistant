@@ -163,7 +163,8 @@ async function loadCalendarEvents(startISO, endISO){
       out.push({source:"leave", title:`${half} applied — awaiting approval`, start:ds, end:ds, style:"ring", color:"#fb923c", leave:info, pending:true});
     if (info.rejected)
       out.push({source:"rejected", title:"Leave request rejected", start:ds, end:ds, style:"ring", color:"#9aa0a6", rejectedDay:true});
-    else if (st === "full")
+    // a rejected request must not hide the day's real attendance: show both chips
+    if (st === "full")
       out.push({source:"worked", title:`Full day worked${info.hours ? " ("+fmtHM(info.hours)+")" : ""}`, start:ds, end:ds, style:"dot", color:"#22d3a0"});
     else if (st === "half")
       out.push({source:"worked", title:`Half day worked${info.hours ? " ("+fmtHM(info.hours)+")" : ""}`, start:ds, end:ds, style:"dot", color:"#fbbf24"});
