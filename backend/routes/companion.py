@@ -1193,24 +1193,28 @@ def companion_attendance_fix():
     uid = (request.args.get("user_id") or "").strip()
     day = (request.args.get("date") or "").strip()
     co = (request.args.get("checkout") or "").strip()
-    if not uid or not _re.fullmatch(r"\d{4}-\d{2}-\d{2}", day) or not _re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", co):
-        return jsonify({"error": "pass user_id, date=YYYY-MM-DD, checkout=HH:MM"}), 400
+    ci_new = (request.args.get("checkin") or "").strip()      # optional: also correct the check-in
+    hm = r"([01]\d|2[0-3]):[0-5]\d"
+    if (not uid or not _re.fullmatch(r"\d{4}-\d{2}-\d{2}", day) or not _re.fullmatch(hm, co)
+            or (ci_new and not _re.fullmatch(hm, ci_new))):
+        return jsonify({"error": "pass user_id, date=YYYY-MM-DD, checkout=HH:MM (optional checkin=HH:MM)"}), 400
     conn = get_connection()
     try:
         row = conn.execute("SELECT checkin_time, checkout_time FROM daily_attendance WHERE user_id=? AND date=?",
                            (uid, day)).fetchone()
         if not row or not row[0]:
             return jsonify({"error": "no check-in recorded for that person and date"}), 404
-        if co + ":00" <= str(row[0]):
-            return jsonify({"error": "checkout must be after check-in", "checkin": row[0]}), 400
+        ci_final = (ci_new + ":00") if ci_new else str(row[0])
+        if co + ":00" <= ci_final:
+            return jsonify({"error": "checkout must be after check-in", "checkin": ci_final}), 400
         with conn:
-            conn.execute("UPDATE daily_attendance SET checkout_time=? WHERE user_id=? AND date=?",
-                         (co + ":00", uid, day))
+            conn.execute("UPDATE daily_attendance SET checkin_time=?, checkout_time=? WHERE user_id=? AND date=?",
+                         (ci_final, co + ":00", uid, day))
     finally:
         conn.close()
-    logger.warning("attendance-fix: %s %s checkout %s -> %s:00", uid, day, row[1], co)
-    return jsonify({"success": True, "user_id": uid, "date": day, "checkin": row[0],
-                    "checkout_before": row[1], "checkout_after": co + ":00"})
+    logger.warning("attendance-fix: %s %s in %s -> %s, out %s -> %s:00", uid, day, row[0], ci_final, row[1], co)
+    return jsonify({"success": True, "user_id": uid, "date": day, "checkin_before": row[0],
+                    "checkin_after": ci_final, "checkout_before": row[1], "checkout_after": co + ":00"})
 
 
 @companion_bp.route("/api/companion/group-summary-debug", methods=["GET"])
