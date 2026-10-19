@@ -864,6 +864,11 @@ def _fast_attendance(text: str):
     return None
 
 
+_MORE_Q = re.compile(
+    r"^\s*(?:(?:what|which|show|tell|list|give)\b.{0,25}?\b(?:\d+|the)\s+(?:more|rest|others?|remaining)|"
+    r"(?:show\s+)?(?:more|the rest|rest|all of them|show all|see all|list all))\s*[?.!]*\s*$", re.I)
+
+
 def _fast_standup_command(text: str):
     """(tool, args) for the plain standup commands that don't need the model:
     add X to my standup, show my tasks, mark X done. None otherwise. Anything
@@ -882,6 +887,8 @@ def _fast_standup_command(text: str):
             return "get_management_view", {"view": view}
     if _DASH_Q.match(text):
         return "get_my_dashboard", {}
+    if _MORE_Q.match(text):   # "what are 7 more" after a list -> the full standup list
+        return "get_my_tasks", {}
     if _DUE_WEEK.match(text):
         return "get_task_schedule", {"when": "week"}
     if _PENDING_Q.match(text):

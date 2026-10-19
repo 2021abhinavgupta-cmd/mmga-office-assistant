@@ -268,13 +268,10 @@ def build(emp: dict, now: datetime | None = None) -> str:
                   f"🟢 {len(t['fine'])} on track"]
         if t["urgent"]:
             lines.append("  Urgent:")
-            lines += _list([f"{ti} ({d} days)" for d, ti in t["urgent"]], 5)
+            lines += _list([f"{ti} ({d} days)" for d, ti in t["urgent"]], 30)
         if t["risk"]:
             lines.append("  At risk:")
-            lines += _list([ti for _, ti in t["risk"]], 4)
-        if t["over"] or t["due"]:
-            lines += ["", f"On the board: {len(t['due'])} due today, {len(t['over'])} overdue (last {OVERDUE_DAYS} days)"]
-            lines += _list([_title(x) for x in t["due"]] + [_title(x) for x in t["over"]], 15)
+            lines += _list([ti for _, ti in t["risk"]], 30)
         if role == "member" and t["blockers"]:
             lines += ["", "Blocked"] + _list(t["blockers"], 3)
 
