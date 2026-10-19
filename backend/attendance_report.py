@@ -200,6 +200,11 @@ def parse_when(phrase: str, today_str: str):
     if re.search(r"\byesterday\b", p):
         d = today - timedelta(days=1)
         return d, d
+    if re.search(r"\bthis month\b", p):
+        return today.replace(day=1), today
+    if re.search(r"\blast month\b", p):
+        last = today.replace(day=1) - timedelta(days=1)
+        return last.replace(day=1), last
     if re.search(r"\bthis week\b", p):
         return today - timedelta(days=today.weekday()), today
     if re.search(r"\blast week\b", p):

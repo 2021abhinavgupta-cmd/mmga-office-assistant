@@ -1659,9 +1659,11 @@ _EMPLOYEE_TOOLS = [
                        "logged in', 'what time did Nupur log in today / yesterday / on "
                        "Monday / on 12 Oct', 'did X come in on Friday', 'attendance this "
                        "week'. Pass person (a name) for one person, omit it for the whole "
-                       "team. Pass date as YYYY-MM-DD (work out 'Monday', 'yesterday' "
-                       "yourself from today's date; omit for today) and to_date for a range "
-                       "(e.g. a whole week). Quote the times exactly as returned; never "
+                       "team. Pass date exactly as the person said it ('friday', 'last "
+                       "monday', 'yesterday', '16/10', '12 oct') or as YYYY-MM-DD, and "
+                       "never work the date out yourself; for a range pass 'last week' / "
+                       "'this week' as date, or date plus to_date. Omit date for today. "
+                       "Quote the times exactly as returned; never "
                        "guess one, and never answer a login-time question from memory.",
         "input_schema": {"type": "object", "properties": {
             "person": {"type": "string", "description": "Employee name; omit for everyone."},
@@ -3255,12 +3257,29 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
         if name == "get_attendance" and kind == "employee":
             import attendance_report as ar
             ti = tool_input or {}
-            d_from = ar._d(ti.get("date")) if str(ti.get("date") or "").strip() else ar._d(today)
-            if d_from is None:
-                return "(need a real date -- pass it as YYYY-MM-DD)"
-            d_to = ar._d(ti.get("to_date")) if str(ti.get("to_date") or "").strip() else d_from
-            if d_to is None:
-                return "(need a real end date -- pass it as YYYY-MM-DD)"
+
+            def _att_date(raw):
+                """YYYY-MM-DD, or plain words ('friday', 'last monday', 'yesterday',
+                '16/10', '12 oct') worked out in code so the model never does date maths."""
+                raw = str(raw or "").strip()
+                if not raw:
+                    return None, None
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+                    d = ar._d(raw)
+                    return (d, d) if d else (None, None)
+                w = ar.parse_when(raw, today)
+                return w if w else (None, None)
+
+            f1, f2 = _att_date(ti.get("date"))
+            if str(ti.get("date") or "").strip() and f1 is None:
+                return "(couldn't read that date -- pass YYYY-MM-DD, or words like 'friday' / 'last monday')"
+            d_from = f1 or ar._d(today)
+            d_to = f2 or d_from
+            if str(ti.get("to_date") or "").strip():
+                t1, t2 = _att_date(ti.get("to_date"))
+                if t1 is None:
+                    return "(couldn't read the end date -- pass YYYY-MM-DD)"
+                d_to = t2
             roster = _active_employees()
             person = None
             if str(ti.get("person") or "").strip():
@@ -3919,7 +3938,8 @@ def _system_prompt(identity: dict, *, in_group: bool = False, group_name: str = 
               "exactly. Use reschedule_task for 'move / delay <task> to <date>' "
               "(convert the date yourself). For 'approve <client> <post>' use "
               "review_task; if it says more than one fits, ask which.\n"
-            + f"Today is {today}, current time {utils.now_ist()[:5]} (IST) -- use "
+            + f"Today is {datetime.strptime(today, '%Y-%m-%d').strftime('%A')} {today}, "
+            f"current time {utils.now_ist()[:5]} (IST) -- use "
             "the current time for any 'in N minutes/hours' relative math "
             "(remind_me, schedule_group_message, etc.), not just the date."
         )
