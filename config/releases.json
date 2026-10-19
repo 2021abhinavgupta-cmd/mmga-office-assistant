@@ -10,5 +10,17 @@
       "Reminders list your open tasks one per line, so they are easier to read.",
       "The Calendar counts 9 hours or more as a full day."
     ]
+  },
+  {
+    "id": "2026-10-19-ask-lumina-who-logged-in-and-when",
+    "date": "2026-10-19",
+    "title": "Ask Lumina who logged in, and when",
+    "bullets": [
+      "Ask the Lumina WhatsApp assistant what time anyone logged in or left, today or on any earlier day.",
+      "Ask who has logged in and who hasn't, for today or a past day.",
+      "Ask for a whole week or month for one person, or compare two people.",
+      "Answers come straight from the attendance records, with work from home days and holidays shown."
+    ],
+    "how": "WhatsApp Lumina, for example: what time did Nupur log in today, did Happy log in on Monday, who hasn't logged in, or attendance last week."
   }
 ]
