@@ -1436,27 +1436,36 @@ def job_attendance_nag(cfg: dict) -> None:
     _log(f"attendance-nag: {sent} DM(s)")
 
 
-def job_checkout_nudge(cfg: dict) -> None:
-    """23:00 -- one personal DM to everyone who checked in today but hasn't
-    checked out (Vidit/Kshitij excluded server-side). Strictly one message
-    per person per day: the daily-job state is persisted, so a restart can't
-    fire it twice, and there is no retry loop."""
+def job_checkout_nudge(cfg: dict, second: bool = False) -> None:
+    """22:30 first DM, 23:00 second DM -- only to people who checked in today and
+    still haven't checked out (the list is recomputed live each time, so whoever
+    checked out after the first nudge is not messaged again). Vidit/Kshitij are
+    excluded server-side. At most two messages per person per day (the daily-job
+    state is persisted, so a restart can't re-fire either)."""
     if not cfg["bridge_ok"]:
         return
     j = _companion_get(cfg, "/api/companion/checkout-missing")
     if not j:
         return
+    link = cfg["url"].rstrip("/") + "/checkin.html?a=out"
     sent = 0
     for p in j.get("missing_checkout", []):
         wa = re.sub(r"\D", "", p.get("whatsapp", ""))
         if not wa:
             continue
         name = p.get("name") or "there"
-        text = (f"Hey *{name}*,\n\nit's 11 PM and you haven't checked out on Lumina yet.\n\n"
-                "Please check out, or just reply \"out\" here and I'll do it for you.")
+        when = "11 PM" if second else "10:30 PM"
+        head = "Reminder again" if second else "Hey"
+        text = (f"{head} *{name}*,\n\nit's {when} and you haven't checked out on Lumina yet.\n\n"
+                "Check out in one tap (works from your laptop or phone, it picks up the location "
+                f"there):\n{link}\n\nOr just reply \"out\" here and I'll do it for you.")
         if _bridge_send(cfg, f"{wa}@s.whatsapp.net", text):
             sent += 1
-    _log(f"checkout-nudge: {sent} DM(s)")
+    _log(f"checkout-nudge{'-2' if second else ''}: {sent} DM(s)")
+
+
+def job_checkout_nudge_2(cfg: dict) -> None:
+    job_checkout_nudge(cfg, second=True)
 
 
 def job_tomorrow_live(cfg: dict) -> None:
@@ -1669,7 +1678,9 @@ def main() -> None:
                     help="also run the old separate 10:30 attendance-nag, 11:30 "
                          "standup-nudge and noon roll-call (all superseded by "
                          "the unified login nudge)")
-    ap.add_argument("--checkout-nudge-time", default="23:00",
+    ap.add_argument("--checkout-nudge-time-2", default="23:00",
+                    help="second reminder for anyone still not checked out")
+    ap.add_argument("--checkout-nudge-time", default="22:30",
                     help="daily time to DM anyone who checked in today but hasn't "
                          "checked out (one message; Vidit/Kshitij excluded)")
     ap.add_argument("--no-checkout-nudge", action="store_true")
@@ -1793,6 +1804,7 @@ def main() -> None:
         daily_jobs.append(("attendance-nag", job_attendance_nag, args.attendance_nag_time))
     if not args.no_checkout_nudge:
         daily_jobs.append(("checkout-nudge", job_checkout_nudge, args.checkout_nudge_time))
+        daily_jobs.append(("checkout-nudge-2", job_checkout_nudge_2, args.checkout_nudge_time_2))
     if not args.no_tomorrow_live:
         daily_jobs.append(("tomorrow-live-am", job_tomorrow_live, args.tomorrow_live_morning))
         daily_jobs.append(("tomorrow-live-pm", job_tomorrow_live, args.tomorrow_live_evening))
