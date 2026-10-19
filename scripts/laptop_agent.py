@@ -1444,8 +1444,14 @@ def job_checkout_nudge(cfg: dict, second: bool = False) -> None:
     state is persisted, so a restart can't re-fire either)."""
     if not cfg["bridge_ok"]:
         return
-    j = _companion_get(cfg, "/api/companion/checkout-missing")
+    j = None
+    for attempt in range(3):
+        j = _companion_get(cfg, "/api/companion/checkout-missing")
+        if j is not None:
+            break
+        time.sleep(10)
     if not j:
+        _log("checkout-nudge: could not fetch the list, giving up")
         return
     link = cfg["url"].rstrip("/") + "/checkin.html?a=out"
     sent = 0
@@ -1459,8 +1465,16 @@ def job_checkout_nudge(cfg: dict, second: bool = False) -> None:
         text = (f"{head} *{name}*,\n\nit's {when} and you haven't checked out on Lumina yet.\n\n"
                 "Check out in one tap (works from your laptop or phone, it picks up the location "
                 f"there):\n{link}\n\nOr just reply \"out\" here and I'll do it for you.")
-        if _bridge_send(cfg, f"{wa}@s.whatsapp.net", text):
+        ok = False
+        for attempt in range(3):  # bridge may 503 for ~5s after a reconnect
+            if _bridge_send(cfg, f"{wa}@s.whatsapp.net", text):
+                ok = True
+                break
+            time.sleep(10)
+        if ok:
             sent += 1
+        else:
+            _log(f"checkout-nudge: FAILED to DM {name} after 3 tries")
     _log(f"checkout-nudge{'-2' if second else ''}: {sent} DM(s)")
 
 
