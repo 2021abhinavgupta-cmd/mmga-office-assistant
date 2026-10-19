@@ -21,7 +21,7 @@
     } catch (e) { return d || ""; }
   }
 
-  function show(releases) {
+  function show(releases, history) {
     if (!releases.length || document.getElementById("whatsnew-overlay")) return;
     const css = document.createElement("style");
     css.textContent = `
@@ -52,14 +52,14 @@
     ov.setAttribute("aria-modal", "true");
     ov.innerHTML = `<div id="whatsnew-box">
       <div class="wn-kicker">Lumina</div>
-      <h2>What's new</h2>
+      <h2>${history ? "What's new: all updates" : "What's new"}</h2>
       ${releases.map(r => `<div class="wn-rel">
-          <div class="wn-title">${esc(r.title)}</div>
+          <div class="wn-title">${esc(r.title)}${history && r.new ? ' <span style="font-size:11px;color:var(--acc,#f97316)">NEW</span>' : ""}</div>
           <div class="wn-date">${esc(fmtDate(r.date))}</div>
           <ul>${(r.bullets || []).map(b => `<li>${esc(b)}</li>`).join("")}</ul>
           ${r.how ? `<div class="wn-how"><b>How to use it</b>${esc(r.how)}</div>` : ""}
         </div>`).join("")}
-      <button type="button" id="whatsnew-ok">Got it</button>
+      <button type="button" id="whatsnew-ok">${history ? "Close" : "Got it"}</button>
     </div>`;
     document.body.appendChild(ov);
 
@@ -69,7 +69,7 @@
       closed = true;
       ov.remove();
       document.removeEventListener("keydown", onKey);
-      fetch(`${API}/api/whatsnew/seen`, {
+      if (!history) fetch(`${API}/api/whatsnew/seen`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: releases.map(r => r.id) }),
@@ -96,6 +96,20 @@
       console.warn("[whatsnew] check failed:", e.message);
     }
   }
+
+  // dashboard "i" button: every past update, newest first
+  window.openWhatsNewHistory = async function () {
+    try {
+      const r = await fetch(`${API}/api/whatsnew/all`, { credentials: "include" });
+      const d = r.ok ? await r.json() : { releases: [] };
+      if (!(d.releases || []).length) { alert("No updates yet."); return; }
+      show(d.releases, true);
+      fetch(`${API}/api/whatsnew/seen`, {
+        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: d.releases.filter(x => x.new).map(x => x.id).slice(0, 20) }),
+      }).catch(() => {});
+    } catch (e) { console.warn("[whatsnew] history failed:", e.message); }
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", check);
   else check();

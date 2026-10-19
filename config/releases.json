@@ -22,5 +22,17 @@
       "Answers come straight from the attendance records, with work from home days and holidays shown."
     ],
     "how": "WhatsApp Lumina, for example: what time did Nupur log in today, did Happy log in on Monday, who hasn't logged in, or attendance last week."
+  },
+  {
+    "id": "2026-10-19-reminders-and-scheduled-group-posts-by-w",
+    "date": "2026-10-19",
+    "title": "Reminders and scheduled group posts by WhatsApp",
+    "bullets": [
+      "Tell Lumina to remind you about anything, any day or time, and it WhatsApps you then.",
+      "Ask Lumina to post a message in the team group at a time you choose; it asks you to confirm with a yes first.",
+      "Say it the way you like: remind me tomorrow, ping me Friday, post this in the group at 5pm.",
+      "A plain yes with nothing waiting is no longer taken as a command."
+    ],
+    "how": "Message Lumina on WhatsApp, for example: remind me tomorrow at 10 to call the client, or: post in the group at 5pm that the meeting moved to 6. Tap the i button on the dashboard to see every update."
   }
 ]

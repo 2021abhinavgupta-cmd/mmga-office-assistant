@@ -198,6 +198,31 @@ def unseen_for(user_id: str) -> list:
     return out
 
 
+def all_for(user_id: str) -> list:
+    """Every published release, newest first, for the dashboard's history list; `new` = not dismissed yet."""
+    if not user_id:
+        return []
+    conn = get_connection()
+    try:
+        _ensure(conn)
+        rows = conn.execute("SELECT slug, title, body, published_at FROM release_log "
+                            "ORDER BY published_at DESC, slug DESC LIMIT 100").fetchall()
+        seen = {r[0] for r in conn.execute("SELECT slug FROM release_seen WHERE user_id=?", (user_id,)).fetchall()}
+    finally:
+        conn.close()
+    hows = {e["id"]: e["how"] for e in load_entries()}
+    out = []
+    for slug, title, body, pub in rows:
+        try:
+            b = json.loads(body)
+        except Exception:
+            b = {}
+        out.append({"id": slug, "title": title, "date": b.get("date") or pub[:10],
+                    "bullets": b.get("bullets") or [], "how": hows.get(slug) or b.get("how") or "",
+                    "new": slug not in seen})
+    return out
+
+
 def mark_seen(user_id: str, slugs: list) -> int:
     slugs = [str(s) for s in (slugs or []) if re.fullmatch(r"[A-Za-z0-9._-]{3,80}", str(s))][:20]
     if not user_id or not slugs:

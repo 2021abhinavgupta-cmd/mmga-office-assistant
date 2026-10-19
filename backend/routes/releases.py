@@ -18,6 +18,15 @@ def whatsnew_list():
     return jsonify({"releases": releases.unseen_for(uid)})
 
 
+@releases_bp.route("/api/whatsnew/all", methods=["GET"])
+def whatsnew_all():
+    """Full history of announcements (dashboard 'What's new' button)."""
+    uid, err = _require_session()
+    if err:
+        return err
+    return jsonify({"releases": releases.all_for(uid)})
+
+
 @releases_bp.route("/api/whatsnew/seen", methods=["POST"])
 def whatsnew_seen():
     uid, err = _require_session()

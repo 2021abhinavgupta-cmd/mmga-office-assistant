@@ -640,6 +640,26 @@ _TASK_REQUEST = re.compile(
     r"assign|delegate|remind|delete|remove|blocker|due|overdue|pending|list|"
     r"show|update|reopen|status)\b", re.I)
 
+# "remind me ..." / "post this in the group at 5pm": only done once a scheduling tool ran;
+# a model that just says "Done" must be sent back (history imitation made Qwen/Claude do this).
+_SCHEDULE_Q = re.compile(
+    r"(\bremind(?:er)?s?\s+me\b|\bping me\b|\bnudge me\b|\bset (?:a |an )?(?:reminder|alarm)\b|"
+    r"\bdon'?t let me forget\b|\bmake sure i remember\b|\bremember to tell me\b|"
+    r"^\s*(?:(?:please|pls|plz|hey|lumina|can you|could you|kindly)\s+)*"
+    r"(?:post|send|tell|announce|schedule|drop|share|message|text|put|publish)\b.{0,70}"
+    r"\b(?:group|everyone|everybody|the team|whole team|all of us)\b)", re.I)
+_SCHEDULE_TOOLS = ("remind_me", "schedule_group_message", "send_group_message",
+                   "remind_teammate", "message_multiple")
+
+
+_YES_WORDS = {"yes", "y", "yeah", "yep", "yup", "sure", "ok", "okay", "confirm", "send it", "go ahead",
+              "do it", "yes please", "haan", "ha", "kar do"}
+
+
+def history_for_yes(identity, sender):
+    return _load_context(sender)
+
+
 def _non_latin_ratio(s: str) -> float:
     """Share of letters in Hangul / Cyrillic / CJK / Arabic / Thai (model language drift)."""
     letters = [c for c in (s or "") if c.isalpha()]
@@ -1506,7 +1526,11 @@ _EMPLOYEE_TOOLS = [
                        "Sends automatically at that time, no confirmation "
                        "needed -- it only ever goes to the sender, nobody "
                        "else sees it. Only works in a private chat, not the "
-                       "group.",
+                       "group. If they give only a day (tomorrow, Friday, next "
+                       "Monday) or a vague time, pick the time yourself "
+                       "(morning 09:00, afternoon 14:00, evening 18:00, no time "
+                       "at all 09:00); do NOT ask, set it and say the time you "
+                       "chose.",
         "input_schema": {
             "type": "object",
             "properties": {
@@ -4119,13 +4143,26 @@ def handle_message(sender: str, text: str, *,
         try:
             import group_digest
             gids = {group_id} if (in_group and group_id) else _group_allowlist()
-            gd = group_digest.try_answer((text or "").strip(), gids, llm=_digest_llm,
-                                         llm_smart=_digest_llm_smart)
+            if not in_group and _SCHEDULE_Q.search(text or ""):
+                gd = None   # "post in the group at 5pm ..." is an action, not a summary request
+            else:
+                gd = group_digest.try_answer((text or "").strip(), gids, llm=_digest_llm,
+                                             llm_smart=_digest_llm_smart)
         except Exception:
             logger.exception("whatsapp_agent: group digest failed")
             gd = None
         if gd:
             return gd
+        if (identity["kind"] == "employee" and not in_group
+                and (text or "").strip().lower().strip(" .!") in _YES_WORDS):
+            _last = next((m.get("content") for m in reversed(history_for_yes(identity, sender))
+                          if m.get("role") == "assistant"), "") or ""
+            if not str(_last).rstrip().endswith("?") and not re.search(r"\byes\b", str(_last), re.I):
+                return "Nothing is waiting for a yes right now. Tell me what you'd like me to do."
+            if re.search(r"\byes\b", str(_last), re.I) and re.search(
+                    r"confirm|reply|send|post|schedule", str(_last), re.I):
+                return ("That confirmation expired or never went through, so nothing was sent. "
+                        "Please ask me again.")
         fast = _fast_standup_command((text or "").strip())
         if fast:
             tool_name, tool_args = fast
@@ -4203,6 +4240,8 @@ def handle_message(sender: str, text: str, *,
     last_tool_text = ""
     nudged = False
     lang_fixed = False
+    sched_called = False
+    sched_q = identity["kind"] == "employee" and not in_group and bool(_SCHEDULE_Q.search(text or ""))
     turn = {"sticker": None}
     try:
         for _ in range(5 if channel == "voice" else _MAX_TOOL_ROUNDS):
@@ -4229,6 +4268,8 @@ def handle_message(sender: str, text: str, *,
                             "content": out[:6000],
                         })
                         last_tool_text = out
+                        if block.name in _SCHEDULE_TOOLS:
+                            sched_called = True
                 if not results:
                     break  # nothing we can execute — fall through to text
                 messages.append({"role": "user", "content": results})
@@ -4257,6 +4298,24 @@ def handle_message(sender: str, text: str, *,
                 messages.append({"role": "user", "content": (
                     "[system] Your reply was in the wrong language. Answer the user's last "
                     "request again in English only, using the same facts.")})
+                reply = ""
+                continue
+            if sched_q and not sched_called:
+                if nudged and reply.rstrip().endswith("?"):
+                    break   # it is asking for a missing detail: pass the question through
+                if nudged:
+                    # told once and it still only talked: never claim a reminder/post was set
+                    reply = ("I couldn't set that up. Tell me what and exactly when, e.g. "
+                             "\"remind me tomorrow at 10 to call Nupur\" or "
+                             "\"post in the group at 5pm that the meeting moved\".")
+                    break
+                nudged = True
+                messages.append({"role": "assistant", "content": reply or "(no answer)"})
+                messages.append({"role": "user", "content": (
+                    "[system] You answered without calling a tool, so nothing was set. A reminder "
+                    "or a scheduled/group post only exists once you call remind_me, "
+                    "schedule_group_message or send_group_message (work out the exact date and "
+                    "time yourself). Call the right tool now, then confirm only what it returned.")})
                 reply = ""
                 continue
             att_q = identity["kind"] == "employee" and bool(_ATTENDANCE_Q.search(text or ""))
