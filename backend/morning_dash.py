@@ -250,7 +250,7 @@ def build(emp: dict, now: datetime | None = None) -> str:
     if role in ("leader", "dm"):
         dec = _decisions(emp, rows)
         lines += ["", "Your decisions", f"  {len(dec)} item{'' if len(dec) == 1 else 's'} waiting"
-                  if dec else "  Nothing waiting"] + _list(dec, 4)
+                  if dec else "  Nothing waiting"] + _list(dec, 8)
         dl = _due_today(rows, today)
         lines += ["", "Today's client deadlines", f"  {len(dl)}"] + _list(dl, 4)
         bl = [f"{g['name']}: {g['blockers'][0]}" for g in rows if g["blockers"]]
@@ -273,7 +273,7 @@ def build(emp: dict, now: datetime | None = None) -> str:
             lines += _list([ti for _, ti in t["risk"]], 4)
         if t["over"] or t["due"]:
             lines += ["", f"On the board: {len(t['due'])} due today, {len(t['over'])} overdue (last {OVERDUE_DAYS} days)"]
-            lines += _list([_title(x) for x in t["due"]] + [_title(x) for x in t["over"]], 4)
+            lines += _list([_title(x) for x in t["due"]] + [_title(x) for x in t["over"]], 15)
         if role == "member" and t["blockers"]:
             lines += ["", "Blocked"] + _list(t["blockers"], 3)
 
@@ -318,6 +318,21 @@ def _release(uid: str, day: str) -> None:
         conn.close()
 
 
+def _remember(jid: str, text: str) -> None:
+    """Put the dashboard into the person's chat memory so a reply like
+    'what are the 7 more' is understood (the bot otherwise never saw it)."""
+    try:
+        import whatsapp_agent as wa
+        key = str(jid).split("@")[0]
+        hist = wa._load_context(key)
+        if hist and hist[-1].get("role") != "assistant":
+            hist = []
+        wa._save_context(key, hist + [{"role": "user", "content": "morning dashboard"},
+                                      {"role": "assistant", "content": text}])
+    except Exception:
+        logger.debug("morning_dash: remember failed", exc_info=True)
+
+
 def run_daily(now: datetime | None = None, force: bool = False, only_ids: list | None = None) -> dict:
     """One dashboard per person per weekday, 09:00-11:00 IST. `force` skips the
     window and the once-a-day claim (testing; needs only_ids)."""
@@ -346,8 +361,10 @@ def run_daily(now: datetime | None = None, force: bool = False, only_ids: list |
             continue
         try:
             text = build(emp, now)
-            if wa_outbox.enqueue(wa_outbox.wa_jid(emp["whatsapp"]), text):
+            jid = wa_outbox.wa_jid(emp["whatsapp"])
+            if wa_outbox.enqueue(jid, text):
                 sent += 1
+                _remember(jid, text)
             elif not force:
                 _release(uid, day)
         except Exception:
