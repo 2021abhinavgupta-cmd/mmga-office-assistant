@@ -548,7 +548,10 @@ def attendance_export():
 # with a real checkin is a Half Day, a weekday with no checkin at all is a
 # Leave. Raised 8 -> 9 hours per explicit user request, 2026-09-28 (same
 # change also defines "overtime" below: hours worked beyond this).
-_FULL_DAY_HOURS = 9.0
+_FULL_DAY_HOURS = 9.0   # the OVERTIME baseline: overtime = hours beyond this
+# 2026-10-19 (owner): a day counts as a FULL day from 5 hours worked, but overtime
+# still only starts after 9 hours. Two separate numbers on purpose.
+_FULL_DAY_MIN_HOURS = 5.0
 
 
 _HM_FMT = '[h]"h" mm"m"'
@@ -598,7 +601,7 @@ def _hours_and_day_type(checkin, checkout, is_today, is_approved_leave=False, is
         return None, "Incomplete"
     if hrs < 0:
         return None, "Incomplete"
-    return round(hrs, 2), ("Full Day" if hrs >= _FULL_DAY_HOURS else "Half Day")
+    return round(hrs, 2), ("Full Day" if hrs >= _FULL_DAY_MIN_HOURS else "Half Day")
 
 
 def _parse_time_obj(hhmmss):
@@ -1058,8 +1061,8 @@ def attendance_export_sheets():
         c.alignment = Alignment(horizontal="center")
     ws_sum.cell(
         row=4, column=1,
-        value=(f"Full Day = worked {_FULL_DAY_HOURS:g}+ hours  |  Half Day = worked under "
-               f"{_FULL_DAY_HOURS:g} hours (but checked in)  |  Leave = no check-in that weekday  |  "
+        value=(f"Full Day = worked {_FULL_DAY_MIN_HOURS:g}+ hours  |  Half Day = worked under "
+               f"{_FULL_DAY_MIN_HOURS:g} hours (but checked in)  |  Leave = no check-in that weekday  |  "
                "Leave (Approved) = no check-in, covered by an HR-approved leave request "
                "(does not count against Attendance %)  |  "
                "Holiday = public holiday set on the office calendar (no check-in needed, not counted "

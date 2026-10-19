@@ -30,7 +30,7 @@ from utils import today_ist
 logger = logging.getLogger(__name__)
 
 ANNUAL_BASE_DAYS = 15
-OT_BASELINE_HOURS = 9.0   # kept in sync with routes/attendance.py::_FULL_DAY_HOURS
+OT_BASELINE_HOURS = 9.0   # overtime starts after this; kept in sync with routes/attendance.py::_FULL_DAY_HOURS
 OT_CONVERSION_HOURS = 24.0
 VALID_LEAVE_TYPES = {"full", "half"}
 _LEAVE_DEDUCTION = {"full": 1.0, "half": 0.5}
@@ -838,8 +838,10 @@ def get_balance(user_id: str, year: int | None = None) -> dict:
 
 # ── calendar (per-day dot status for the UI) ────────────────────────────
 
-_FULL_DAY_HOURS = OT_BASELINE_HOURS
-_HALF_DAY_MIN_HOURS = 6.0
+_FULL_DAY_HOURS = 5.0   # 2026-10-19 (owner): 5h+ worked = a full day on the calendar and in the
+#                         Excel (routes/attendance.py::_FULL_DAY_MIN_HOURS). Overtime is separate:
+#                         it still starts only after OT_BASELINE_HOURS (9h).
+_HALF_DAY_MIN_HOURS = 6.0   # unused leftover
 
 
 def _hours_worked(checkin, checkout) -> float | None:
@@ -916,7 +918,7 @@ def calendar_days(user_id: str, year: int, month: int) -> dict:
         hrs = _hours_worked(cin, cout)
         if hrs is None:
             out[dstr] = {"status": "none", "hours": None}
-        elif hrs >= _FULL_DAY_HOURS:   # 9h = full day, same rule as the Excel export
+        elif hrs >= _FULL_DAY_HOURS:   # 5h = full day, same rule as the Excel export
             out[dstr] = {"status": "full", "hours": hrs}
         else:
             out[dstr] = {"status": "half", "hours": hrs}
