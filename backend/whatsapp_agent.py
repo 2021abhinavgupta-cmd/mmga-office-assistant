@@ -640,6 +640,17 @@ _TASK_REQUEST = re.compile(
     r"assign|delegate|remind|delete|remove|blocker|due|overdue|pending|list|"
     r"show|update|reopen|status)\b", re.I)
 
+def _non_latin_ratio(s: str) -> float:
+    """Share of letters in Hangul / Cyrillic / CJK / Arabic / Thai (model language drift)."""
+    letters = [c for c in (s or "") if c.isalpha()]
+    if not letters:
+        return 0.0
+    bad = sum(1 for c in letters if ("가" <= c <= "힯" or "Ѐ" <= c <= "ӿ"
+                                      or "一" <= c <= "鿿" or "؀" <= c <= "ۿ"
+                                      or "฀" <= c <= "๿" or "぀" <= c <= "ヿ"))
+    return bad / len(letters)
+
+
 # Login / check-in / attendance questions: the times must come from get_attendance,
 # never from memory (a model will otherwise invent "9:05 AM").
 _ATTENDANCE_Q = re.compile(
@@ -809,7 +820,11 @@ _ATT_TEAM = re.compile(
     r"^(?:lumina[,:\s]+)?(?:who(?:'s|\s+is|\s+has|\s+have|\s+all|\s+hasn'?t|\s+haven'?t)?\s*(?:not\s+)?"
     r"(?:logged|checked|log|check)[\s-]*in|who(?:'s|\s+is)\s+(?:in|absent|missing|present|late)|"
     r"(?:show\s+(?:me\s+)?|give\s+(?:me\s+)?)?(?:the\s+)?attendance|who\s+came\s+(?:in|to\s+office)|"
-    r"who\s+(?:all\s+)?(?:is|are)\s+(?:in|working))\b(.*)$", re.I)
+    r"who\s+(?:all\s+)?(?:is|are)\s+(?:in|working)|"
+    r"what\s+time\s+did\s+(?:the\s+team|everyone|everybody|all\s+of\s+us|we|they)\s+"
+    r"(?:log(?:ged)?[\s-]*in|check(?:ed)?[\s-]*in|come|came|arrive[d]?)|"
+    r"who\s+(?:was|is)\s+(?:the\s+)?(?:first|last|earliest|latest)\s+(?:one\s+)?to\s+"
+    r"(?:log(?:\s*in)?|check(?:\s*in)?|come(?:\s+in)?|arrive))\b(.*)$", re.I)
 _ATT_FILLER = re.compile(r"\b(yet|so far|already|this morning|in the morning|at all|please|pls|ever|office|"
                          r"to office|in office|the office)\b", re.I)
 
@@ -4178,6 +4193,7 @@ def handle_message(sender: str, text: str, *,
     reply = ""
     last_tool_text = ""
     nudged = False
+    lang_fixed = False
     turn = {"sticker": None}
     try:
         for _ in range(5 if channel == "voice" else _MAX_TOOL_ROUNDS):
@@ -4223,6 +4239,17 @@ def handle_message(sender: str, text: str, *,
             # from chat history -- "Added to your standup" or a task list with
             # no tool call, so nothing was written / the list is stale. If this
             # looks like a task request and no tool ran, send it back once.
+            # a reply in another script (Korean / Russian / Chinese...) to a Latin-script
+            # message is model drift: have it answer again in English, once
+            if (reply and not lang_fixed and _non_latin_ratio(reply) > 0.15
+                    and _non_latin_ratio(text or "") < 0.05):
+                lang_fixed = True
+                messages.append({"role": "assistant", "content": reply})
+                messages.append({"role": "user", "content": (
+                    "[system] Your reply was in the wrong language. Answer the user's last "
+                    "request again in English only, using the same facts.")})
+                reply = ""
+                continue
             att_q = identity["kind"] == "employee" and bool(_ATTENDANCE_Q.search(text or ""))
             if att_q and nudged and not last_tool_text:
                 # told once already and it still answered without looking: never let an

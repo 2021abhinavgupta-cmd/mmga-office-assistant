@@ -134,12 +134,20 @@ def report(today_str: str, roster: list, d_from: _date, d_to: _date, person: dic
     days = [d_from + timedelta(days=i) for i in range((d_to - d_from).days + 1)]
 
     if person:
-        lines = []
+        lines, gone = [], []
         for d in days:
-            if len(days) > 1 and d.weekday() >= 5 and (person["id"], d.isoformat()) not in rows:
+            rec = rows.get((person["id"], d.isoformat()))
+            if len(days) > 1 and d.weekday() >= 5 and not rec:
                 continue   # skip empty weekends in a range
-            lines.append(_person_day(person["name"], person["id"], d, rows.get((person["id"], d.isoformat())),
-                                     cal, today))
+            if len(days) > 7 and not rec:
+                if d <= today:
+                    gone.append(f"{d.day} {d.strftime('%b')}" +
+                                ("" if _why_absent(person["id"], d, cal, today) == "no check-in recorded"
+                                 else f" ({_why_absent(person['id'], d, cal, today)})"))
+                continue   # long range: list the days present, then the absences in one line
+            lines.append(_person_day(person["name"], person["id"], d, rec, cal, today))
+        if gone:
+            lines.append(f"No login on {len(gone)} weekday(s): " + ", ".join(gone) + ".")
         return "\n".join(lines) or f"No weekdays in that range for {person['name']}."
 
     if len(days) == 1:
@@ -165,7 +173,11 @@ def report(today_str: str, roster: list, d_from: _date, d_to: _date, person: dic
             head += f" (public holiday: {hol})"
         elif wfh:
             head += " (work from home day)"
-        parts = [head, f"Logged in ({len(got)}): " + (", ".join(t for _, t in got) if got else "nobody")]
+        parts = [head]
+        if got:
+            first, last = got[0][1].split(" (")[0], got[-1][1].split(" (")[0]
+            parts.append(f"First in: {first}. Last in: {last}.")
+        parts.append(f"Logged in ({len(got)}): " + (", ".join(t for _, t in got) if got else "nobody"))
         parts.append(f"Not logged in ({len(miss)}): " + (", ".join(sorted(miss)) if miss else "nobody"))
         return "\n".join(parts)
 
