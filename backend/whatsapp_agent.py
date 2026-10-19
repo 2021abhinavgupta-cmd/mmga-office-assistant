@@ -640,6 +640,13 @@ _TASK_REQUEST = re.compile(
     r"assign|delegate|remind|delete|remove|blocker|due|overdue|pending|list|"
     r"show|update|reopen|status)\b", re.I)
 
+# Login / check-in / attendance questions: the times must come from get_attendance,
+# never from memory (a model will otherwise invent "9:05 AM").
+_ATTENDANCE_Q = re.compile(
+    r"\b(log(?:ged|s)?[\s-]*in|logins?|log(?:ged)?[\s-]*out|check(?:ed|s)?[\s-]*(?:in|out)|"
+    r"came in|come in|comes in|attendance|punch(?:ed)?|arriv(?:e|ed|es)\s+(?:at|in|to)|"
+    r"what time did \w+ (?:start|leave|reach))\b", re.I)
+
 # Messages that need real thinking (advice, explanation, drafting, planning,
 # comparison...) rather than a lookup or a command. These go to the stronger
 # model (Claude Sonnet) while the daily cap allows; everything else stays on the
@@ -3628,6 +3635,10 @@ def _clean_followup(text: str) -> str:
 _BRAIN = (
     "LANGUAGE: always reply in English (Hinglish only if the person wrote Hinglish). "
     "Never answer in Russian or any other language unless they wrote in it. "
+    "LOGIN TIMES: any question about when someone logged in, left, was late or absent "
+    "MUST call get_attendance (once per person, with a date range for 'last week' or "
+    "'this month') and quote only the times it returns. Never state a login time you did "
+    "not get from that tool. To compare two people, call it for each. "
     "You are not just a database reader. You are a sharp, well-read personal "
     "assistant with your own mind and judgement, like a very capable chief of "
     "staff. Answer ANY question the way a smart colleague would, from your own "
@@ -4192,8 +4203,15 @@ def handle_message(sender: str, text: str, *,
             # from chat history -- "Added to your standup" or a task list with
             # no tool call, so nothing was written / the list is stale. If this
             # looks like a task request and no tool ran, send it back once.
+            att_q = identity["kind"] == "employee" and bool(_ATTENDANCE_Q.search(text or ""))
+            if att_q and nudged and not last_tool_text:
+                # told once already and it still answered without looking: never let an
+                # invented login time through
+                reply = ("I can't answer that reliably without looking it up. Ask for one person and "
+                         "one day, e.g. \"what time did Nupur log in on Monday\", or \"who hasn't logged in\".")
+                break
             if (identity["kind"] == "employee" and not nudged and not last_tool_text
-                    and not deep and _TASK_REQUEST.search(text or "")):
+                    and ((not deep and _TASK_REQUEST.search(text or "")) or att_q)):
                 nudged = True
                 messages.append({"role": "assistant", "content": reply or "(no answer)"})
                 messages.append({"role": "user", "content": (
