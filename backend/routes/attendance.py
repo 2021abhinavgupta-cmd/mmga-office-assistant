@@ -895,6 +895,7 @@ def attendance_export_sheets():
                   "Holiday": 0, "WFH": 0}
         total_hours = 0.0
         total_overtime = 0.0
+        total_ot_office = 0.0
         credit_total = 0.0
         # Per-calendar-month breakdown, in the order months are first seen
         # (chronological, since d walks forward) -- a plain dict already
@@ -932,6 +933,10 @@ def attendance_export_sheets():
                 is_wfh = "Work from home" in ((cal_by_day.get(dstr) or {}).get("modes") or [])
                 if is_wfh:
                     counts["WFH"] += 1
+                # overtime done in the office: weekdays not marked work-from-home or holiday
+                office_ot = (overtime if (overtime is not None and not is_wfh
+                                          and not (cal_by_day.get(dstr) or {}).get("holiday")) else 0.0)
+                total_ot_office += office_ot
                 credit_total += _attendance_credit(day_type)
                 if hrs is not None:
                     total_hours += hrs
@@ -941,8 +946,9 @@ def attendance_export_sheets():
                 mrow = months.setdefault(mkey, {
                     "Full Day": 0, "Half Day": 0, "Leave": 0, "Incomplete": 0,
                     "In Progress": 0, "hours": 0.0, "overtime": 0.0, "credit": 0.0,
-                    "Holiday": 0, "WFH": 0,
+                    "Holiday": 0, "WFH": 0, "ot_office": 0.0,
                 })
+                mrow["ot_office"] += office_ot
                 if is_wfh:
                     mrow["WFH"] += 1
                 mrow[day_type] = mrow.get(day_type, 0) + 1
@@ -975,7 +981,8 @@ def attendance_export_sheets():
         # the "worked extra +1" the export is meant to surface.
         style_header_cells(ws, ["Month", "Full Days", "Half Days", "Leaves", "Incomplete",
                                 "Working Days", "Total Hours", "Overtime Hours", "Attendance %",
-                                "Approved Leaves", "Comp-Off Earned", "Holidays", "WFH Days"], month_header_row)
+                                "Approved Leaves", "Comp-Off Earned", "Holidays", "WFH Days",
+                                "OT (Work From Office)"], month_header_row)
         mrow_idx = month_header_row
         comp_off_total = 0.0
         for (yr, mo), m in months.items():
@@ -1002,7 +1009,8 @@ def attendance_export_sheets():
             comp_off_cell.number_format = "0.0"
             ws.cell(row=mrow_idx, column=12, value=m.get("Holiday", 0))
             ws.cell(row=mrow_idx, column=13, value=m.get("WFH", 0))
-            border_row(ws, mrow_idx, 13)
+            ws.cell(row=mrow_idx, column=14, value=_hm(m.get("ot_office", 0.0))).number_format = _HM_FMT
+            border_row(ws, mrow_idx, 14)
         # A bold "Total (All Time)" row underneath every month, using the
         # same aggregate counts the old single Summary block reported.
         total_row = mrow_idx + 1
@@ -1011,17 +1019,19 @@ def attendance_export_sheets():
             counts["Incomplete"], considered, _hm(total_hours), _hm(total_overtime),
             pct if pct is not None else "N/A",
             counts.get("Leave (Approved)", 0), round(comp_off_total, 1),
-            counts.get("Holiday", 0), counts.get("WFH", 0),
+            counts.get("Holiday", 0), counts.get("WFH", 0), _hm(total_ot_office),
         ]
         for col, val in enumerate(total_cells, start=1):
             c = ws.cell(row=total_row, column=col, value=val)
             c.font = SUMMARY_LABEL_FONT
         ws.cell(row=total_row, column=7).number_format = _HM_FMT
         ws.cell(row=total_row, column=8).number_format = _HM_FMT
+        ws.cell(row=total_row, column=14).number_format = _HM_FMT
         if pct is not None:
             ws.cell(row=total_row, column=9).number_format = "0.0%"
         ws.cell(row=total_row, column=11).number_format = "0.0"
-        border_row(ws, total_row, 13)
+        border_row(ws, total_row, 14)
+        ws.column_dimensions["N"].width = max(ws.column_dimensions["N"].width or 0, 22)
         ws.column_dimensions["J"].width = max(ws.column_dimensions["J"].width or 0, 16)
         ws.column_dimensions["K"].width = max(ws.column_dimensions["K"].width or 0, 16)
 
