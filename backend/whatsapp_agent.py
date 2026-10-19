@@ -787,12 +787,74 @@ def _digest_llm(system: str, user: str, model=None, smart: bool = False) -> str:
                    if getattr(b, "type", "") == "text")
 
 
+_NAME = r"([A-Za-z][A-Za-z.]*(?:\s[A-Za-z]+)?)"
+_LOGIN_VERB = (r"(?:log(?:ged|s)?[\s-]*in|check(?:ed|s)?[\s-]*in|come(?:s)?(?:\s+in)?|came(?:\s+in)?|"
+               r"arrive[ds]?|reach(?:ed)?|start(?:ed)?|log(?:ged)?[\s-]*out|check(?:ed)?[\s-]*out|left|leave)")
+_ATT_PERSON = [
+    re.compile(r"^(?:lumina[,:\s]+)?(?:at\s+)?(?:what\s+time|when)\s+(?:did|has|was|does)\s+" + _NAME +
+               r"\s+" + _LOGIN_VERB + r"(?:\s+(.+?))?[\s?.!]*$", re.I),
+    re.compile(r"^(?:lumina[,:\s]+)?(?:did|has|was)\s+" + _NAME + r"\s+" + _LOGIN_VERB +
+               r"(?:\s+(.+?))?[\s?.!]*$", re.I),
+    re.compile(r"^(?:lumina[,:\s]+)?is\s+" + _NAME + r"\s+(?:in|working|present|here|logged\s+in)(?:\s+(.+?))?[\s?.!]*$", re.I),
+    re.compile(r"^(?:lumina[,:\s]+)?" + _NAME + r"(?:'s|s)\s+(?:login|log-in|check-?in|attendance)(?:\s+time)?(?:\s+(.+?))?[\s?.!]*$", re.I),
+]
+_ATT_TEAM = re.compile(
+    r"^(?:lumina[,:\s]+)?(?:who(?:'s|\s+is|\s+has|\s+have|\s+all|\s+hasn'?t|\s+haven'?t)?\s*(?:not\s+)?"
+    r"(?:logged|checked|log|check)[\s-]*in|who(?:'s|\s+is)\s+(?:in|absent|missing|present|late)|"
+    r"(?:show\s+(?:me\s+)?|give\s+(?:me\s+)?)?(?:the\s+)?attendance|who\s+came\s+(?:in|to\s+office)|"
+    r"who\s+(?:all\s+)?(?:is|are)\s+(?:in|working))\b(.*)$", re.I)
+_ATT_FILLER = re.compile(r"\b(yet|so far|already|this morning|in the morning|at all|please|pls|ever|office|"
+                         r"to office|in office|the office)\b", re.I)
+
+
+def _fast_attendance(text: str):
+    """('get_attendance', args) for 'what time did Nupur log in on Monday',
+    'who hasn't logged in', 'is X in today'... or None (model handles it)."""
+    import attendance_report as ar
+    today = _today_ist()
+
+    def when(rest):
+        rest = _ATT_FILLER.sub(" ", rest or "").strip(" ,.?!")
+        rest = re.sub(r"^(?:on|for|of|at|in|during)\s+", "", rest, flags=re.I).strip()
+        return ar.parse_when(rest, today)
+
+    for rx in _ATT_PERSON:
+        m = rx.match(text)
+        if not m:
+            continue
+        nm = m.group(1).strip(" .")
+        if len(nm) < 3 or re.fullmatch(r"(?:i|me|you|he|she|they|it|someone|anyone|everyone|who|what)", nm, re.I):
+            continue
+        # "nupur kumar" may be name + a stray word: try the full capture, then first word
+        person = _resolve_employee(nm) or (_resolve_employee(nm.split()[0]) if " " in nm else None)
+        if not person:
+            continue
+        w = when(m.group(2))
+        if not w:
+            return None
+        return "get_attendance", {"person": person["name"], "date": w[0].isoformat(), "to_date": w[1].isoformat()}
+    m = _ATT_TEAM.match(text)
+    if m:
+        w = when(m.group(1))
+        if not w:
+            return None
+        return "get_attendance", {"date": w[0].isoformat(), "to_date": w[1].isoformat()}
+    return None
+
+
 def _fast_standup_command(text: str):
     """(tool, args) for the plain standup commands that don't need the model:
     add X to my standup, show my tasks, mark X done. None otherwise. Anything
     naming a date or another person is left to the model."""
     if not text or len(text) > 320 or "\n" in text.strip():
         return None
+    try:
+        att = _fast_attendance(text.strip())
+    except Exception:
+        logger.debug("whatsapp_agent: fast attendance failed", exc_info=True)
+        att = None
+    if att:
+        return att
     for rx, view in _MGMT_FAST:
         if rx.match(text):
             return "get_management_view", {"view": view}
@@ -1585,11 +1647,20 @@ _EMPLOYEE_TOOLS = [
     },
     {
         "name": "get_attendance",
-        "description": "Who has checked in / out today (with exact check-in and "
-                       "check-out times) and who hasn't checked in yet. Use for "
-                       "'who's in', 'is Nupur working today', 'what time did X "
-                       "check in'. Quote the times exactly as returned; never guess one.",
-        "input_schema": {"type": "object", "properties": {}},
+        "description": "Who logged in / out and exactly when, for TODAY or ANY PAST DAY, "
+                       "and who hasn't logged in. Use for 'who's in', 'who hasn't "
+                       "logged in', 'what time did Nupur log in today / yesterday / on "
+                       "Monday / on 12 Oct', 'did X come in on Friday', 'attendance this "
+                       "week'. Pass person (a name) for one person, omit it for the whole "
+                       "team. Pass date as YYYY-MM-DD (work out 'Monday', 'yesterday' "
+                       "yourself from today's date; omit for today) and to_date for a range "
+                       "(e.g. a whole week). Quote the times exactly as returned; never "
+                       "guess one, and never answer a login-time question from memory.",
+        "input_schema": {"type": "object", "properties": {
+            "person": {"type": "string", "description": "Employee name; omit for everyone."},
+            "date": {"type": "string", "description": "YYYY-MM-DD; omit for today."},
+            "to_date": {"type": "string", "description": "YYYY-MM-DD end of a range (optional)."},
+        }},
     },
     {
         "name": "set_attendance",
@@ -3175,35 +3246,25 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
                 return "(couldn't update that group promise just now)"
 
         if name == "get_attendance" and kind == "employee":
+            import attendance_report as ar
+            ti = tool_input or {}
+            d_from = ar._d(ti.get("date")) if str(ti.get("date") or "").strip() else ar._d(today)
+            if d_from is None:
+                return "(need a real date -- pass it as YYYY-MM-DD)"
+            d_to = ar._d(ti.get("to_date")) if str(ti.get("to_date") or "").strip() else d_from
+            if d_to is None:
+                return "(need a real end date -- pass it as YYYY-MM-DD)"
+            roster = _active_employees()
+            person = None
+            if str(ti.get("person") or "").strip():
+                person = _resolve_employee(str(ti["person"]))
+                if not person:
+                    return f"(no teammate matches '{ti['person']}')"
             try:
-                conn = get_connection()
-                cur = conn.cursor()
-                cur.execute(
-                    "SELECT user_id, checkin_time, checkout_time FROM daily_attendance WHERE date=?",
-                    (today,),
-                )
-                rows = cur.fetchall()
-                conn.close()
+                return ar.report(today, roster, d_from, d_to, person)
             except Exception:
-                rows = []
-            names = {e["id"]: e["name"] for e in _active_employees()}
-            inn, out, seen = [], [], set()
-            for uid, ci, co in rows:
-                seen.add(uid)
-                nm = names.get(uid, uid)
-                if ci and co:
-                    out.append(f"{nm} (in {str(ci)[:5]}, left {str(co)[:5]})")
-                elif ci:
-                    inn.append(f"{nm} (in {str(ci)[:5]})")
-            missing = sorted(n for i, n in names.items() if i not in seen)
-            parts = []
-            if inn:
-                parts.append("In now: " + ", ".join(sorted(inn)))
-            if out:
-                parts.append("Left: " + ", ".join(sorted(out)))
-            if missing:
-                parts.append("No check-in: " + ", ".join(missing))
-            return "\n".join(parts) if parts else "No attendance recorded yet today."
+                logger.exception("whatsapp_agent: get_attendance failed")
+                return "(couldn't read attendance just now)"
 
         if name == "set_attendance" and kind == "employee":
             action = str((tool_input or {}).get("action", "")).strip().lower()
