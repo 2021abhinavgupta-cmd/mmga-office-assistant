@@ -643,7 +643,7 @@ _TASK_REQUEST = re.compile(
 # "remind me ..." / "post this in the group at 5pm": only done once a scheduling tool ran;
 # a model that just says "Done" must be sent back (history imitation made Qwen/Claude do this).
 _SCHEDULE_Q = re.compile(
-    r"(\bremind(?:er)?s?\s+me\b|\bping me\b|\bnudge me\b|\bset (?:a |an )?(?:reminder|alarm)\b|"
+    r"(\bremind(?:er)?s?\s+(?:me|[a-z]+)\b|\btell\s+[a-z]+\s+(?:at|in|tomorrow|tonight)\b|\bping me\b|\bnudge me\b|\bset (?:a |an )?(?:reminder|alarm)\b|"
     r"\bdon'?t let me forget\b|\bmake sure i remember\b|\bremember to tell me\b|"
     r"^\s*(?:(?:please|pls|plz|hey|lumina|can you|could you|kindly)\s+)*"
     r"(?:post|send|tell|announce|schedule|drop|share|message|text|put|publish)\b.{0,70}"
@@ -1510,6 +1510,11 @@ _EMPLOYEE_TOOLS = [
                 "name": {"type": "string", "description": "The teammate to nudge."},
                 "message": {"type": "string",
                             "description": "What to remind them about, in your words."},
+                "when": {"type": "string",
+                         "description": "ONLY if the user gave a time or day ('at 3pm', "
+                                        "'tomorrow'): the exact IST date+time to send it, "
+                                        "YYYY-MM-DD HH:MM. Omit to send right now. If only a "
+                                        "day is given use 09:00."},
             },
             "required": ["name", "message"],
         },
@@ -2829,8 +2834,15 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
             jid = _wa_jid(emp.get("whatsapp"))
             if not jid:
                 return f"{emp['name']} has no WhatsApp number on file, so I can't reach them."
-            if _enqueue_outbound(jid, f"Reminder from {identity['name']}: {msg[:600]}"):
-                return f"Sent {emp['name']} a reminder about that."
+            when = str((tool_input or {}).get("when") or "").strip()
+            if when:
+                if not re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$", when):
+                    return "(need a real time: pass `when` as YYYY-MM-DD HH:MM IST)"
+                if when[:16] <= f"{today} {utils.now_ist()[:5]}":
+                    return "That time's already passed. Ask when they want it sent."
+            if wa_outbox.enqueue(jid, f"Reminder from {identity['name']}: {msg[:600]}", send_after=when or None):
+                return (f"Sent {emp['name']} a reminder about that." if not when
+                        else f"Scheduled a reminder to {emp['name']} for {when} (IST): {msg[:120]}")
             return "(couldn't queue that reminder just now)"
 
         if name == "remind_me" and kind == "employee":
@@ -4190,7 +4202,10 @@ def handle_message(sender: str, text: str, *,
 
     # Keep each person's group thread separate from their DM thread.
     ctx_key = sender if not in_group else f"{sender}|{_norm_group(group_id)}"
-    history = _load_context(ctx_key)
+    history = [m for m in _load_context(ctx_key)
+               if "I showed the group chat; I re-read it fresh" not in str(m.get("content", ""))]
+    while history and history[0].get("role") != "user":
+        history = history[1:]
     messages = history + [{"role": "user", "content": text}]
 
     # Built once and reused for every round of this loop (and, within the
@@ -4412,11 +4427,13 @@ def handle_message(sender: str, text: str, *,
     # Persist plain-text turns for follow-up continuity
     # An answer built from the group chat is not remembered word for word: later turns
     # must re-read the chat instead of copying (and compounding) an old summary.
-    kept = "(I showed the group chat; I re-read it fresh each time.)" if turn.get("group_log") else reply
-    _save_context(ctx_key, history + [
-        {"role": "user", "content": text},
-        {"role": "assistant", "content": kept},
-    ])
+    # A group-chat answer is not saved at all: a saved stub was copied by the model as if it
+    # answered unrelated requests (e.g. "remind vidit at 3pm").
+    if not turn.get("group_log"):
+        _save_context(ctx_key, history + [
+            {"role": "user", "content": text},
+            {"role": "assistant", "content": reply},
+        ])
 
     _record_llm_usage(model, usage, f"wa_{ctx_key}")
 
