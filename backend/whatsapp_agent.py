@@ -1525,8 +1525,8 @@ _EMPLOYEE_TOOLS = [
                        "both known) and pass it as `when`, YYYY-MM-DD HH:MM. "
                        "Sends automatically at that time, no confirmation "
                        "needed -- it only ever goes to the sender, nobody "
-                       "else sees it. Only works in a private chat, not the "
-                       "group. If they give only a day (tomorrow, Friday, next "
+                       "else sees it. Works from a private chat AND from the "
+                       "group (from the group it still goes to their DM). If they give only a day (tomorrow, Friday, next "
                        "Monday) or a vague time, pick the time yourself "
                        "(morning 09:00, afternoon 14:00, evening 18:00, no time "
                        "at all 09:00); do NOT ask, set it and say the time you "
@@ -2834,9 +2834,6 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
             return "(couldn't queue that reminder just now)"
 
         if name == "remind_me" and kind == "employee":
-            if in_group:
-                return ("Personal reminders only work from our private chat, "
-                        "not the group. Message me directly and I'll set it.")
             msg = (tool_input or {}).get("message", "").strip()
             when = (tool_input or {}).get("when", "").strip()
             if not msg:
@@ -2850,7 +2847,8 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
             if not jid:
                 return "You have no WhatsApp number on file for me to remind you at."
             if wa_outbox.enqueue(jid, f"Reminder: {msg[:600]}", send_after=when):
-                return f"Added a reminder for {when} (IST): {msg[:120]}"
+                return (f"Added a reminder for {when} (IST): {msg[:120]}"
+                        + (" -- it will come to your private chat, not the group." if in_group else ""))
             return "(couldn't set that reminder just now)"
 
         if name == "message_multiple" and kind == "employee":
@@ -4241,7 +4239,7 @@ def handle_message(sender: str, text: str, *,
     nudged = False
     lang_fixed = False
     sched_called = False
-    sched_q = identity["kind"] == "employee" and not in_group and bool(_SCHEDULE_Q.search(text or ""))
+    sched_q = identity["kind"] == "employee" and bool(_SCHEDULE_Q.search(text or ""))
     turn = {"sticker": None}
     try:
         for _ in range(5 if channel == "voice" else _MAX_TOOL_ROUNDS):
