@@ -248,9 +248,10 @@ def build(emp: dict, now: datetime | None = None) -> str:
     lines += ["", "Your meetings"] + ([f"  {m}" for m in meets] if meets else ["  None today"])
 
     if role in ("leader", "dm"):
-        dec = _decisions(emp, rows)
-        lines += ["", "Your decisions", f"  {len(dec)} item{'' if len(dec) == 1 else 's'} waiting"
-                  if dec else "  Nothing waiting"] + _list(dec, 8)
+        if emp.get("id") in ("emp001", "emp004"):   # approvals: Vidit and Kshitij only
+            dec = _decisions(emp, rows)
+            lines += ["", "Your decisions", f"  {len(dec)} item{'' if len(dec) == 1 else 's'} waiting"
+                      if dec else "  Nothing waiting"] + _list(dec, 8)
         dl = _due_today(rows, today)
         lines += ["", "Today's client deadlines", f"  {len(dl)}"] + _list(dl, 4)
         bl = [f"{g['name']}: {g['blockers'][0]}" for g in rows if g["blockers"]]
