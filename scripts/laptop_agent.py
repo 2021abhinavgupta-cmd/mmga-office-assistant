@@ -144,6 +144,29 @@ def _pid_alive(pid: int) -> bool:
         return True
 
 
+def _pid_is_companion(pid: int) -> bool:
+    """Is this live PID actually a laptop_agent process? After a reboot Windows
+    hands old PID numbers to unrelated programs, and a stale lock naming such a
+    pid used to stop the companion from ever starting (2026-10-21: pid 10576 had
+    become ShellHost.exe). If the command line can't be read, assume yes -- safer
+    to refuse a start than to risk two instances fighting over one WhatsApp
+    session."""
+    if sys.platform != "win32":
+        return True
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"],
+            capture_output=True, text=True, timeout=15,
+        )
+        cmd = (out.stdout or "").strip()
+        if not cmd:
+            return True
+        return "laptop_agent" in cmd
+    except Exception:
+        return True
+
+
 _LOCK_PATH = None  # set by _acquire_singleton_lock(), released in main()'s finally:
 
 
@@ -183,7 +206,8 @@ def _acquire_singleton_lock(cfg: dict) -> None:
                 existing = int((lock_path.read_text().strip() or "0"))
             except Exception:
                 existing = 0
-            if existing and existing != os.getpid() and _pid_alive(existing):
+            if (existing and existing != os.getpid() and _pid_alive(existing)
+                    and _pid_is_companion(existing)):
                 _log(f"another companion instance is already running "
                      f"(pid {existing}) -- refusing to start a second one; "
                      "this exact overlap is what forks the WhatsApp session")
