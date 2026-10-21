@@ -386,6 +386,17 @@ def _run_pa_brief():
         logger.exception("pa_brief failed")
 
 
+def _run_nightly_group_summary():
+    """22:30 IST every day: the day's group summary to Vidit and Kshitij (group_digest.run_nightly)."""
+    try:
+        import group_digest
+        result = group_digest.run_nightly()
+        if result.get("sent"):
+            logger.info("nightly group summary: %s", result)
+    except Exception:
+        logger.exception("nightly group summary failed")
+
+
 def _run_release_sync():
     """Announce new entries of config/releases.json (releases.py): a short WhatsApp to every
     active employee plus the what's-new popup. Idempotent; runs shortly after each deploy and
@@ -496,6 +507,8 @@ def init_scheduler(app):
                           next_run_time=datetime.now() + timedelta(seconds=60))
         scheduler.add_job(_run_pa_brief, "interval", minutes=10,
                           id="pa_brief", replace_existing=True)
+        scheduler.add_job(_run_nightly_group_summary, "interval", minutes=10,
+                          id="nightly_group_summary", replace_existing=True)
         # Data retention -- prunes old rows from tables that have no other
         # cleanup (usage_logs, wa_action_log, wa_call_outbox). Daily is
         # plenty; this isn't reacting to anything time-sensitive.

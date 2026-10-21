@@ -1831,6 +1831,23 @@ def companion_group_intel_simulate():
         return jsonify({"error": "failed"}), 500
 
 
+@companion_bp.route("/api/companion/nightly-group-summary", methods=["POST"])
+def companion_nightly_group_summary():
+    """Send the daily group summary now to the named people only (?to=emp003,emp001) --
+    for testing. The real send is the 22:30 IST scheduler job (group_digest.run_nightly)."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    to = [x for x in re.split(r"[\s,]+", request.args.get("to", "")) if x]
+    if not to:
+        return jsonify({"error": "to=<employee ids> is required"}), 400
+    try:
+        import group_digest
+        return jsonify(group_digest.run_nightly(force_ids=to))
+    except Exception:
+        logger.exception("companion nightly group summary failed")
+        return jsonify({"error": "failed"}), 500
+
+
 @companion_bp.route("/api/companion/pa-brief", methods=["GET"])
 def companion_pa_brief():
     """Preview the boss's morning brief (?user_id=emp003) without sending it."""

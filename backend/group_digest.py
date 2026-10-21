@@ -545,6 +545,83 @@ def build(text: str, group_ids, llm=None, now: datetime | None = None, llm_smart
     return out
 
 
+NIGHTLY_HOUR, NIGHTLY_MIN = 22, 30
+
+
+def run_nightly(now: datetime | None = None, force_ids: list | None = None) -> dict:
+    """Every day from 22:30 IST: DM the day's group summary to Vidit and Kshitij
+    (app_settings 'nightly_group_summary_ids', default emp001,emp004). Called every
+    10 minutes by the scheduler; each person gets it once a day (claim key
+    nightly_group_<date>_<id>, released if the send fails). Nothing is sent on a
+    day with no group messages. force_ids sends now, ignoring the time and the claim."""
+    now = now or datetime.now(_IST)
+    day = now.strftime("%Y-%m-%d")
+    if not force_ids and (now.hour, now.minute) < (NIGHTLY_HOUR, NIGHTLY_MIN):
+        return {"skipped": "before 22:30"}
+    import week_digest
+    import wa_outbox
+    from db import get_connection
+    ids = list(force_ids or [])
+    if not ids:
+        try:
+            conn = get_connection()
+            row = conn.execute("SELECT value FROM app_settings WHERE key='nightly_group_summary_ids'").fetchone()
+            conn.close()
+            ids = [x for x in re.split(r"[\s,]+", str(row[0]) if row and row[0] else "emp001,emp004") if x]
+        except Exception:
+            ids = ["emp001", "emp004"]
+    people = [e for e in week_digest._people(only_ids=ids) if str(e.get("whatsapp") or "").strip()]
+    if not people:
+        return {"sent": 0}
+    claimed = []
+    if not force_ids:
+        for e in people:
+            conn = get_connection()
+            try:
+                with conn:
+                    got = conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, '1')",
+                                       (f"nightly_group_{day}_{e['id']}",)).rowcount
+            finally:
+                conn.close()
+            if got:
+                claimed.append(e)
+        people = claimed
+        if not people:
+            return {"sent": 0, "skipped": "already sent today"}
+
+    def _release(es):
+        for e in es:
+            try:
+                conn = get_connection()
+                with conn:
+                    conn.execute("DELETE FROM app_settings WHERE key=?", (f"nightly_group_{day}_{e['id']}",))
+                conn.close()
+            except Exception:
+                pass
+
+    try:
+        import whatsapp_agent as wa
+        text = build("today", wa._group_allowlist(), llm=wa._digest_llm, now=now, llm_smart=wa._digest_llm_smart)
+    except Exception:
+        logger.exception("group_digest: nightly build failed")
+        if not force_ids:
+            _release(people)
+        return {"sent": 0, "error": "build failed"}
+    if text.startswith("No messages found") or text.startswith("I'm not recording") \
+            or "could not put a checked summary together" in text:
+        failed = "could not put" in text
+        if failed and not force_ids:
+            _release(people)          # model trouble: try again on the next tick
+        return {"sent": 0, "skipped": "summary failed, will retry" if failed else "no messages"}
+    sent = 0
+    for e in people:
+        if wa_outbox.enqueue(wa_outbox.wa_jid(e["whatsapp"]), "🌙 *Daily group summary*\n" + text):
+            sent += 1
+        elif not force_ids:
+            _release([e])
+    return {"sent": sent}
+
+
 def try_answer(text: str, group_ids, llm=None, llm_smart=None) -> str | None:
     if not is_group_summary_question(text):
         return None
