@@ -34,5 +34,16 @@
       "A plain yes with nothing waiting is no longer taken as a command."
     ],
     "how": "Message Lumina on WhatsApp, for example: remind me tomorrow at 10 to call the client, or: post in the group at 5pm that the meeting moved to 6. Tap the i button on the dashboard to see every update."
+  },
+  {
+    "id": "2026-10-21-tasks-from-the-team-group-automatically",
+    "date": "2026-10-21",
+    "title": "Tasks from the team group, automatically",
+    "bullets": [
+      "When someone asks you to do something in the team group, Lumina now adds it to your Daily Standup and WhatsApps you straight away.",
+      "Client feedback mentioned in the group is sent to that client's owner as soon as it is spotted.",
+      "Added by mistake? Tell Lumina that wasn't a task and it removes it."
+    ],
+    "how": "Just write the request in the group, for example: Charu make the Omotec reel by Friday. The person gets a WhatsApp and the task shows in their Daily Standup."
   }
 ]

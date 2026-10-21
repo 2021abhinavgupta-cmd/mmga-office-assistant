@@ -75,9 +75,10 @@ def ensure_schema(conn) -> None:
         updated_at    TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_gc_status ON group_commitments (status, owner_id)")
-    for col in ("requester_name", "requester_id"):   # who directed the work (an "ask"); empty for self-promises
+    for col, typ in (("requester_name", "TEXT"), ("requester_id", "TEXT"),   # who directed the work (an "ask"); empty for self-promises
+                     ("auto_task_id", "INTEGER")):                           # standup row group_actions created for an ask
         try:
-            conn.execute(f"ALTER TABLE group_commitments ADD COLUMN {col} TEXT")
+            conn.execute(f"ALTER TABLE group_commitments ADD COLUMN {col} {typ}")
         except Exception:
             pass
     # decisions and client preferences ("client approved the blue logo", "Mellow
@@ -192,7 +193,7 @@ _SYSTEM = (
     "\"asks\":[{\"from\":\"who is asking, exact team name\",\"to\":\"the person called out, "
     "exact team name\",\"action\":\"short imperative phrase\",\"due\":\"YYYY-MM-DD or empty\","
     "\"quote\":\"exact words\"}],"
-    "\"facts\":[{\"kind\":\"decision or preference\",\"client\":\"client name or empty\","
+    "\"facts\":[{\"kind\":\"decision, preference, feedback or information\",\"client\":\"client name or empty\","
     "\"text\":\"one short sentence\",\"quote\":\"exact words\"}]}.\n"
     "asks: a message where someone tags or names a teammate and tells them to do "
     "something ('@Charu all collab with stempedia', 'Abhinav press on twinkle to accept "
@@ -200,7 +201,10 @@ _SYSTEM = (
     "@Name. A self-promise ('I'll message twinkle') goes in new, not asks.\n"
     "facts: a decision is something settled ('client approved the blue logo', "
     "'posting moved to Friday'); a preference is how a client or the team likes "
-    "things done ('Mellow wants captions in Hinglish'). Only clear, lasting ones.\n"
+    "things done ('Mellow wants captions in Hinglish'). feedback is what a CLIENT said "
+    "about our work ('Omotec didn't like the second reel', 'Mellow approved the calendar') "
+    "and must name the client; information is a lasting fact worth remembering that is "
+    "not a decision or preference ('Agrius launch is on 3 Nov'). Only clear, lasting ones.\n"
     "Lines tagged [voice note] or [image] are transcripts/descriptions of media; "
     "treat them like normal messages.\n"
     "Rules: every item needs a quote copied EXACTLY from a message. The owner is "
@@ -381,6 +385,7 @@ def extract_group(conn, group_id: str) -> dict:
         counts["new"] += 1
 
     counts["asks"] = 0
+    actions: list = []     # run by group_actions AFTER this transaction commits
     for it in (data.get("asks") or [])[:10]:
         if not isinstance(it, dict):
             continue
@@ -395,13 +400,17 @@ def extract_group(conn, group_id: str) -> dict:
         rname, rid = _owner(it.get("from"), roster)
         if any(_overlap(action, r[2]) >= 0.7 and (r[1] or "") == oname for r in open_rows):
             continue
-        conn.execute(
+        due = _valid_date(it.get("due"))
+        cur = conn.execute(
             "INSERT INTO group_commitments (group_id, group_name, owner_name, owner_id, action, "
             "due_date, quote, source_ts, status, created_at, updated_at, requester_name, requester_id) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-            (group_id, group_name, oname, oid, action, _valid_date(it.get("due")) or None,
+            (group_id, group_name, oname, oid, action, due or None,
              quote[:300], _src_ts(quote), "open", now_iso, now_iso, rname if rid else "", rid or ""))
         counts["asks"] += 1
+        actions.append({"type": "ask", "commit_id": cur.lastrowid, "owner_id": oid, "owner_name": oname,
+                        "requester_id": rid or "", "requester_name": rname if rid else "",
+                        "action": action, "due": due, "quote": quote})
 
     for key, status in (("done", "done"), ("dropped", "dropped")):
         for it in (data.get(key) or [])[:10]:
@@ -438,7 +447,9 @@ def extract_group(conn, group_id: str) -> dict:
             continue
         ftext = re.sub(r"\s+", " ", str(it.get("text") or "")).strip()[:240]
         quote = str(it.get("quote") or "")
-        kind = "preference" if str(it.get("kind") or "").lower().startswith("pref") else "decision"
+        k = str(it.get("kind") or "").lower()
+        kind = ("preference" if k.startswith("pref") else "feedback" if k.startswith("feed")
+                else "information" if k.startswith("info") else "decision")
         if not ftext or not _grounded(quote, texts):
             continue
         client = re.sub(r"\s+", " ", str(it.get("client") or "")).strip()[:80]
@@ -449,8 +460,11 @@ def extract_group(conn, group_id: str) -> dict:
                      "VALUES (?,?,?,?,?,?,?)",
                      (group_id, kind, client, ftext, quote[:300], _src_ts(quote), now_iso))
         counts["facts"] += 1
+        if kind == "feedback" and client:
+            actions.append({"type": "feedback", "client": client, "text": ftext, "quote": quote})
 
     conn.execute(f"UPDATE wa_group_log SET processed=1 WHERE id IN ({','.join('?'*len(ids))})", ids)
+    counts["_actions"] = actions
     return counts
 
 
@@ -471,6 +485,16 @@ def extract_pending() -> dict:
                 out[gid] = {"error": "failed"}
     finally:
         conn.close()
+    # act on what was found only after the extraction transaction committed
+    # (group_actions opens its own connections; doing it inside would deadlock)
+    for gid, res in out.items():
+        acts = res.pop("_actions", None) if isinstance(res, dict) else None
+        if acts:
+            try:
+                import group_actions
+                res["actions"] = group_actions.apply(acts)
+            except Exception:
+                logger.exception("group_intel: group_actions failed for %s", gid)
     return out
 
 
@@ -764,6 +788,11 @@ def reject_commitment(cid: int, note: str = "") -> bool:
         if not row:
             return False
         with conn:
+            try:
+                import group_actions
+                group_actions.undo_for_commitment(conn, cid)   # drop the standup task an ask created
+            except Exception:
+                logger.debug("group_intel: undo of auto task failed", exc_info=True)
             conn.execute("UPDATE group_commitments SET status='dropped', evidence=?, updated_at=? WHERE id=?",
                          ("marked wrong: " + (note or "not a real commitment")[:200], _now().isoformat(), cid))
             conn.execute("INSERT INTO group_feedback (example, note, created_at) VALUES (?,?,?)",
