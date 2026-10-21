@@ -584,7 +584,7 @@ def notify_batch(items: list) -> int:
                          + ([f"_Updated by {who}_"] if who else []))
         import wa_outbox
         n = 0
-        for e in _people(exclude_id=next(iter(editors)) if len(editors) == 1 else ""):
+        for e in _people():  # editor included too (owner request 2026-10-21)
             jid = wa_outbox.wa_jid(e.get("whatsapp", ""))
             if jid and wa_outbox.enqueue(jid, text):
                 n += 1
@@ -654,7 +654,7 @@ def notify_change(before: dict | None, after: dict | None, action: str,
         text = "\n".join(lines)
         import wa_outbox
         n = 0
-        for e in _people(exclude_id=editor_id):
+        for e in _people():  # editor included too (owner request 2026-10-21)
             jid = wa_outbox.wa_jid(e.get("whatsapp", ""))
             if jid and wa_outbox.enqueue(jid, text):
                 n += 1
