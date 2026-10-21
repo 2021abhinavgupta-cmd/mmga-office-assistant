@@ -45,5 +45,15 @@
       "Added by mistake? Tell Lumina that wasn't a task and it removes it."
     ],
     "how": "Just write the request in the group, for example: Charu make the Omotec reel by Friday. The person gets a WhatsApp and the task shows in their Daily Standup."
+  },
+  {
+    "id": "2026-10-21-links-now-included-in-group-summaries",
+    "date": "2026-10-21",
+    "title": "Links now included in group summaries",
+    "bullets": [
+      "When you ask Lumina to summarise the team group, the links people shared are now included.",
+      "Each link sits under the point it belongs to, and any others are listed at the end under Links shared."
+    ],
+    "how": "In the team group write: lumina summary (or: lumina summary yesterday). The links come with it."
   }
 ]

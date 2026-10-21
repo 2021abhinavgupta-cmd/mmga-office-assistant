@@ -170,6 +170,20 @@ def redact(text: str) -> str:
     return t
 
 
+def _urls_of(row) -> list:
+    """Real links in one stored message, in order, without trailing punctuation.
+    Skipped for a message that also shares a password/OTP (never repeat those)."""
+    txt = row["text"] or ""
+    if _SECRET.search(txt):
+        return []
+    out = []
+    for u in _URL.findall(txt):
+        u = u.rstrip(".,)>]\"'")
+        if u and u not in out:
+            out.append(u)
+    return out
+
+
 def _clean(text: str, cap: int) -> str:
     t = redact(_URL.sub(_domain, text))
     t = re.sub(r"\s+", " ", t).strip()
@@ -408,6 +422,14 @@ def _gen(use, llm):
         ok = verdict.get(n) if verdict else _words_ok(text, hay)
         LAST.setdefault("verdicts", []).append({"checked": ok, "text": text})
         if ok:
+            # the model only ever saw "[link: site]"; the real links are added here, in code
+            links = []
+            for i in ids:
+                for u in _urls_of(use[i - 1]):
+                    if u not in links:
+                        links.append(u)
+            if links:
+                text = text + "\n  " + "\n  ".join(links[:3])
             good.append((ids, text, meta))
         else:
             bad += 1
@@ -446,8 +468,22 @@ def _summary(rows, label: str, notes: list, llm) -> str | None:
         parts.append("*❗ Important*\n" + "\n".join(f"- {t}" for t in imp))
     for topic, items in groups.items():
         parts.append(f"*{topic}*\n" + "\n".join(f"- {t}" for t in items))
-    out = head + "\n" + "\n\n".join(parts)
-    return out if len(out) <= MAX_REPLY else out[:MAX_REPLY - 3] + "..."
+    body = head + "\n" + "\n\n".join(parts)
+    # every link shared in the window that is not already shown under a point
+    shown = "\n".join(t for _, t, _m in pts)
+    extra, seen = [], set()
+    for r in use:
+        for u in _urls_of(r):
+            if u in shown or u in seen:
+                continue
+            seen.add(u)
+            extra.append(f"- {r['sender_name']} ({_hm(r['created_at'])}): {u}")
+    links_block = ("\n\n*Links shared*\n" + "\n".join(extra[:25])
+                   + (f"\n...and {len(extra) - 25} more" if len(extra) > 25 else "")) if extra else ""
+    room = MAX_REPLY - len(links_block)
+    if len(body) > room:      # trim the summary, never the links
+        body = body[:max(room - 3, 0)] + "..."
+    return body + links_block
 
 
 # ---------- public -------------------------------------------------------
