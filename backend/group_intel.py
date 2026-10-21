@@ -468,6 +468,55 @@ def extract_group(conn, group_id: str) -> dict:
     return counts
 
 
+def simulate(messages: list) -> dict:
+    """Dry run for testing: real model, same checks as extract_group, no writes
+    and no messages. Reports what would become tasks / notifications / facts."""
+    msgs = [(str(m.get("name") or "?")[:40], str(m.get("text") or "")[:600])
+            for m in (messages or [])[:40] if isinstance(m, dict) and m.get("text")]
+    if not msgs:
+        return {"error": "send {messages:[{name,text}]}"}
+    roster = _roster()
+    now_ist = datetime.now(_IST)
+    prompt = (f"Today is {now_ist.strftime('%A %Y-%m-%d')}, time {now_ist.strftime('%H:%M')} IST.\n"
+              f"Team members: {', '.join(e.get('name', '') for e in roster)}\n\nOpen commitments:\n(none)\n\n"
+              f"Earlier messages (context only, do not extract from these):\n(none)\n\n"
+              f"NEW messages to analyse:\n" + "\n".join(f"{n}: {t}" for n, t in msgs))
+    data = _llm_json(prompt) or {}
+    texts = [t for _, t in msgs]
+    out: dict = {"tasks_would_be_created": [], "feedback_would_notify": [], "promises_tracked_only": [],
+                 "facts_saved": [], "rejected_not_in_chat": 0}
+    for it in (data.get("asks") or [])[:10]:
+        if not isinstance(it, dict):
+            continue
+        if not _grounded(str(it.get("quote") or ""), texts):
+            out["rejected_not_in_chat"] += 1
+            continue
+        oname, oid = _owner(it.get("to"), roster)
+        rname, rid = _owner(it.get("from"), roster)
+        row = {"for": oname, "asked_by": rname, "task": it.get("action"), "due": _valid_date(it.get("due")) or None}
+        if not oid:
+            row["skipped"] = "person not recognised as a teammate"
+        elif oid == rid:
+            row["skipped"] = "ask to oneself"
+        out["tasks_would_be_created"].append(row)
+    for it in (data.get("new") or [])[:10]:
+        if isinstance(it, dict) and _grounded(str(it.get("quote") or ""), texts):
+            out["promises_tracked_only"].append({"owner": _owner(it.get("owner"), roster)[0], "action": it.get("action")})
+    for it in (data.get("facts") or [])[:8]:
+        if isinstance(it, dict) and _grounded(str(it.get("quote") or ""), texts):
+            k = str(it.get("kind") or "")
+            row = {"kind": k, "client": it.get("client"), "text": it.get("text")}
+            out["facts_saved"].append(row)
+            if k.lower().startswith("feed") and it.get("client"):
+                try:
+                    import group_actions
+                    row["client_dm_ids"] = group_actions._client_dm_ids(str(it.get("client")))
+                except Exception:
+                    pass
+                out["feedback_would_notify"].append(row)
+    return out
+
+
 def extract_pending() -> dict:
     """One pass over every allow-listed group with unprocessed messages."""
     out = {}

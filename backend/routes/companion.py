@@ -1816,6 +1816,21 @@ def companion_group_intel_run():
         return jsonify({"error": "failed"}), 500
 
 
+@companion_bp.route("/api/companion/group-intel/simulate", methods=["POST"])
+def companion_group_intel_simulate():
+    """Dry run: body {"messages":[{"name","text"}]}. Runs the REAL model over the
+    sample messages and reports what the group pipeline would do (tasks, DMs,
+    facts). Writes nothing and messages nobody."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        import group_intel
+        return jsonify(group_intel.simulate((request.get_json(silent=True) or {}).get("messages") or []))
+    except Exception:
+        logger.exception("companion group-intel simulate failed")
+        return jsonify({"error": "failed"}), 500
+
+
 @companion_bp.route("/api/companion/pa-brief", methods=["GET"])
 def companion_pa_brief():
     """Preview the boss's morning brief (?user_id=emp003) without sending it."""
