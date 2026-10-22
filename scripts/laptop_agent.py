@@ -1332,6 +1332,12 @@ def job_class_meeting(cfg: dict) -> None:
         return
     if datetime.now().weekday() not in (1, 3):   # Tue/Thu only
         return
+    # only on days HR marked work-from-home on the office calendar. If the
+    # calendar can't be read, send anyway rather than silently skip the meeting.
+    day = _companion_get(cfg, "/api/companion/office-day")
+    if day is not None and not day.get("wfh"):
+        _log("class-meeting: skipped (not a WFH day on the calendar)")
+        return
     text = f"*Meeting time* -- join here: {_CLASS_MEETING_LINK}"
     if _bridge_send(cfg, grp, text, mention_all=True):
         _log("class-meeting: sent (tagged all)")

@@ -390,6 +390,31 @@ def companion_attendance_missing():
     })
 
 
+@companion_bp.route("/api/companion/office-day", methods=["GET"])
+def companion_office_day():
+    """What HR's office calendar says for one day (?date=YYYY-MM-DD, default today IST):
+    {wfh, office, holiday, titles}. Used so the class-meeting link is only posted on WFH days."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        from datetime import datetime
+        from utils import IST
+        day = (request.args.get("date") or datetime.now(IST).strftime("%Y-%m-%d"))[:10]
+        conn = get_connection()
+        try:
+            rows = conn.execute(
+                "SELECT kind, title FROM office_calendar WHERE ? BETWEEN start_date AND end_date",
+                (day,)).fetchall()
+        finally:
+            conn.close()
+        kinds = [r[0] for r in rows]
+        return jsonify({"date": day, "wfh": "wfh" in kinds, "office": "office" in kinds,
+                        "holiday": "holiday" in kinds, "titles": [r[1] for r in rows]})
+    except Exception:
+        logger.exception("companion office-day failed")
+        return jsonify({"error": "failed"}), 500
+
+
 @companion_bp.route("/api/companion/alert-recipients", methods=["GET"])
 def companion_alert_recipients():
     """Employee ids in app_settings 'alert_recipient_ids' (default emp003),
