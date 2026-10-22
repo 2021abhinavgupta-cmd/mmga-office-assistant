@@ -40,6 +40,21 @@ WORK_START = dt_time(9, 0, 0)
 WORK_END = dt_time(22, 30, 0)
 
 
+NO_CHECKIN_BEFORE = dt_time(6, 0, 0)
+
+
+def _too_early_for_checkin(hhmmss: str) -> bool:
+    """A page opened or a tab left running in the small hours (00:00-06:00) is
+    not someone arriving. Recording it (even clamped to 09:00) made the day look
+    like it started early and inflated overtime (Saurav, 14 Oct: 'in' at 01:33,
+    really arrived 11:40). Between 06:00 and 09:00 a check-in still counts, from 09:00."""
+    try:
+        h, m, s = (int(p) for p in hhmmss.split(":"))
+        return dt_time(h, m, s) < NO_CHECKIN_BEFORE
+    except Exception:
+        return False
+
+
 def _clamp_work_time(hhmmss: str) -> str:
     try:
         h, m, s = (int(p) for p in hhmmss.split(":"))
@@ -94,6 +109,8 @@ def _attendance_checkin(user_id: str, lat=None, lng=None):
     "first real checkin wins" (a NULL only gets filled once), it just also
     handles the row already existing from a ping with nothing in it yet."""
     d = today_ist()
+    if _too_early_for_checkin(now_ist()):
+        return d, None      # small-hours activity is not an arrival
     t = _clamp_work_time(now_ist())
     ts = datetime.now(IST).isoformat(timespec="seconds")
     conn = _attendance_conn()

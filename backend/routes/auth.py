@@ -190,14 +190,22 @@ def auth_verify():
     # back now). It used to clear checkout_time unconditionally, which silently
     # reverted an explicit Check Out / Logout the moment the page was refreshed.
     # A manual checkout (checkout_auto = 0) now sticks until they check in again.
+    # The check-in time must follow the work-day rules (nothing before 06:00,
+    # nothing earlier than 09:00): a raw page-load time at 01:33 used to become
+    # the day's check-in and inflated overtime.
+    from routes.attendance import _too_early_for_checkin, _clamp_work_time
+    _now = now_ist()
+    _cin = None if _too_early_for_checkin(_now) else _clamp_work_time(_now)
     conn = _attendance_conn()
     with conn:
         conn.execute("""
             INSERT INTO daily_attendance (user_id, date, checkin_time)
             VALUES (?, ?, ?)
-            ON CONFLICT(user_id, date) DO UPDATE SET checkout_time = NULL, checkout_auto = 0
-            WHERE daily_attendance.checkout_auto = 1
-        """, (user_id, today_ist(), now_ist()))
+            ON CONFLICT(user_id, date) DO UPDATE SET
+                checkin_time  = COALESCE(daily_attendance.checkin_time, excluded.checkin_time),
+                checkout_time = CASE WHEN daily_attendance.checkout_auto = 1 THEN NULL ELSE daily_attendance.checkout_time END,
+                checkout_auto = CASE WHEN daily_attendance.checkout_auto = 1 THEN 0 ELSE daily_attendance.checkout_auto END
+        """, (user_id, today_ist(), _cin))
     conn.close()
     data = _load_employees()
     emp = next((e for e in data.get("employees", []) if e["id"] == user_id), {})
