@@ -4138,18 +4138,18 @@ def handle_message(sender: str, text: str, *,
 
     # "give me the meeting link": ask which meeting first, then give the link on yes.
     if identity["kind"] == "employee":
-        if _pop_pending_meetlink(identity["id"]):
-            low = _norm(text).rstrip("!. ")
-            if low in _YES_WORDS or low in ("yes the morning one", "morning one", "morning", "the morning one"):
-                return f"Here you go: {MORNING_MEET_LINK}"
-            if low in ("no", "n", "nope", "nahi", "no the other one"):
-                return "Okay, which meeting do you mean? I only have the morning class meeting link saved."
-            # anything else -> treat as a fresh message
-        elif _LUMINA_LINK_Q.search((text or "").strip()):
+        _asked = _pop_pending_meetlink(identity["id"])
+        low = _norm(text).rstrip("!. ")
+        if _asked and (low in _YES_WORDS or low in ("yes the morning one", "morning one", "morning", "the morning one")):
+            return f"Here you go: {MORNING_MEET_LINK}"
+        if _asked and low in ("no", "n", "nope", "nahi", "no the other one"):
+            return "Okay, which meeting do you mean? I only have the morning class meeting link saved."
+        if _LUMINA_LINK_Q.search((text or "").strip()):
             return f"Lumina: {LUMINA_URL}"
-        elif _MEET_LINK_Q.search((text or "").strip()):
+        if _MEET_LINK_Q.search((text or "").strip()):
             _set_pending_meetlink(identity["id"])
             return "Are you talking about the morning meeting (Tue/Thu 10:30)? Reply yes and I'll send the link."
+        # anything else -> a fresh message
 
     # Confirm-before-broadcast: a pending send_group_message /
     # schedule_group_message waiting on a yes/no.
