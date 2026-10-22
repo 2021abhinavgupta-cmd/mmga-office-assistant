@@ -632,6 +632,50 @@ def _pop_pending_multi(emp_id: str) -> dict | None:
         return None
 
 
+# ── meeting link (asks "the morning one?" before giving it) ─────────────────
+
+MORNING_MEET_LINK = "https://meet.google.com/rek-jyvv-jmm"   # same link the Tue/Thu 10:28 group post uses
+_MEET_LINK_Q = re.compile(
+    r"\b(?:(?:google\s+)?meet(?:ing)?\s+link|link\s+(?:of|for|to)\s+(?:the\s+|today'?s\s+)?(?:google\s+)?meet(?:ing)?|"
+    r"meeting\s+(?:url|invite)|link\s+(?:of|for)\s+(?:the\s+)?(?:call|class))\b", re.I)
+
+
+def _set_pending_meetlink(emp_id: str) -> None:
+    try:
+        conn = get_connection()
+        with conn:
+            conn.execute(
+                "INSERT INTO wa_pending_action (sender, kind, payload, created_at) "
+                "VALUES (?, 'meetlink', '{}', ?) "
+                "ON CONFLICT(sender) DO UPDATE SET kind=excluded.kind, "
+                "payload=excluded.payload, created_at=excluded.created_at",
+                (emp_id, datetime.now(timezone.utc).isoformat()))
+        conn.close()
+    except Exception:
+        logger.exception("whatsapp_agent: set pending meetlink failed")
+
+
+def _pop_pending_meetlink(emp_id: str) -> bool:
+    """True if this person was just asked 'the morning one?' (within the TTL); clears it."""
+    try:
+        conn = get_connection()
+        row = conn.execute("SELECT created_at FROM wa_pending_action WHERE sender=? AND kind='meetlink'",
+                           (emp_id,)).fetchone()
+        if not row:
+            conn.close()
+            return False
+        with conn:
+            conn.execute("DELETE FROM wa_pending_action WHERE sender=? AND kind='meetlink'", (emp_id,))
+        conn.close()
+        ts = datetime.fromisoformat(str(row[0]).replace("Z", "+00:00"))
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) - ts <= timedelta(minutes=_PENDING_TTL_MIN)
+    except Exception:
+        logger.exception("whatsapp_agent: pop pending meetlink failed")
+        return False
+
+
 # ── audit log ──────────────────────────────────────────────────────────────
 
 # Messages that must be answered from a tool call (a read or a write), not memory.
@@ -4084,6 +4128,19 @@ def handle_message(sender: str, text: str, *,
                     f"Valid for {alexa_link.CODE_TTL_MIN} minutes. Say to your Echo:\n"
                     f"_Alexa, tell Lumina code {spaced}_\n\n"
                     "After that, ask anything: _Alexa, ask Lumina what's on my standup_.")
+
+    # "give me the meeting link": ask which meeting first, then give the link on yes.
+    if identity["kind"] == "employee":
+        if _pop_pending_meetlink(identity["id"]):
+            low = _norm(text).rstrip("!. ")
+            if low in _YES_WORDS or low in ("yes the morning one", "morning one", "morning", "the morning one"):
+                return f"Here you go: {MORNING_MEET_LINK}"
+            if low in ("no", "n", "nope", "nahi", "no the other one"):
+                return "Okay, which meeting do you mean? I only have the morning class meeting link saved."
+            # anything else -> treat as a fresh message
+        elif _MEET_LINK_Q.search((text or "").strip()):
+            _set_pending_meetlink(identity["id"])
+            return "Are you talking about the morning meeting (Tue/Thu 10:30)? Reply yes and I'll send the link."
 
     # Confirm-before-broadcast: a pending send_group_message /
     # schedule_group_message waiting on a yes/no.
