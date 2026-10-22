@@ -640,6 +640,13 @@ _MEET_LINK_Q = re.compile(
     r"meeting\s+(?:url|invite)|link\s+(?:of|for)\s+(?:the\s+)?(?:call|class))\b", re.I)
 
 
+LUMINA_URL = "https://lumina.mmga.agency/dashboard.html"
+_LUMINA_LINK_Q = re.compile(
+    r"\b(?:lumina\s+(?:link|url|website|site|portal|login)|"
+    r"(?:link|url|website|site|portal|login)\s+(?:of|for|to)\s+(?:the\s+)?lumina|"
+    r"(?:where|how)\s+(?:do\s+i|can\s+i|to)\s+(?:open|login|log\s+in\s+to|access)\s+lumina)\b", re.I)
+
+
 def _set_pending_meetlink(emp_id: str) -> None:
     try:
         conn = get_connection()
@@ -4138,6 +4145,8 @@ def handle_message(sender: str, text: str, *,
             if low in ("no", "n", "nope", "nahi", "no the other one"):
                 return "Okay, which meeting do you mean? I only have the morning class meeting link saved."
             # anything else -> treat as a fresh message
+        elif _LUMINA_LINK_Q.search((text or "").strip()):
+            return f"Lumina: {LUMINA_URL}"
         elif _MEET_LINK_Q.search((text or "").strip()):
             _set_pending_meetlink(identity["id"])
             return "Are you talking about the morning meeting (Tue/Thu 10:30)? Reply yes and I'll send the link."
