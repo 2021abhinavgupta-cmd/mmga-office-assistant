@@ -1803,6 +1803,22 @@ def companion_group_commitments():
         return jsonify({"error": "failed"}), 500
 
 
+@companion_bp.route("/api/companion/group-commitments/reject", methods=["POST"])
+def companion_group_commitment_reject():
+    """Close a tracked item that was never a real commitment (?id=24&note=...).
+    Also teaches the extractor (same as the boss replying 'that wasn't a task')."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    try:
+        import group_intel
+        cid = int(request.args.get("id", "0"))
+        ok = group_intel.reject_commitment(cid, request.args.get("note", "") or "not a promise")
+        return jsonify({"closed": bool(ok)})
+    except Exception:
+        logger.exception("companion group-commitment reject failed")
+        return jsonify({"error": "failed"}), 500
+
+
 @companion_bp.route("/api/companion/group-intel/run", methods=["POST"])
 def companion_group_intel_run():
     """Run one extraction pass now (normally every 8 min on the scheduler)."""

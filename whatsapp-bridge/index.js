@@ -935,7 +935,9 @@ async function start() {
           data = {
             reply: isGroup
               ? null
-              : "Sorry — I couldn't reach the assistant just now. Try again in a moment.",
+              : /timeout|aborted|fetch failed|Lumina 5\d\d/i.test(e.message)
+                ? "The server is slow right now, so I may not have finished that. Check in a minute whether it went through before asking again."
+                : "Sorry — I couldn't reach the assistant just now. Try again in a moment.",
           };
         }
 

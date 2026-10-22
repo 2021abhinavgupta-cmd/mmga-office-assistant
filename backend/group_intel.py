@@ -206,7 +206,9 @@ _SYSTEM = (
     "('Lakshmi can you check the logo files?'). Asks examples: 'Nupur please send the "
     "calendar designs by tomorrow 5pm', '@Charulata omotec ka reel aaj shaam tak bana do', "
     "'Abhinav mujhe bhi dekhna hai tum kar lo', 'Happy edit ready kar dena kal tak'. "
-    "Always fill due when the message gives a day or time ('aaj', 'kal', 'by Friday').\n"
+    "Always fill due when the message gives a day or time ('aaj', 'kal', 'by Friday'). "
+    "A bare question that only calls people out ('Can connect? @Vidit @Lakshmi') is NOT a "
+    "promise by them: skip it unless the work is clear enough to state in a few words.\n"
     "facts: a decision is something settled ('client approved the blue logo', "
     "'posting moved to Friday'); a preference is how a client or the team likes "
     "things done ('Mellow wants captions in Hinglish'). feedback is what a CLIENT said "
@@ -612,6 +614,19 @@ def nudge_ready(c: dict, now: datetime | None = None) -> bool:
     return now.hour >= NO_DUE_SAME_DAY_HOUR
 
 
+def _too_vague(c: dict) -> bool:
+    """Never chase a promise we can't state clearly: a one-word action with no
+    due date ("connect"), or a quote that is just someone asking this person a
+    question ("Can connect? @Vidit") -- that is a request, not their promise."""
+    action = (c.get("action") or "").strip()
+    quote = (c.get("quote") or "").strip()
+    if len(action.split()) < 2 and not c.get("due_date"):
+        return True
+    if quote.endswith("?") and "@" in quote:
+        return True
+    return False
+
+
 def commitment_items(user_id: str, name: str, today: str, now: datetime | None = None,
                      cache: dict | None = None, check_evidence: bool = True) -> list:
     """followups.py hook: this person's open group promises that are due a
@@ -634,6 +649,8 @@ def commitment_items(user_id: str, name: str, today: str, now: datetime | None =
     for c in rows:
         if not nudge_ready(c, now):
             continue
+        if _too_vague(c):
+            continue
         if check_evidence:
             since = (c["created_at"] or "")[:10] or today
             ev = (_standup_evidence(user_id, c["action"], since)
@@ -646,6 +663,7 @@ def commitment_items(user_id: str, name: str, today: str, now: datetime | None =
         out.append({
             "kind": "group_commitment",
             "ref": f"gc:{c['id']}",
+            "quote": (c["quote"] or "")[:160],
             "days": 0,
             "text": (f"in the group chat{(' at ' + when) if when else ''} they said "
                      f"\"{(c['quote'] or c['action'])[:160]}\" ({c['action']}{due}); "

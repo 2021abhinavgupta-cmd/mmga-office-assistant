@@ -436,6 +436,14 @@ def _compose(employee: dict, items: list) -> str:
         import whatsapp_agent
         text = whatsapp_agent.compose_followup(employee, items)
         if text:
+            # a group-chat item must carry the real words, never a paraphrase
+            # the person can't check against the group
+            low = text.lower()
+            for i in items:
+                q = (i.get("quote") or "").strip()
+                if i.get("kind") == "group_commitment" and q and q[:30].lower() not in low:
+                    logger.info("followups: composed text dropped the quote, using fallback")
+                    return _fallback_text(employee, items)
             return text
     except Exception:
         logger.exception("followups: agent compose failed, using fallback")
