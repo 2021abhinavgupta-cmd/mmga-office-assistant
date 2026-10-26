@@ -244,7 +244,10 @@ function pushGroupMsg(jid, name, text) {
 }
 
 async function maybeReactToBurst(sock, jid, groupNm) {
-  if (STICKER_RATE <= 0 || !activeGroups.has(jid) || !stickerFiles().length) return;
+  // Owner request 2026-10-26: no stickers in the group when several messages
+  // arrive. Set BURST_REACT=on to bring the reaction back.
+  if (process.env.BURST_REACT !== "on") return;
+  if (STICKER_RATE <= 0|| !activeGroups.has(jid) || !stickerFiles().length) return;
   const now = Date.now();
   const recent = (groupBuf.get(jid) || []).filter((m) => now - m.ts <= BURST_WINDOW_MS);
   const people = new Set(recent.map((m) => m.name));
