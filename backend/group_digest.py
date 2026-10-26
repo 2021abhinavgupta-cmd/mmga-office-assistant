@@ -392,10 +392,13 @@ def _gen(use, llm):
         LAST["raw"] = (raw or "")[:4000]
         m = re.search(r"\{[\s\S]*\}", raw or "")
         points = json.loads(m.group(0)).get("points") if m else None
-    except Exception:
-        logger.debug("group_digest: summary call failed", exc_info=True)
+    except Exception as e:
+        import traceback
+        LAST["error"] = traceback.format_exc()[-1500:]
+        logger.warning("group_digest: summary call failed: %s", e)
         return None
     if not isinstance(points, list):
+        LAST["error"] = "no JSON points in model output: " + (raw or "")[:300]
         return None
     cand, bad = [], 0
     for pt in points[:14]:
