@@ -98,10 +98,14 @@ def _llm_create(model: dict, system, tools, messages: list, max_tokens: int,
                 model["name"], model["tier"] = names[i], "sonnet"   # bill/log what really answered
                 _BEST_START = i
                 return resp
-            except Exception:
+            except Exception as e:
+                LAST_ERROR["smart"] = f"{names[i]}: {type(e).__name__}: {str(e)[:400]}"
                 logger.exception("whatsapp_agent: best-model call failed (%s)", names[i])
         if llm_openrouter.enabled():
-            return _qwen()
+            try:
+                return _qwen()
+            except Exception:
+                logger.exception("whatsapp_agent: OpenRouter fallback failed, using plain Claude")
         return _claude()
     if claude_first:   # voice: Alexa gives up at 8 s, so use the fastest reliable model
         try:

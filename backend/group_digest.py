@@ -395,6 +395,11 @@ def _gen(use, llm):
     except Exception as e:
         import traceback
         LAST["error"] = traceback.format_exc()[-1500:]
+        try:
+            import whatsapp_agent as _wa
+            LAST["smart_error"] = _wa.LAST_ERROR.get("smart", "")
+        except Exception:
+            pass
         logger.warning("group_digest: summary call failed: %s", e)
         return None
     if not isinstance(points, list):
