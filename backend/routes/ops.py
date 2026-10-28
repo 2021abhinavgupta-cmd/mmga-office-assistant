@@ -666,6 +666,18 @@ def add_my_task():
     return jsonify({"success": True, "task_id": task_id, "date": date_str}), 201
 
 
+_STALE_DUE_DAYS = 14
+
+
+def _stale_due(due, today):
+    """True when a Notion due date is more than 14 days before today."""
+    try:
+        dd = datetime.strptime(str(due).split("T")[0], "%Y-%m-%d").date()
+        return (today.date() - dd).days > _STALE_DUE_DAYS
+    except Exception:
+        return False
+
+
 @ops_bp.route("/api/standup/auto-fill", methods=["POST"])
 def auto_fill_standup():
     """
@@ -902,6 +914,13 @@ def auto_fill_standup():
     added_count = 0
     with conn:
         cur = conn.cursor()
+        closed_pairs = set()
+        for _u, _n in cur.execute(
+            "SELECT DISTINCT user_id, notion_id FROM standup_tasks "
+            "WHERE notion_id IS NOT NULL AND notion_id != '' "
+            "AND status IN ('done','deleted','delegated')"
+        ).fetchall():
+            closed_pairs.add((_u, _n))
         for vt in valid_tasks:
             nid = vt.get("notion_id")
             raw_title = vt.get("title", "Untitled").strip()
@@ -978,6 +997,14 @@ def auto_fill_standup():
                         break
                                 
                 if not matched_id:
+                    # Never re-add what this person already finished, deleted or
+                    # handed off, and (Sync All only) never resurrect a task whose
+                    # due date is long past: Notion keeps hundreds of old tasks as
+                    # "in progress" and Sync All used to dump them all back.
+                    if nid and (target_user_id, nid) in closed_pairs:
+                        continue
+                    if sync_all and _stale_due(d, today):
+                        continue
                     if insert_allowed:
                         cur.execute(
                             "INSERT INTO standup_tasks (user_id, date, title, notion_id, due_date) VALUES (?, ?, ?, ?, ?)",
