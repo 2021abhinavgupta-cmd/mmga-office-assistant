@@ -1562,6 +1562,35 @@ def companion_storage_cleanup():
     return jsonify(result)
 
 
+@companion_bp.route("/api/companion/standup-rows", methods=["GET"])
+def companion_standup_rows():
+    """Read-only: every standup_tasks row for one person over the last N days
+    in ANY status (deleted, delegated, done...), so a 'my task vanished'
+    report can be traced. ?user_id=emp009&days=14"""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    uid = (request.args.get("user_id") or "").strip()
+    if not uid:
+        return jsonify({"error": "user_id required"}), 400
+    try:
+        days = max(1, min(60, int(request.args.get("days", 14))))
+    except Exception:
+        days = 14
+    since = (datetime.now(utils.IST) - timedelta(days=days)).strftime("%Y-%m-%d")
+    conn = get_connection()
+    try:
+        cur = conn.execute(
+            "SELECT id, date, title, status, notion_id, carried_from, delegated_from, "
+            "delegated_to, due_date, blocker, created_at, updated_at, subtasks "
+            "FROM standup_tasks WHERE user_id=? AND date>=? ORDER BY date DESC, id DESC",
+            (uid, since))
+        cols = [c[0] for c in cur.description]
+        rows = [dict(zip(cols, r)) for r in cur.fetchall()]
+    finally:
+        conn.close()
+    return jsonify({"user_id": uid, "since": since, "count": len(rows), "rows": rows})
+
+
 @companion_bp.route("/api/companion/db-table-sizes", methods=["GET"])
 def companion_db_table_sizes():
     """Per-table breakdown of app.db itself -- storage-report only shows
