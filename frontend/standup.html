@@ -136,7 +136,7 @@
 
       <!-- Personal Task Tracker -->
       <div class="card">
-        <h2> Today's Task List</h2>
+        <h2 style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span> Today's Task List</span><button type="button" onclick="openBin()" style="background:var(--s2);border:1px solid var(--bdr);color:var(--muted);padding:5px 11px;border-radius:var(--rs);font-size:0.72rem;font-weight:500;cursor:pointer">Recycle bin</button></h2>
         <p class="card-sub">Personal tasks — tick off as you go. Unfinished tasks carry over tomorrow.</p>
 
         <div class="task-add-row">
@@ -664,6 +664,41 @@ async function deleteTask(id){
   await fetch(`${API}/api/standup/my-tasks/${id}`,{method:"DELETE"});
   allTasks = allTasks.filter(x=>x.id!==id);
   renderTasks();
+  toast("Moved to the Recycle bin. You can bring it back from there.");
+}
+
+/* ── Recycle bin: tasks you crossed off, restorable for 30 days ── */
+function escBin(s){return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+async function openBin(){
+  let ov=document.getElementById("bin-overlay");
+  if(!ov){
+    ov=document.createElement("div");
+    ov.id="bin-overlay";
+    ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px";
+    ov.onclick=e=>{if(e.target===ov)ov.style.display="none";};
+    ov.innerHTML='<div style="background:var(--s1);border:1px solid var(--bdr);border-radius:12px;width:min(520px,100%);max-height:80vh;display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bdr)"><strong>Recycle bin</strong><button type="button" onclick="document.getElementById(\'bin-overlay\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer">&times;</button></div><div id="bin-list" style="overflow:auto;padding:8px 16px 16px"></div></div>';
+    document.body.appendChild(ov);
+  }
+  ov.style.display="flex";
+  const list=document.getElementById("bin-list");
+  list.innerHTML='<p style="color:var(--muted);font-size:.85rem">Loading…</p>';
+  try{
+    const r=await fetch(`${API}/api/standup/bin?user_id=${encodeURIComponent(UID)}`);
+    const d=await r.json();
+    const ts=d.tasks||[];
+    if(!ts.length){list.innerHTML='<p style="color:var(--muted);font-size:.85rem">Nothing here. Tasks you cross off stay here for '+(d.days||30)+' days so you can bring them back.</p>';return;}
+    list.innerHTML=ts.map(t=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)"><div style="min-width:0"><div style="font-size:.88rem;word-break:break-word">'+escBin(t.title)+'</div><div style="font-size:.7rem;color:var(--muted)">From '+escBin(t.date)+(t.delegated_from?' · given by '+escBin(t.delegated_from):'')+'</div></div><button type="button" onclick="restoreBin('+t.id+')" style="flex-shrink:0;background:var(--acc);border:none;color:#fff;padding:6px 12px;border-radius:var(--rs);font-size:.75rem;cursor:pointer">Restore</button></div>').join("");
+  }catch(e){list.innerHTML='<p style="color:var(--muted);font-size:.85rem">Could not load the bin. Try again.</p>';}
+}
+async function restoreBin(id){
+  try{
+    const r=await fetch(`${API}/api/standup/bin/${id}/restore`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:UID})});
+    const d=await r.json();
+    if(!r.ok||!d.success){toast(d.error||"Could not restore","err");return;}
+    toast("Restored to today's list");
+    await loadMyTasks();
+    openBin();
+  }catch(e){toast("Could not restore","err");}
 }
 
 async function wrapUpDay(){

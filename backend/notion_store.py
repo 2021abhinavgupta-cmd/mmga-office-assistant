@@ -968,6 +968,24 @@ def archive_notion_page(page_id: str) -> bool:
         logger.exception(f"Notion archive_notion_page failed for {page_id}")
         return False
 
+def unarchive_notion_page(page_id: str) -> bool:
+    """Brings an archived Notion page back out of the trash (standup recycle bin)."""
+    if not is_configured() or not page_id:
+        return False
+    try:
+        _notion_request(
+            "PATCH",
+            f"https://api.notion.com/v1/pages/{page_id}",
+            headers=_headers(),
+            json={"archived": False},
+        )
+        logger.info(f"Notion: restored page {page_id}")
+        return True
+    except Exception:
+        logger.exception(f"Notion unarchive_notion_page failed for {page_id}")
+        return False
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD AGGREGATE — all clients + their tasks
 # ══════════════════════════════════════════════════════════════════════════════

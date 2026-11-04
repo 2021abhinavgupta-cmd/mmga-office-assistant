@@ -55,5 +55,16 @@
       "Each link sits under the point it belongs to, and any others are listed at the end under Links shared."
     ],
     "how": "In the team group write: lumina summary (or: lumina summary yesterday). The links come with it."
+  },
+  {
+    "id": "2026-11-04-recycle-bin-for-your-daily-standup",
+    "date": "2026-11-04",
+    "title": "Recycle bin for your daily standup",
+    "bullets": [
+      "Crossed a task off by mistake? It now goes to a Recycle bin instead of disappearing.",
+      "You can bring it back with one tap, any time in the next 30 days.",
+      "Tasks from yesterday that were missing from your list now carry over correctly, even if you had already added a task today."
+    ],
+    "how": "Open Daily Standup, tap Recycle bin above your task list, then Restore next to the task."
   }
 ]

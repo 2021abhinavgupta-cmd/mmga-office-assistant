@@ -492,9 +492,22 @@ def get_my_tasks():
     cur  = conn.cursor()
 
     # Auto-carry-over: if no tasks exist for today, copy pending ones from yesterday
-    cur.execute("SELECT id FROM standup_tasks WHERE user_id=? AND date=?", (user_id, date_str))
+    cur.execute("SELECT id, title, notion_id FROM standup_tasks WHERE user_id=? AND date=?", (user_id, date_str))
     existing = cur.fetchall()
-    if not existing and date_str == today_ist():
+    # Carry-over runs ONCE per person per day, on the first load of the day --
+    # also when today already has a row. It used to run only for an EMPTY
+    # list, so anyone who added or received one task before opening the page
+    # (e.g. 2026-11-04 Noorish) never got yesterday's pending tasks.
+    _carry_claim = False
+    if date_str == today_ist():
+        try:
+            with conn:
+                _carry_claim = conn.execute(
+                    "INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, '1')",
+                    (f"standup_carry_{user_id}_{date_str}",)).rowcount == 1
+        except Exception:
+            _carry_claim = not existing
+    if _carry_claim:
         cur.execute("SELECT MAX(date) FROM standup_tasks WHERE user_id=? AND date<?", (user_id, date_str))
         last_date_row = cur.fetchone()
         if last_date_row and last_date_row[0]:
@@ -503,7 +516,11 @@ def get_my_tasks():
                 "SELECT title, blocker, carried_from, notion_id, due_date, subtasks, delegated_to, delegated_from FROM standup_tasks WHERE user_id=? AND date=? AND status='pending'",
                 (user_id, last_date),
             )
-            pending = cur.fetchall()
+            _have_t = {(r[1] or "").strip().lower() for r in existing}
+            _have_n = {r[2] for r in existing if r[2]}
+            pending = [p for p in cur.fetchall()
+                       if (p[0] or "").strip().lower() not in _have_t
+                       and not (p[3] and p[3] in _have_n)]
             if pending:
                 with conn:
                     for title, blocker, carried_from, nid, dd, sub, d_to, d_from in pending:
@@ -1321,7 +1338,8 @@ def delete_my_task(task_id: int):
     row = conn.execute("SELECT notion_id FROM standup_tasks WHERE id=?", (task_id,)).fetchone()
     notion_id = row[0] if row else None
     with conn:
-        conn.execute("UPDATE standup_tasks SET status='deleted' WHERE id=?", (task_id,))
+        conn.execute("UPDATE standup_tasks SET status='deleted', updated_at=? WHERE id=?",
+                     (now_ist(), task_id))
     conn.close()
     if notion_id:
         try:
@@ -1355,6 +1373,75 @@ def delete_my_task(task_id: int):
             except Exception:
                 logger.exception(f"Failed to remove Sheet row for deleted standup task {notion_id}")
     return jsonify({"success": True})
+
+
+BIN_DAYS = 30
+
+
+@ops_bp.route("/api/standup/bin", methods=["GET"])
+def standup_bin():
+    """Recycle bin: tasks this person crossed off (status 'deleted') in the
+    last 30 days, newest first. Query: user_id."""
+    user_id = request.args.get("user_id", "").strip()
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    since = (datetime.now(IST) - timedelta(days=BIN_DAYS)).strftime("%Y-%m-%d")
+    conn = _su_conn()
+    try:
+        rows = conn.execute(
+            "SELECT id, title, date, updated_at, notion_id, due_date, blocker, delegated_from "
+            "FROM standup_tasks WHERE user_id=? AND status='deleted' AND date>=? "
+            "ORDER BY date DESC, id DESC", (user_id, since)).fetchall()
+    finally:
+        conn.close()
+    return jsonify({"tasks": [
+        {"id": r[0], "title": r[1], "date": r[2], "deleted_at": r[3], "notion_id": r[4],
+         "due_date": r[5], "blocker": r[6], "delegated_from": r[7]} for r in rows],
+        "days": BIN_DAYS})
+
+
+@ops_bp.route("/api/standup/bin/<int:task_id>/restore", methods=["POST"])
+def standup_bin_restore(task_id: int):
+    """Put a crossed-off task back on today's list, exactly as it was (title,
+    subtasks, blocker, due date, who gave it). A Notion page that was archived
+    when it was crossed off is brought back out of the trash too.
+    Body: { user_id }"""
+    body = request.get_json(silent=True) or {}
+    user_id = (body.get("user_id") or "").strip()
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    today = today_ist()
+    conn = _su_conn()
+    try:
+        row = conn.execute(
+            "SELECT title, notion_id, status FROM standup_tasks WHERE id=? AND user_id=?",
+            (task_id, user_id)).fetchone()
+        if not row:
+            return jsonify({"error": "task not found"}), 404
+        if row[2] != "deleted":
+            return jsonify({"error": "task is not in the bin"}), 400
+        nid = row[1]
+        twin = None
+        if nid:
+            twin = conn.execute(
+                "SELECT id FROM standup_tasks WHERE user_id=? AND date=? AND notion_id=? "
+                "AND status NOT IN ('deleted','delegated')", (user_id, today, nid)).fetchone()
+        with conn:
+            if twin:
+                # Already back on today's list (e.g. re-pulled): just drop the bin copy.
+                conn.execute("DELETE FROM standup_tasks WHERE id=?", (task_id,))
+            else:
+                conn.execute(
+                    "UPDATE standup_tasks SET status='pending', date=?, updated_at=? WHERE id=?",
+                    (today, now_ist(), task_id))
+    finally:
+        conn.close()
+    if nid:
+        try:
+            notion_store.unarchive_notion_page(nid)
+        except Exception:
+            logger.exception(f"Could not restore Notion page {nid} for standup row {task_id}")
+    return jsonify({"success": True, "restored_to": today})
 
 
 @ops_bp.route("/api/standup/carry-over", methods=["POST"])
