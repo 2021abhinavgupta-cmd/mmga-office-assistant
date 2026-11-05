@@ -66,5 +66,16 @@
       "Tasks from yesterday that were missing from your list now carry over correctly, even if you had already added a task today."
     ],
     "how": "Open Daily Standup, tap Recycle bin above your task list, then Restore next to the task."
+  },
+  {
+    "id": "2026-11-05-tasks-from-the-team-group-now-ask-you-fi",
+    "date": "2026-11-05",
+    "title": "Tasks from the team group now ask you first",
+    "bullets": [
+      "When someone asks you to do something in the team WhatsApp group, Lumina no longer adds it to your standup by itself.",
+      "A small card appears in the bottom-right corner of Lumina with the task, who asked and when it is due.",
+      "Tap Add to put it on today's Daily Standup, or Reject to drop it. The card stays until you answer, then it goes away."
+    ],
+    "how": "Open any Lumina page, look at the bottom-right corner, then tap Add to my standup or Reject."
   }
 ]

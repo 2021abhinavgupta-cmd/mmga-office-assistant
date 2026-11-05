@@ -3,8 +3,11 @@
 group_intel.py reads the team group and finds things in it. This module acts on
 the clear ones, right away, and tells the person it affects:
 
-  * ASK  ("Charu, make the Omotec reel by Friday")  -> a task on that person's
-    Daily Standup (delegated_from = who asked) + an immediate WhatsApp DM to them.
+  * ASK  ("Charu, make the Omotec reel by Friday")  -> a PROPOSAL (owner decision
+    2026-11-05: never added by itself). A persistent popup in the bottom-right
+    corner of Lumina (frontend/groupprops.js) offers Add / Reject; Add puts it on
+    today's Daily Standup (delegated_from = who asked), Reject drops it, and the
+    popup disappears once answered. No WhatsApp DM for asks any more.
   * CLIENT FEEDBACK (a client's comment on work)    -> saved as a fact and the
     client's DM(s) are told at once.
 
@@ -97,46 +100,126 @@ def _client_dm_ids(client: str) -> list:
     return ["emp001"]
 
 
+PROPOSAL_DAYS = 7      # an unanswered proposal stops showing after this many days
+
+
+def _ensure(conn) -> None:
+    conn.execute("""CREATE TABLE IF NOT EXISTS group_task_proposals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        commit_id INTEGER,
+        title TEXT NOT NULL,
+        due TEXT,
+        requester TEXT,
+        quote TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        task_id INTEGER,
+        created_at TEXT,
+        resolved_at TEXT)""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_gtp_user ON group_task_proposals(user_id, status)")
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
 def _handle_ask(a: dict) -> str:
+    """An ask in the group becomes a PROPOSAL the person answers in a popup in
+    Lumina (Add / Reject). Nothing is put on their standup until they accept."""
     import group_intel
     owner_id, requester_id = a["owner_id"], a.get("requester_id") or ""
     if not owner_id or owner_id == requester_id:
         return "skipped"
     today = datetime.now(_IST).strftime("%Y-%m-%d")
     title = a["action"][:500]
-    note = ""
-    task_id = None
     conn = get_connection()
     try:
+        _ensure(conn)
         existing = conn.execute(
             "SELECT id, title FROM standup_tasks WHERE user_id=? AND date=? "
             "AND status NOT IN ('deleted','delegated')", (owner_id, today)).fetchall()
-        dup = next((r for r in existing if group_intel._overlap(title, r[1] or "") >= 0.7), None)
-        if dup:
-            note = "It was already on your list, so I did not add it twice."
-        else:
-            with conn:
-                cur = conn.execute(
-                    "INSERT INTO standup_tasks (user_id, date, title, status, delegated_from, due_date) "
-                    "VALUES (?, ?, ?, 'pending', ?, ?)",
-                    (owner_id, today, title, a.get("requester_name") or "the group", a.get("due") or None))
-                task_id = cur.lastrowid
-                conn.execute("UPDATE group_commitments SET auto_task_id=? WHERE id=?",
-                             (task_id, a["commit_id"]))
+        if any(group_intel._overlap(title, r[1] or "") >= 0.7 for r in existing):
+            return "duplicate"      # already on their list: nothing to ask
+        if conn.execute("SELECT 1 FROM group_task_proposals WHERE commit_id=? AND user_id=?",
+                        (a["commit_id"], owner_id)).fetchone():
+            return "duplicate"
+        with conn:
+            conn.execute(
+                "INSERT INTO group_task_proposals (user_id, commit_id, title, due, requester, quote, "
+                "status, created_at) VALUES (?,?,?,?,?,?, 'pending', ?)",
+                (owner_id, a["commit_id"], title, a.get("due") or None,
+                 a.get("requester_name") or "", (a.get("quote") or "")[:300], _now()))
     finally:
         conn.close()
-    who = a.get("requester_name") or "Someone"
-    lines = ["ðŸ”” *New task from the group*", "", f"{who} asked you: {title}"]
-    if a.get("due"):
-        lines.append(f"Due: {a['due']}")
-    if a.get("quote"):
-        lines.append(f"_\"{a['quote'][:140]}\"_")
-    lines.append("")
-    lines.append(note or "Added to your Daily Standup.")
-    lines.append(f"If this is not a real task, reply: that wasn't a task #{a['commit_id']}")
-    _dm(owner_id, "\n".join(lines))
-    _audit(who, "auto_task", f"{a.get('owner_name')}: {title} (commitment #{a['commit_id']}, standup #{task_id})")
-    return "created" if task_id else "duplicate"
+    _audit(a.get("requester_name") or "Someone", "task_proposed",
+           f"{a.get('owner_name')}: {title} (commitment #{a['commit_id']})")
+    return "created"
+
+
+def pending_for(user_id: str) -> list:
+    """Open proposals for this person (newest last), for the popup."""
+    since = (datetime.now(timezone.utc) - timedelta(days=PROPOSAL_DAYS)).isoformat()
+    conn = get_connection()
+    try:
+        _ensure(conn)
+        rows = conn.execute(
+            "SELECT id, title, due, requester, quote, created_at FROM group_task_proposals "
+            "WHERE user_id=? AND status='pending' AND created_at>=? ORDER BY id", (user_id, since)).fetchall()
+    finally:
+        conn.close()
+    return [{"id": r[0], "title": r[1], "due": r[2] or "", "requester": r[3] or "",
+             "quote": r[4] or "", "created_at": r[5]} for r in rows]
+
+
+def accept(user_id: str, pid: int) -> tuple:
+    """Add the proposed task to today's Daily Standup. -> (ok, message, standup_id)."""
+    today = datetime.now(_IST).strftime("%Y-%m-%d")
+    conn = get_connection()
+    try:
+        _ensure(conn)
+        p = conn.execute("SELECT commit_id, title, due, requester, status FROM group_task_proposals "
+                         "WHERE id=? AND user_id=?", (pid, user_id)).fetchone()
+        if not p:
+            return False, "not found", None
+        if p[4] != "pending":
+            return False, "already answered", None
+        with conn:
+            cur = conn.execute(
+                "INSERT INTO standup_tasks (user_id, date, title, status, delegated_from, due_date) "
+                "VALUES (?, ?, ?, 'pending', ?, ?)",
+                (user_id, today, p[1], p[3] or "the group", p[2] or None))
+            tid = cur.lastrowid
+            conn.execute("UPDATE group_task_proposals SET status='added', task_id=?, resolved_at=? WHERE id=?",
+                         (tid, _now(), pid))
+            if p[0]:
+                conn.execute("UPDATE group_commitments SET auto_task_id=? WHERE id=?", (tid, p[0]))
+    finally:
+        conn.close()
+    _audit(user_id, "task_proposal_added", f"{p[1]} (proposal #{pid}, standup #{tid})")
+    return True, "added", tid
+
+
+def reject(user_id: str, pid: int) -> tuple:
+    """Dismiss the proposal and stop tracking the ask for this person."""
+    conn = get_connection()
+    try:
+        _ensure(conn)
+        p = conn.execute("SELECT commit_id, title, status FROM group_task_proposals "
+                         "WHERE id=? AND user_id=?", (pid, user_id)).fetchone()
+        if not p:
+            return False, "not found"
+        if p[2] != "pending":
+            return False, "already answered"
+        with conn:
+            conn.execute("UPDATE group_task_proposals SET status='rejected', resolved_at=? WHERE id=?",
+                         (_now(), pid))
+            if p[0]:
+                conn.execute("UPDATE group_commitments SET status='dropped', evidence=? "
+                             "WHERE id=? AND status='open'", ("rejected in Lumina", p[0]))
+    finally:
+        conn.close()
+    _audit(user_id, "task_proposal_rejected", f"{p[1]} (proposal #{pid})")
+    return True, "rejected"
 
 
 def _handle_feedback(f: dict) -> str:
@@ -182,6 +265,12 @@ def apply(actions: list) -> dict:
 
 def undo_for_commitment(conn, cid: int) -> bool:
     """Remove the standup row an ask created (called when the commitment is rejected)."""
+    try:
+        _ensure(conn)
+        conn.execute("UPDATE group_task_proposals SET status='rejected', resolved_at=? "
+                     "WHERE commit_id=? AND status='pending'", (_now(), cid))
+    except Exception:
+        logger.debug("group_actions: proposal undo failed", exc_info=True)
     row = conn.execute("SELECT auto_task_id FROM group_commitments WHERE id=?", (cid,)).fetchone()
     if row and row[0]:
         conn.execute("UPDATE standup_tasks SET status='deleted' WHERE id=? AND status='pending'", (row[0],))

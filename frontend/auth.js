@@ -75,6 +75,10 @@ document.documentElement.style.visibility = 'hidden';
       const wn = document.createElement("script");
       wn.src = "whatsnew.js";
       document.head.appendChild(wn);
+      // Tasks the bot found in the team group: Add / Reject popup, bottom-right.
+      const gp = document.createElement("script");
+      gp.src = "groupprops.js";
+      document.head.appendChild(gp);
     }
 
     // Presence heartbeat: immediate + every 60s. Real checkout is inferred
