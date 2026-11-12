@@ -155,11 +155,7 @@ async function loadCalendarEvents(startISO, endISO){
     start:x.start_date, end:x.end_date, raw:x,
     style: x.kind === "holiday" ? "fill" : "dot", color:LAYERS[x.kind].color,
   }));
-  (teamRes.leaves || []).forEach(l => out.push({
-    source:"team",
-    title: `${l.name.split(" ")[0]} on leave${l.leave_type === "half" ? " (half day)" : ""}`,
-    start:l.start_date, end:l.end_date, style:"fill", color:LAYERS.team.color, teamLeave:l,
-  }));
+  out.push(...GCal.teamLeaveEvents(teamRes.leaves, LAYERS.team.color));
   monthRes.forEach(res => Object.entries(res.days || {}).forEach(([ds, info]) => {
     if (ds < startISO || ds > endISO) return;
     const st = info.status;
@@ -195,9 +191,8 @@ const cal = GCal.create({
     } else if (ev.source === "leave"){
       if (ev.pending) openCancelConfirm(ev.leave.leave_id, ev.start);
       else showApprovedInfo(ev.start, ev.leave && ev.leave.leave_id);
-    } else if (ev.source === "team" && ev.teamLeave){
-      const l = ev.teamLeave;
-      toast(`${l.name} is on ${l.leave_type === "half" ? "half-day " : ""}leave ${l.start_date === l.end_date ? "on " + l.start_date : "from " + l.start_date + " to " + l.end_date}`);
+    } else if (ev.source === "team" && ev.teamDay){
+      GCal.showTeamDay(ev.teamDay);
     } else if (ev.source === "event" && ev.raw){
       const r = ev.raw, t = r.start_time ? (r.end_time ? `${fmt12(r.start_time)} – ${fmt12(r.end_time)}` : fmt12(r.start_time)) : "";
       toast(`${r.title}${t ? " — " + t : ""}`);

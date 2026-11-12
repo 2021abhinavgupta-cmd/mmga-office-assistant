@@ -129,20 +129,13 @@ const cal = GCal.create({
     }));
     try {   // who is / was / will be on leave (approved only; names and dates, never reasons)
       const tr = await fetch(`${API}/api/leave/team?start=${s}&end=${e}`);
-      if (tr.ok) (await tr.json()).leaves.forEach(l => out.push({
-        source:"team", title:`${l.name.split(" ")[0]} on leave${l.leave_type === "half" ? " (half day)" : ""}`,
-        start:l.start_date, end:l.end_date, style:"fill", color:"#e879a8", teamLeave:l,
-      }));
+      if (tr.ok) out.push(...GCal.teamLeaveEvents((await tr.json()).leaves, "#e879a8"));
     } catch (err) { /* the calendar still works without it */ }
     return out;
   },
   onDayClick: d => { if (CAN_EDIT) openModal(null, d); },
   onEventClick: ev => {
-    if (ev.source === "team" && ev.teamLeave) {
-      const l = ev.teamLeave;
-      toast(`${l.name} is on ${l.leave_type === "half" ? "half-day " : ""}leave ${l.start_date === l.end_date ? "on " + l.start_date : "from " + l.start_date + " to " + l.end_date}`);
-      return;
-    }
+    if (ev.source === "team" && ev.teamDay) { GCal.showTeamDay(ev.teamDay); return; }
     if (CAN_EDIT) { openModal(ev.raw); return; }
     const r = ev.raw || {};
     toast(`${r.title || KINDS[r.kind].label} (${KINDS[r.kind].label}) ${r.start_date}${r.end_date && r.end_date !== r.start_date ? " to " + r.end_date : ""}`);

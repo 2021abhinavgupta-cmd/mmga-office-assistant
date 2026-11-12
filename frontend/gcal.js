@@ -337,5 +337,53 @@
     return { refresh, goto, setView, state: st };
   }
 
-  window.GCal = { create, iso, parse, addDays, MONTHS, DOW };
+  // ---- who is on leave: one chip per day, a list (dropdown) when several people ----
+  let lastPt = { x: 200, y: 200 };
+  document.addEventListener('click', e => { lastPt = { x: e.clientX, y: e.clientY }; }, true);
+
+  /** leaves = [{name, start_date, end_date, leave_type}] -> one event per weekday that has anyone on leave.
+   *  One person: "Nupur on leave"; several: "3 on leave" (click it for the names). */
+  function teamLeaveEvents(leaves, color) {
+    const byDay = {};
+    (leaves || []).forEach(l => {
+      for (let d = parse(l.start_date); iso(d) <= l.end_date; d = addDays(d, 1)) {
+        if (d.getDay() === 0 || d.getDay() === 6) continue;     // weekends do not need leave
+        (byDay[iso(d)] = byDay[iso(d)] || []).push({ name: String(l.name || '').split(' ')[0], half: l.leave_type === 'half' });
+      }
+    });
+    return Object.entries(byDay).map(([ds, people]) => {
+      people.sort((a, b) => a.name.localeCompare(b.name));
+      const one = people.length === 1;
+      return {
+        source: 'team', start: ds, end: ds, style: 'fill', color, teamDay: { date: ds, people },
+        title: one ? `${people[0].name} on leave${people[0].half ? ' (half day)' : ''}` : `${people.length} on leave`,
+      };
+    });
+  }
+
+  /** Small dropdown list near the last click. */
+  function popList(title, lines) {
+    const old = document.getElementById('gc-pop'); if (old) old.remove();
+    const el = document.createElement('div');
+    el.id = 'gc-pop';
+    el.style.cssText = 'position:fixed;z-index:30000;min-width:200px;max-width:280px;padding:10px 12px;border-radius:10px;' +
+      'background:var(--s1,#1b1b22);color:var(--txt,var(--text,#ececf1));border:1px solid var(--bdr,var(--border,#2c2c35));' +
+      'box-shadow:0 10px 30px rgba(0,0,0,.5);font-size:.85rem;line-height:1.6';
+    el.innerHTML = `<div style="font-weight:700;margin-bottom:4px">${esc(title)}</div>` +
+      lines.map(t => `<div>${esc(t)}</div>`).join('');
+    document.body.appendChild(el);
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.max(8, Math.min(lastPt.x, window.innerWidth - w - 8)) + 'px';
+    el.style.top = Math.max(8, Math.min(lastPt.y + 8, window.innerHeight - h - 8)) + 'px';
+    const close = ev => { if (!el.contains(ev.target)) { el.remove(); document.removeEventListener('click', close, true); } };
+    setTimeout(() => document.addEventListener('click', close, true), 0);
+  }
+
+  function showTeamDay(td) {
+    const d = parse(td.date);
+    popList(`${DOW[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} - ${td.people.length} on leave`,
+            td.people.map(p => p.name + (p.half ? ' (half day)' : '')));
+  }
+
+  window.GCal = { create, iso, parse, addDays, MONTHS, DOW, teamLeaveEvents, popList, showTeamDay };
 })();
