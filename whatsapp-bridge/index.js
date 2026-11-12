@@ -979,7 +979,7 @@ async function start() {
                     group: isGroup ? groupNm || "" : undefined, to: isGroup ? undefined : from, text: reply });
           // a sticker the agent explicitly asked for, or (DM only) random flair
           let sp = null;
-          if (isGroup && isClientGroup(jid)) sp = null;   // formal: never a sticker in a client group
+          if (data?.no_sticker || (isGroup && isClientGroup(jid))) sp = null;   // clients and strangers never get a sticker
           else if (data?.sticker) sp = pickSticker(data.sticker);
           else if (!isGroup && STICKER_RATE > 0 && Math.random() < 1 / STICKER_RATE)
             sp = pickSticker(null);

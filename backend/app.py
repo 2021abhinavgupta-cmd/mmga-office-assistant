@@ -3773,9 +3773,20 @@ def whatsapp_bridge():
         # stay quiet in a group on error rather than posting noise for everyone
         return jsonify({"reply": None if group_id else
                         "Sorry — I hit an error. Try again in a moment."})
+    # Stickers are for the team only: a client (in a DM or their group) or a stranger
+    # never gets one, not even the bridge's random DM flair.
+    try:
+        no_sticker = whatsapp_agent.identify_sender(sender).get("kind") != "employee"
+        if group_id:
+            import client_groups
+            no_sticker = no_sticker or client_groups.get(group_id) is not None
+    except Exception:
+        no_sticker = True
     if isinstance(result, dict):
-        return jsonify({"reply": result.get("reply"), "sticker": result.get("sticker")})
-    return jsonify({"reply": result})
+        return jsonify({"reply": result.get("reply"),
+                        "sticker": None if no_sticker else result.get("sticker"),
+                        "no_sticker": no_sticker})
+    return jsonify({"reply": result, "no_sticker": no_sticker})
 
 
 @app.route("/api/whatsapp/groups", methods=["GET", "POST"])
