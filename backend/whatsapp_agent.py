@@ -850,6 +850,9 @@ _DUE_WEEK = re.compile(r"^(?:lumina[,:\s]+)?what(?:'s|\s+is)\s+due\s+this\s+week
 _DASH_Q = re.compile(
     r"^(?:lumina[,:\s]+)?(?:show\s+|give\s+)?(?:me\s+)?(?:my\s+)?(?:dashboard|morning brief|day brief|"
     r"what(?:'s|\s+is)\s+my\s+day|what\s+do\s+i\s+have\s+today)[\s?.!]*$", re.I)
+_DETAIL_Q = re.compile(
+    r"^(?:lumina[,:\s]+)?(?:please\s+)?(?:tell\s+(?:me\s+)?(?:it\s+)?in\s+detail|in\s+detail|more\s+detail[s]?|"
+    r"give\s+(?:me\s+)?(?:more\s+)?detail[s]?|details|explain\s+more|tell\s+me\s+more|elaborate)[\s?.!]*$", re.I)
 _PENDING_Q = re.compile(r"^(?:lumina[,:\s]+)?what(?:'s|\s+is)\s+pending[\s?.!]*$", re.I)
 
 
@@ -1899,7 +1902,10 @@ _EMPLOYEE_TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {
-                "client": {"type": "string", "description": "The client's name."}
+                "client": {"type": "string", "description": "The client's name."},
+                "detail": {"type": "boolean", "description": "true when the person asks for "
+                           "more detail / 'tell in detail' about a client already discussed: "
+                           "adds the actual posts and tasks behind each number."}
             },
             "required": ["client"],
         },
@@ -3630,6 +3636,8 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
             if not cli:
                 return "Which client? Use get_clients for the list."
             import client_card
+            if (tool_input or {}).get("detail"):
+                return client_card.detail(cli)
             return client_card.card(cli)
 
         return f"(tool '{name}' is not available to you)"
@@ -4244,6 +4252,20 @@ def handle_message(sender: str, text: str, *,
                 return ("That confirmation expired or never went through, so nothing was sent. "
                         "Please ask me again.")
         fast = _fast_standup_command((text or "").strip())
+        _fctx = sender if not in_group else f"{sender}|{_norm_group(group_id)}"
+        if not fast and _DETAIL_Q.match((text or "").strip()):
+            # "tell in detail" right after a client card -> the detailed card for that client
+            try:
+                _prev = next((m.get("content") for m in reversed(_load_context(_fctx))
+                              if m.get("role") == "assistant"), "") or ""
+                _m = re.match(r"\*?([A-Z0-9][A-Z0-9 &.\-]{1,40})\*?\s*(?:\(.*\))?\n", str(_prev))
+                if _m and ("SMM:" in str(_prev) or "Open tasks:" in str(_prev)) and "Needs VG:" in str(_prev):
+                    import org_profile
+                    _known = org_profile.find_project(_m.group(1).strip())
+                    if _known:
+                        fast = ("get_client_status", {"client": _known["client"], "detail": True})
+            except Exception:
+                logger.debug("whatsapp_agent: detail follow-up failed", exc_info=True)
         if fast:
             tool_name, tool_args = fast
             out = _run_tool(tool_name, tool_args, identity,
@@ -4252,6 +4274,10 @@ def handle_message(sender: str, text: str, *,
                     and _norm(out).startswith(_SUCCESS_PREFIXES)):
                 _audit("group:" + _norm_group(group_id) if in_group else "dm",
                        identity, tool_name, out)
+            # remember it, so a follow-up ("tell in detail", "what about next week") has context
+            if isinstance(out, str):
+                _save_context(_fctx, _load_context(_fctx) + [
+                    {"role": "user", "content": text}, {"role": "assistant", "content": out}])
             return out
 
     budget = check_budget_available()

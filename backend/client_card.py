@@ -199,6 +199,45 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}{'' if n == 1 else 's'}"
 
 
+def _fmt_tasks(ts: list, limit: int = 8) -> list:
+    out = []
+    for t in sorted(ts, key=_due)[:limit]:
+        d = _due(t)
+        try:
+            d = datetime.strptime(d, "%Y-%m-%d").strftime("%a %d %b")
+        except Exception:
+            d = d or "no date"
+        who = t.get("assigned_to") or "unassigned"
+        out.append(f"- {t.get('title')} ({d}, {_st(t).replace('_', ' ') or 'no status'}, {who})")
+    if len(ts) > limit:
+        out.append(f"- ...and {len(ts) - limit} more")
+    return out
+
+
+def detail(client_name: str) -> str:
+    """The card plus the actual tasks behind each number."""
+    g = gather(client_name)
+    base = card(client_name)
+    if not g:
+        return base
+    sections = [
+        ("Posts this week", g["this_week"]),
+        ("Posts next week", g["next_week"]),
+        ("Production pending", g["production_pending"]),
+        ("Waiting for approval", g["approvals"]),
+        ("Overdue (last 14 days)", g["overdue"]),
+    ]
+    lines = [base]
+    for title, ts in sections:
+        if ts:
+            lines += ["", f"*{title}*"] + _fmt_tasks(ts)
+    if g["backlog"]:
+        lines += ["", f"Old backlog: {len(g['backlog'])} unfinished tasks older than 14 days"]
+    if g["blockers"]:
+        lines += ["", "*Blockers*"] + [f"- {b}" for b in g["blockers"][:5]]
+    return "\n".join(lines)
+
+
 def card(client_name: str) -> str:
     g = gather(client_name)
     if not g:
