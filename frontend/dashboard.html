@@ -524,7 +524,11 @@ async function loadAttendance() {
     if (!pickedDate) serverTodayIST = istDate;
     const isViewingToday = serverTodayIST === null || istDate === serverTodayIST;
 
-    const allRows = employees.map(emp => {
+    // Former / inactive employees are not shown on the board (unless they actually have attendance on that day)
+    const gone = new Set(["inactive","disabled","left","removed","archived","former"]);
+    const allRows = employees.filter(emp =>
+      !gone.has(String(emp.status || "active").toLowerCase()) || (attendanceMap[emp.id] && attendanceMap[emp.id].checkin_time)
+    ).map(emp => {
       const daily = attendanceMap[emp.id] || {};
       return {
         emp_id: emp.id,
