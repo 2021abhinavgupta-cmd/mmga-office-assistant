@@ -179,6 +179,9 @@
         await fetchPortalAccounts();
 
         renderSidebar();
+        // Opened from the Client Portal's "Edit" link: jump straight to that client
+        const want = new URLSearchParams(location.search).get("client");
+        if (want && (dashboardData.clients || []).some(c => c.notion_id === want)) selectClient(want);
       } catch (e) {
         document.getElementById("client-list").innerHTML =
           `<div style="padding: 20px; color: var(--red); text-align: center; font-size: 0.9rem;">Failed to load clients. Refresh to retry.</div>`;

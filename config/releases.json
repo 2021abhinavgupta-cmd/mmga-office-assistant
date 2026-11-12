@@ -99,5 +99,15 @@
       "Half days are marked, and only approved leave is shown"
     ],
     "how": "Open Calendar and look for the pink 'Team on leave' entries. Tap one to see who and when, or untick 'Team on leave' on the left to hide them."
+  },
+  {
+    "id": "2026-11-12-edit-a-client-straight-from-the-client-p",
+    "date": "2026-11-12",
+    "title": "Edit a client straight from the Client Portal",
+    "bullets": [
+      "Each client card now has an Edit link that opens that client in Client Admin",
+      "There you can change the client's login, add or change their WhatsApp number, and edit or add their tasks"
+    ],
+    "how": "Open Client Portal, then tap Edit login / WhatsApp / tasks under a client's name."
   }
 ]

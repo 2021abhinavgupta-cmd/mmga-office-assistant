@@ -341,7 +341,7 @@ function renderClients(clients) {
             <div class="client-meta">
               ${tasks.length} task${tasks.length !== 1 ? 's' : ''}
               ${c.contact ? ' · ' + c.contact : ''}
-              ${IS_ADMIN && c.client_username ? `<br><span style="color:var(--acc);font-size:0.75rem;margin-top:4px;display:inline-block"> Login: ${c.client_username} / ${c.client_password}</span>` : ''}
+              ${IS_ADMIN ? `<br><span style="font-size:0.75rem;margin-top:4px;display:inline-block;color:var(--acc)">${c.client_username ? 'Login: @' + c.client_username + ' · ' : 'No login yet · '}<a href="client-admin.html?client=${encodeURIComponent(c.notion_id || c.id || '')}" onclick="event.stopPropagation()" style="color:var(--acc);font-weight:600">Edit login / WhatsApp / tasks</a></span>` : ''}
             </div>
           </div>
         </div>
