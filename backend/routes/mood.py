@@ -63,8 +63,11 @@ def mood_set():
     if mood not in MOODS:
         return jsonify({"success": False, "error": "mood must be happy, mid or sad"}), 400
     conn = get_connection()
+    prev = None
     try:
         ensure_table(conn)
+        row = conn.execute("SELECT mood FROM daily_mood WHERE user_id=? AND date=?", (uid, today_ist())).fetchone()
+        prev = row[0] if row else None
         conn.execute(
             """INSERT INTO daily_mood (user_id, date, mood, created_at) VALUES (?,?,?,?)
                ON CONFLICT(user_id, date) DO UPDATE SET mood=excluded.mood""",
@@ -73,4 +76,31 @@ def mood_set():
         conn.commit()
     finally:
         conn.close()
+    if prev != mood:
+        _tell_hr(uid, mood, prev)
     return jsonify({"success": True, "mood": mood})
+
+
+HR_USER_ID = "emp009"   # Noorish
+_EMOJI = {"happy": "😊", "mid": "😐", "sad": "😞"}
+
+
+def _tell_hr(uid: str, mood: str, prev: str | None) -> None:
+    """WhatsApp HR when someone fills or changes today's mood. Never raises."""
+    try:
+        if uid == HR_USER_ID:
+            return
+        import wa_outbox
+        emps = {e.get("id"): e for e in wa_outbox._employees()}
+        hr = emps.get(HR_USER_ID) or {}
+        jid = wa_outbox.wa_jid(hr.get("whatsapp", ""))
+        if not jid:
+            return
+        name = (emps.get(uid) or {}).get("name") or uid
+        if prev:
+            text = f"{name} changed their mood today: {_EMOJI.get(prev, '')} {prev} -> {_EMOJI.get(mood, '')} {mood}"
+        else:
+            text = f"{name} is feeling {_EMOJI.get(mood, '')} {mood} today."
+        wa_outbox.enqueue(jid, text)
+    except Exception:
+        pass
