@@ -1894,6 +1894,25 @@ def _unlink_google_sheet_for_client(client_id: str):
         conn.close()
     except Exception:
         logger.exception(f"Failed to unlink Google Sheet for deleted client {client_id}")
+    # Leftovers of onboarding: portal login, WhatsApp number, and the org-list row added there
+    # (rows from the seeded MMGA org list are never touched).
+    try:
+        conn = _pt_conn()
+        with conn:
+            name = None
+            try:
+                r = conn.execute("SELECT client_name FROM client_whatsapp WHERE client_notion_id=?",
+                                 (str(client_id),)).fetchone()
+                name = r[0] if r else None
+                conn.execute("DELETE FROM client_whatsapp WHERE client_notion_id=?", (str(client_id),))
+            except Exception:
+                pass
+            conn.execute("DELETE FROM client_users WHERE client_notion_id=?", (str(client_id),))
+            if name:
+                conn.execute("DELETE FROM org_projects WHERE client=? AND notes='added at onboarding'", (name,))
+        conn.close()
+    except Exception:
+        logger.exception(f"Failed to clean onboarding leftovers for deleted client {client_id}")
 
 
 @ops_bp.route("/api/notion/clients/<string:notion_id>", methods=["DELETE"])
