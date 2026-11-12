@@ -88,5 +88,16 @@
       "Your mood shows as an emoji next to your name on the Live Attendance board"
     ],
     "how": "After you check in, tap the emoji in the card at the bottom-right corner of Lumina."
+  },
+  {
+    "id": "2026-11-12-see-who-is-on-leave-in-the-calendar",
+    "date": "2026-11-12",
+    "title": "See who is on leave in the Calendar",
+    "bullets": [
+      "The Calendar now shows when your teammates are on leave, past, present and upcoming",
+      "You see their name and the dates, never the reason",
+      "Half days are marked, and only approved leave is shown"
+    ],
+    "how": "Open Calendar and look for the pink 'Team on leave' entries. Tap one to see who and when, or untick 'Team on leave' on the left to hide them."
   }
 ]

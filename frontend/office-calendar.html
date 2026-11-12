@@ -117,18 +117,32 @@ function toast(m,t="ok"){
 const cal = GCal.create({
   root: document.getElementById("cal"),
   storageKey: "gcal_office",
-  sources: Object.entries(KINDS).map(([id,k]) => ({id, label:k.label, color:k.color})),
+  sources: [...Object.entries(KINDS).map(([id,k]) => ({id, label:k.label, color:k.color})),
+            {id:"team", label:"Team on leave", color:"#e879a8"}],
   loadEvents: async (s, e) => {
     const r = await fetch(`${API}/api/office-calendar?start=${s}&end=${e}`);
     if (!r.ok) throw new Error("load failed");
     const d = await r.json();
-    return d.events.map(x => ({
+    const out = d.events.map(x => ({
       id:x.id, source:x.kind, title:evTitle(x),
       start:x.start_date, end:x.end_date, style:KINDS[x.kind].style, color:KINDS[x.kind].color, raw:x,
     }));
+    try {   // who is / was / will be on leave (approved only; names and dates, never reasons)
+      const tr = await fetch(`${API}/api/leave/team?start=${s}&end=${e}`);
+      if (tr.ok) (await tr.json()).leaves.forEach(l => out.push({
+        source:"team", title:`${l.name.split(" ")[0]} on leave${l.leave_type === "half" ? " (half day)" : ""}`,
+        start:l.start_date, end:l.end_date, style:"fill", color:"#e879a8", teamLeave:l,
+      }));
+    } catch (err) { /* the calendar still works without it */ }
+    return out;
   },
   onDayClick: d => { if (CAN_EDIT) openModal(null, d); },
   onEventClick: ev => {
+    if (ev.source === "team" && ev.teamLeave) {
+      const l = ev.teamLeave;
+      toast(`${l.name} is on ${l.leave_type === "half" ? "half-day " : ""}leave ${l.start_date === l.end_date ? "on " + l.start_date : "from " + l.start_date + " to " + l.end_date}`);
+      return;
+    }
     if (CAN_EDIT) { openModal(ev.raw); return; }
     const r = ev.raw || {};
     toast(`${r.title || KINDS[r.kind].label} (${KINDS[r.kind].label}) ${r.start_date}${r.end_date && r.end_date !== r.start_date ? " to " + r.end_date : ""}`);

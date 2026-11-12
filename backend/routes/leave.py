@@ -87,6 +87,33 @@ def leave_calendar():
     return jsonify({"days": leave_store.calendar_days(uid, year, month)})
 
 
+@leave_bp.route("/api/leave/team", methods=["GET"])
+def leave_team():
+    """Approved leave of everyone else in a date range, so the whole team can see who was / is /
+    will be on leave. Names and dates only: never the reason or the leave balance."""
+    uid, err = _require_session()
+    if err:
+        return err
+    start = request.args.get("start", "")
+    end = request.args.get("end", "")
+    if not (_DATE_RE.match(start) and _DATE_RE.match(end)) or end < start:
+        return jsonify({"error": "start and end (YYYY-MM-DD) required"}), 400
+    from db import get_connection
+    import utils
+    names = {e.get("id"): (e.get("name") or "").strip() for e in utils._load_employees().get("employees", [])}
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT user_id, start_date, end_date, leave_type FROM employee_leave "
+            "WHERE status='approved' AND start_date <= ? AND end_date >= ? AND user_id != ? "
+            "ORDER BY start_date", (end, start, uid)).fetchall()
+    finally:
+        conn.close()
+    out = [{"user_id": r[0], "name": names.get(r[0]) or r[0], "start_date": max(r[1], start),
+            "end_date": min(r[2], end), "leave_type": r[3] or "full"} for r in rows]
+    return jsonify({"leaves": out})
+
+
 @leave_bp.route("/api/leave/apply", methods=["POST"])
 def leave_apply():
     uid, err = _require_session()

@@ -125,6 +125,7 @@ const LAYERS = {
   office:  {label:"In-person office",  color:"#c58af9"},
   event:   {label:"Events",            color:"#f6ae2d"},
   leave:   {label:"My leave",          color:"#f28b82"},
+  team:    {label:"Team on leave",     color:"#e879a8"},
   worked:  {label:"My attendance",     color:"#fbbf24"},
   rejected:{label:"Rejected requests", color:"#9aa0a6"},
 };
@@ -141,8 +142,9 @@ async function loadCalendarEvents(startISO, endISO){
   for (let d = new Date(s.getFullYear(), s.getMonth(), 1); d <= e; d = new Date(d.getFullYear(), d.getMonth()+1, 1))
     months.push([d.getFullYear(), d.getMonth()+1]);
 
-  const [officeRes, ...monthRes] = await Promise.all([
+  const [officeRes, teamRes, ...monthRes] = await Promise.all([
     fetch(`${API}/api/office-calendar?start=${startISO}&end=${endISO}`).then(r => r.ok ? r.json() : {events:[]}).catch(() => ({events:[]})),
+    fetch(`${API}/api/leave/team?start=${startISO}&end=${endISO}`).then(r => r.ok ? r.json() : {leaves:[]}).catch(() => ({leaves:[]})),
     ...months.map(([y,m]) => fetch(`${API}/api/leave/calendar?year=${y}&month=${m}`).then(r => r.ok ? r.json() : {days:{}}).catch(() => ({days:{}}))),
   ]);
 
@@ -152,6 +154,11 @@ async function loadCalendarEvents(startISO, endISO){
     title: (x.kind === "event" && x.start_time ? fmt12(x.start_time) + " " : "") + (x.title || OFFICE_LABEL[x.kind]),
     start:x.start_date, end:x.end_date, raw:x,
     style: x.kind === "holiday" ? "fill" : "dot", color:LAYERS[x.kind].color,
+  }));
+  (teamRes.leaves || []).forEach(l => out.push({
+    source:"team",
+    title: `${l.name.split(" ")[0]} on leave${l.leave_type === "half" ? " (half day)" : ""}`,
+    start:l.start_date, end:l.end_date, style:"fill", color:LAYERS.team.color, teamLeave:l,
   }));
   monthRes.forEach(res => Object.entries(res.days || {}).forEach(([ds, info]) => {
     if (ds < startISO || ds > endISO) return;
@@ -188,6 +195,9 @@ const cal = GCal.create({
     } else if (ev.source === "leave"){
       if (ev.pending) openCancelConfirm(ev.leave.leave_id, ev.start);
       else showApprovedInfo(ev.start, ev.leave && ev.leave.leave_id);
+    } else if (ev.source === "team" && ev.teamLeave){
+      const l = ev.teamLeave;
+      toast(`${l.name} is on ${l.leave_type === "half" ? "half-day " : ""}leave ${l.start_date === l.end_date ? "on " + l.start_date : "from " + l.start_date + " to " + l.end_date}`);
     } else if (ev.source === "event" && ev.raw){
       const r = ev.raw, t = r.start_time ? (r.end_time ? `${fmt12(r.start_time)} – ${fmt12(r.end_time)}` : fmt12(r.start_time)) : "";
       toast(`${r.title}${t ? " — " + t : ""}`);
