@@ -105,12 +105,12 @@ def leave_team():
     try:
         rows = conn.execute(
             "SELECT user_id, start_date, end_date, leave_type FROM employee_leave "
-            "WHERE status='approved' AND start_date <= ? AND end_date >= ? AND user_id != ? "
-            "ORDER BY start_date", (end, start, uid)).fetchall()
+            "WHERE status='approved' AND start_date <= ? AND end_date >= ? "
+            "ORDER BY start_date", (end, start)).fetchall()
     finally:
         conn.close()
     out = [{"user_id": r[0], "name": names.get(r[0]) or r[0], "start_date": max(r[1], start),
-            "end_date": min(r[2], end), "leave_type": r[3] or "full"} for r in rows]
+            "end_date": min(r[2], end), "leave_type": r[3] or "full", "me": r[0] == uid} for r in rows]
     return jsonify({"leaves": out})
 
 
