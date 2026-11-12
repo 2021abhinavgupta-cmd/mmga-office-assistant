@@ -1568,17 +1568,16 @@ def notion_create_client():
 
     c_user = body.get("client_username", "").strip()
     c_pass = body.get("client_password", "").strip()
-    if c_user and c_pass:   # never wipe an existing login unless a replacement is really being made
+    username_taken = False
+    if c_user and c_pass:
+        # Never delete another client's login: if the username is already used the client is
+        # still created, the login is not, and the page says so (fix it in Client Admin).
         try:
-            # Admin is forcing creation: wipe any stuck or old credential with this username
-            # so the new client can claim it seamlessly.
             conn = _pt_conn()
-            cur = conn.cursor()
-            cur.execute("DELETE FROM client_users WHERE username=?", (c_user,))
-            conn.commit()
+            username_taken = conn.execute("SELECT 1 FROM client_users WHERE username=?", (c_user,)).fetchone() is not None
             conn.close()
-        except Exception as e:
-            pass
+        except Exception:
+            username_taken = False
 
     client = notion_store.create_client(
         name=name,
@@ -1595,7 +1594,9 @@ def notion_create_client():
     c_user = body.get("client_username", "").strip()
     c_pass = body.get("client_password", "").strip()
     portal_account = "skipped"
-    if c_user and c_pass:
+    if c_user and c_pass and username_taken:
+        portal_account = "username_taken"
+    elif c_user and c_pass:
         try:
             hashed_pass = generate_password_hash(c_pass)
             conn = _pt_conn()

@@ -375,6 +375,7 @@ async function createClient(){
       document.getElementById("success-msg").innerHTML =
         `"${name}" created in Notion. ` +
         (data.portal_account === "created" ? `Client portal login created (username: ${document.getElementById("client_username").value.trim()}). ` :
+         data.portal_account === "username_taken" ? `<b style="color:var(--red)">That portal username is already used by another client, so no login was created. Add one in Client Admin with a different username.</b> ` :
          data.portal_account === "failed" ? `<b style="color:var(--red)">The client portal login could NOT be created (username may already be in use) - set it up in Client Admin.</b> ` : "") +
         (data.welcome === "sent" ? `Welcome message queued on WhatsApp. ` :
          data.welcome === "bad_number" || data.welcome === "failed" ? `<b style="color:var(--red)">Could not send the WhatsApp welcome (check the number).</b> ` : "") +
