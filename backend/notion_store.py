@@ -586,6 +586,37 @@ def append_client_requirements(notion_id: str, extra_text: str) -> bool:
         return False
 
 
+def update_client(notion_id: str, name=None, contact=None, requirements=None,
+                  deadline=None, budget=None, notes=None, status=None) -> bool:
+    """Edit a client page. Only the fields passed (not None) are written."""
+    if not is_configured() or not notion_id:
+        return False
+    props = {}
+    if name is not None:
+        props["Client"] = _title(name)
+    if contact is not None:
+        props["Contact"] = _text(contact)
+    if requirements is not None:
+        props["Requirements"] = _text(requirements)
+    if deadline is not None:
+        props["Deadline"] = _date(deadline)
+    if budget is not None:
+        props["Budget"] = _text(budget)
+    if notes is not None:
+        props["Notes"] = _text(notes)
+    if status:
+        props["Status"] = _select(status)
+    if not props:
+        return True
+    try:
+        _notion_request("PATCH", f"https://api.notion.com/v1/pages/{notion_id}",
+                        headers=_headers(), json={"properties": props})
+        return True
+    except Exception:
+        logger.exception(f"Notion update_client failed for {notion_id}")
+        return False
+
+
 def update_client_status(notion_id: str, status: str) -> bool:
     """Update the Status property of a client page."""
     if not is_configured():

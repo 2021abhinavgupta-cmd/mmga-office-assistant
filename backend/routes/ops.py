@@ -1915,6 +1915,40 @@ def _unlink_google_sheet_for_client(client_id: str):
         logger.exception(f"Failed to clean onboarding leftovers for deleted client {client_id}")
 
 
+@ops_bp.route("/api/notion/clients/<string:notion_id>", methods=["PATCH"])
+def notion_update_client(notion_id: str):
+    """Edit a client's name / contact (email) / requirements / deadline / budget / notes / status.
+    A rename is mirrored into the client's portal login and WhatsApp rows."""
+    from utils import _is_admin
+    user_id = _verify_session(request.cookies.get("session_token", ""))
+    if not user_id or not _is_admin(user_id):
+        return jsonify({"error": "Unauthorized: Admin access required"}), 403
+    body = request.get_json(silent=True) or {}
+    fields = {}
+    for k in ("name", "contact", "requirements", "deadline", "budget", "notes", "status"):
+        if k in body and body[k] is not None:
+            fields[k] = str(body[k]).strip()
+    if "name" in fields and not fields["name"]:
+        return jsonify({"error": "Client name can't be empty"}), 400
+    if fields.get("deadline") and not re.match(r"^\d{4}-\d{2}-\d{2}$", fields["deadline"]):
+        return jsonify({"error": "Deadline must be a date"}), 400
+    if not notion_store.update_client(notion_id, **fields):
+        return jsonify({"error": "Failed to update client in Notion"}), 500
+    if fields.get("name"):
+        try:
+            from db import get_connection
+            conn = get_connection()
+            try:
+                with conn:
+                    conn.execute("UPDATE client_users SET client_name=? WHERE client_notion_id=?", (fields["name"], notion_id))
+                    conn.execute("UPDATE client_whatsapp SET client_name=? WHERE client_notion_id=?", (fields["name"], notion_id))
+            finally:
+                conn.close()
+        except Exception:
+            logger.exception("client rename: could not mirror name into login/whatsapp rows")
+    return jsonify({"success": True})
+
+
 @ops_bp.route("/api/notion/clients/<string:notion_id>", methods=["DELETE"])
 def notion_delete_client(notion_id: str):
     """Idempotent: calling this on an already-deleted (archived) client is a

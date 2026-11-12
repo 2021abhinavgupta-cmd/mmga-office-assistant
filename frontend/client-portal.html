@@ -491,7 +491,15 @@ function renderEdit() {
   const et = ed.taskId && tasks.find(t => (t.notion_id || t.id) === ed.taskId);
   document.getElementById('ed-title').textContent = c.name;
   document.getElementById('ed-body').innerHTML = `
-    <h4 style="margin:0 0 4px">Portal login ${acc ? '<span style="color:var(--green);font-weight:400;font-size:.8rem">@' + esc(acc.username) + '</span>' : '<span style="color:var(--muted);font-weight:400;font-size:.8rem">none yet</span>'}</h4>
+    <h4 style="margin:0 0 4px">Client details</h4>
+    <label style="${lab}">Client name</label><input id="ed-name" style="${inp}" value="${esc(c.name)}">
+    <label style="${lab}">Email / contact</label><input id="ed-contact" style="${inp}" value="${esc(c.contact || '')}" placeholder="name@gmail.com or phone">
+    <div style="display:flex;gap:8px"><div style="flex:1"><label style="${lab}">Deadline</label><input id="ed-deadline" type="date" lang="en-GB" style="${inp}" value="${esc((c.deadline || '').slice(0, 10))}"></div>
+    <div style="flex:1"><label style="${lab}">Budget</label><input id="ed-budget" style="${inp}" value="${esc(c.budget || '')}"></div></div>
+    <label style="${lab}">Requirements</label><textarea id="ed-req" rows="2" style="${inp}">${esc(c.requirements || '')}</textarea>
+    <label style="${lab}">Notes</label><textarea id="ed-notes" rows="2" style="${inp}">${esc(c.notes || '')}</textarea>
+    <div style="margin-top:10px"><button style="${btn}" onclick="edSaveDetails()">Save details</button></div>
+    <h4 style="margin:22px 0 4px">Portal login ${acc ? '<span style="color:var(--green);font-weight:400;font-size:.8rem">@' + esc(acc.username) + '</span>' : '<span style="color:var(--muted);font-weight:400;font-size:.8rem">none yet</span>'}</h4>
     <label style="${lab}">Username</label><input id="ed-user" style="${inp}" value="${esc(acc ? acc.username : '')}" autocomplete="off">
     <label style="${lab}">${acc ? 'New password (blank keeps the current one)' : 'Password (6+ characters)'}</label><input id="ed-pass" style="${inp}" autocomplete="off">
     <div style="margin-top:10px"><button style="${btn}" onclick="edSaveLogin()">${acc ? 'Save login' : 'Create login'}</button></div>
@@ -511,6 +519,17 @@ function renderEdit() {
     ${et ? `<label style="${lab}">Status</label><select id="ed-t-status" style="${inp}">${['not_started','in_progress','in_review','approved','done'].map(s => `<option value="${s}" ${et.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}</select>` : ''}
     <div style="margin-top:10px"><button style="${btn}" onclick="edSaveTask()">${et ? 'Save task' : 'Add task'}</button>
     ${et ? '<button style="padding:9px 16px;margin-left:8px;border:1px solid var(--bdr);border-radius:8px;background:none;color:var(--txt);cursor:pointer" onclick="ed.taskId=null;renderEdit()">Cancel</button>' : ''}</div>`;
+}
+async function edSaveDetails() {
+  const c = ed.client, nid = c.notion_id || c.id, g = i => document.getElementById(i).value.trim();
+  if (!g('ed-name')) return edToast('Client name is required', true);
+  const body = { name: g('ed-name'), contact: g('ed-contact'), deadline: g('ed-deadline'), budget: g('ed-budget'), requirements: g('ed-req'), notes: g('ed-notes') };
+  const r = await edApi(`/api/notion/clients/${encodeURIComponent(nid)}`, 'PATCH', body);
+  if (!r.ok) return edToast('Failed to save: ' + (r.d.error || r.status), true);
+  edToast('Client details saved');
+  await loadPortal();
+  ed.client = allClients.find(x => String(x.notion_id || x.id) === String(nid)) || c;
+  await edLoadAccounts(); renderEdit();
 }
 async function edSaveLogin() {
   const c = ed.client, nid = c.notion_id || c.id, acc = ed.accounts.find(a => a.client_notion_id === nid);
