@@ -14,28 +14,26 @@
   function build() {
     const css = document.createElement("style");
     css.textContent = `
-      #mood-card{position:fixed;right:16px;bottom:16px;z-index:29500;width:min(320px,calc(100vw - 32px));
+      #mood-card{position:fixed;right:16px;bottom:16px;z-index:29500;width:min(350px,calc(100vw - 32px));
         border-radius:12px;padding:14px;background:var(--s1,#17171c);color:var(--txt,var(--text,#ececf1));
         border:1px solid var(--bdr,var(--border,#2c2c35));border-left:3px solid var(--acc,var(--accent,#f97316));
         box-shadow:0 10px 34px rgba(0,0,0,.45);font-family:inherit}
       #mood-card .m-kick{font-size:11px;letter-spacing:.07em;text-transform:uppercase;opacity:.6;margin-bottom:5px}
       #mood-card .m-title{font-size:14px;font-weight:600}
-      #mood-card .m-row{display:flex;gap:10px;margin-top:12px}
-      #mood-card button{flex:1;font-size:30px;line-height:1;padding:10px 0;border-radius:10px;cursor:pointer;
+      #mood-card .m-row{display:flex;gap:6px;margin-top:12px}
+      #mood-card button{width:100%;font-size:24px;line-height:1;padding:8px 0;border-radius:10px;cursor:pointer;
         background:transparent;border:1px solid var(--bdr,var(--border,#2c2c35))}
       #mood-card button:hover{border-color:var(--acc,var(--accent,#f97316))}
       #mood-card button:disabled{opacity:.5;cursor:default}
-      #mood-card .m-lab{font-size:11px;opacity:.65;margin-top:4px}`;
+      #mood-card .m-lab{font-size:10px;opacity:.65;margin-top:4px}`;
     document.head.appendChild(css);
     card = document.createElement("div");
     card.id = "mood-card";
     card.innerHTML = `
       <div class="m-kick">Daily check-in</div>
       <div class="m-title">How are you feeling today?</div>
-      <div class="m-row">
-        <div style="flex:1;text-align:center"><button type="button" data-m="happy">😊</button><div class="m-lab">Happy</div></div>
-        <div style="flex:1;text-align:center"><button type="button" data-m="mid">😐</button><div class="m-lab">Mid</div></div>
-        <div style="flex:1;text-align:center"><button type="button" data-m="sad">😞</button><div class="m-lab">Sad</div></div>
+      <div class="m-row">${[["awesome","🤩","Awesome"],["happy","😊","Happy"],["mid","😐","Mid"],["sad","😞","Sad"],["stressed","😫","Stressed"]]
+        .map(([k, e, l]) => `<div style="flex:1;text-align:center"><button type="button" data-m="${k}">${e}</button><div class="m-lab">${l}</div></div>`).join("")}
       </div>`;
     card.querySelectorAll("button").forEach(b =>
       b.addEventListener("click", () => answer(b.getAttribute("data-m"))));

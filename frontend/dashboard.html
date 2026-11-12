@@ -591,7 +591,7 @@ async function loadAttendance() {
           : "";
 
         return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-weight:700;font-size:.95rem">${statusDot}${emp.name}${emp.mood ? ` <span title="Mood today: ${emp.mood}">${{happy:"😊",mid:"😐",sad:"😞"}[emp.mood] || ""}</span>` : ""}</div>
+          <div style="font-weight:700;font-size:.95rem">${statusDot}${emp.name}${emp.mood ? ` <span title="Mood today: ${emp.mood}">${{awesome:"🤩",happy:"😊",mid:"😐",sad:"😞",stressed:"😫"}[emp.mood] || ""}</span>` : ""}</div>
           <div style="color:var(--muted);font-size:.75rem">${emp.role}</div>
           <div style="font-size:.78rem;color:var(--text)"> In: <span style="color:var(--muted)">${checkin}</span>${mapsLink(emp.checkin_lat, emp.checkin_lng)}</div>
           <div style="font-size:.78rem;color:var(--text)"> Out: <span style="color:var(--muted)">${checkout}</span>${mapsLink(emp.checkout_lat, emp.checkout_lng)}</div>

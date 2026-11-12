@@ -10,7 +10,7 @@ from routes.leave import _require_session
 
 mood_bp = Blueprint("mood", __name__)
 
-MOODS = ("happy", "mid", "sad")
+MOODS = ("awesome", "happy", "mid", "sad", "stressed")
 
 
 def ensure_table(conn):
@@ -61,7 +61,7 @@ def mood_set():
         return err
     mood = str((request.get_json(silent=True) or {}).get("mood", "")).strip().lower()
     if mood not in MOODS:
-        return jsonify({"success": False, "error": "mood must be happy, mid or sad"}), 400
+        return jsonify({"success": False, "error": "mood must be one of: " + ", ".join(MOODS)}), 400
     conn = get_connection()
     prev = None
     try:
@@ -82,7 +82,7 @@ def mood_set():
 
 
 HR_USER_ID = "emp009"   # Noorish
-_EMOJI = {"happy": "😊", "mid": "😐", "sad": "😞"}
+_EMOJI = {"awesome": "🤩", "happy": "😊", "mid": "😐", "sad": "😞", "stressed": "😫"}
 
 
 def _tell_hr(uid: str, mood: str, prev: str | None) -> None:
