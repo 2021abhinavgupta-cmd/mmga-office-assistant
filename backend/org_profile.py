@@ -133,6 +133,29 @@ def _ensure() -> None:
         conn.close()
 
 
+def add_project(client: str, service_type: str, dm: str, co_dm: str = "") -> bool:
+    """Register a newly onboarded client (and who manages it) so the assistant's status card
+    and the rhythm messages know it. Replaces an existing row of the same name."""
+    client = (client or "").strip()
+    if not client:
+        return False
+    try:
+        _ensure()
+        recurring = any(k in (service_type or "").lower() for k in ("smm", "social", "360"))
+        conn = get_connection()
+        try:
+            with conn:
+                conn.execute("INSERT OR REPLACE INTO org_projects VALUES (?,?,?,?,?,?,?)",
+                             (client, service_type or "", "recurring" if recurring else "project",
+                              (dm or "").strip(), (co_dm or "").strip(), "", "added at onboarding"))
+        finally:
+            conn.close()
+        return True
+    except Exception:
+        logger.exception("org_profile: add_project failed")
+        return False
+
+
 def people() -> list:
     try:
         _ensure()

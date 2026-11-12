@@ -218,6 +218,20 @@ def identify_sender(sender: str) -> dict:
         # `whatsapp` column missing on an old DB, etc. — treat as no client match
         logger.debug("whatsapp_agent: client lookup skipped/failed", exc_info=True)
 
+    # Clients onboarded with just a WhatsApp number (no portal login), see routes/ops.py::notion_create_client
+    try:
+        conn = get_connection()
+        try:
+            rows = conn.execute("SELECT client_notion_id, client_name, phone FROM client_whatsapp").fetchall()
+        finally:
+            conn.close()
+        for r in rows:
+            if r[2] and _normalize_phone(r[2]) == norm and r[0]:
+                return {"kind": "client", "client_id": 0, "client_name": r[1] or "",
+                        "client_notion_id": r[0]}
+    except Exception:
+        logger.debug("whatsapp_agent: client_whatsapp lookup skipped", exc_info=True)
+
     return {"kind": "unknown"}
 
 

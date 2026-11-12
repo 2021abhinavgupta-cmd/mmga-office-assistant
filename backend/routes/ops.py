@@ -1612,6 +1612,19 @@ def notion_create_client():
     elif c_user or c_pass:
         portal_account = "incomplete"
 
+    # Who manages this client (DM / co-DM): registered in the MMGA org list.
+    dm_name = str(body.get("dm", "") or "").strip()
+    dm_saved = False
+    if dm_name:
+        svc_names = {"social": "SMM", "branding": "Branding", "website": "Website",
+                     "shoot": "Shoot", "miscellaneous": "Other"}
+        svc_txt = " + ".join(svc_names.get(s, s) for s in (body.get("services") or [])) or "Project"
+        try:
+            import org_profile
+            dm_saved = org_profile.add_project(name, svc_txt, dm_name, str(body.get("co_dm", "") or ""))
+        except Exception:
+            logger.exception("org_profile add_project failed")
+
     # Client's WhatsApp number: saved, linked to their portal login (so the assistant answers them,
     # scoped to their own tasks) and a warm welcome is sent once.
     welcome = "skipped"
@@ -1637,11 +1650,11 @@ def notion_create_client():
                 linked = portal_account == "created"
                 text = (f"Hi! Welcome to MMGA, and thank you for choosing us. \U0001F389\n\n"
                         f"We've set up *{name}* on our side and the team is excited to get started with you."
+                        + (f"\n\nYour account manager is *{dm_name}*." if dm_name else "")
                         + (f"\n\nYou can log in to your client portal at https://lumina.mmga.agency/client-login.html "
-                           f"with the username *{c_user}* (your password was shared by your account manager). "
-                           f"You can also message this number any time to ask about your tasks and progress."
-                           if linked else
-                           "\n\nYour account manager will be in touch shortly. You can message this number any time."))
+                           f"with the username *{c_user}* (your password was shared by your account manager)."
+                           if linked else "")
+                        + "\n\nYou can message this number any time to ask about your tasks and progress.")
                 welcome = "sent" if wa_outbox.enqueue(wa_outbox.wa_jid("+" + phone_digits), text) else "failed"
             except Exception:
                 logger.exception("client whatsapp welcome failed")
@@ -1704,6 +1717,7 @@ def notion_create_client():
         "tasks_created": tasks_created,
         "portal_account": portal_account,
         "welcome": welcome,
+        "dm_saved": dm_saved,
         "notion_url": f"https://notion.so/{client['notion_id'].replace('-', '')}",
     })
 
