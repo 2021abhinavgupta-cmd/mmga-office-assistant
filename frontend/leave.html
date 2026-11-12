@@ -155,7 +155,8 @@ async function loadCalendarEvents(startISO, endISO){
     start:x.start_date, end:x.end_date, raw:x,
     style: x.kind === "holiday" ? "fill" : "dot", color:LAYERS[x.kind].color,
   }));
-  out.push(...GCal.teamLeaveEvents((teamRes.leaves || []).filter(l => !l.me), LAYERS.team.color)   // own leave is in "My leave");
+  // own leave is already in "My leave", so it is left out of the team layer here
+  out.push(...GCal.teamLeaveEvents((teamRes.leaves || []).filter(l => !l.me), LAYERS.team.color));
   monthRes.forEach(res => Object.entries(res.days || {}).forEach(([ds, info]) => {
     if (ds < startISO || ds > endISO) return;
     const st = info.status;
