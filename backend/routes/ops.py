@@ -3079,7 +3079,7 @@ def _shape_client_task(t: dict, source: str) -> dict:
             return None
         return s.split("T")[0] if "T" in s else s
 
-    desc = t.get("description") or ""
+    desc = _public_description(t.get("description") or "")
     brief = t.get("brief") or ""
     idea = t.get("idea") or ""
     caption = t.get("caption") or ""
@@ -3109,6 +3109,39 @@ def _shape_client_task(t: dict, source: str) -> dict:
     }
 
 
+def _client_owns_task(client: dict, task_id: str) -> bool:
+    """True only if task_id is one of this logged-in client's own tasks."""
+    cnid = client.get("client_notion_id", "") or ""
+    cname = (client.get("client_name", "") or "").strip().lower()
+    try:
+        if notion_store.is_configured() and cnid:
+            return any(str(t.get("notion_id") or t.get("id")) == task_id
+                       for t in notion_store.list_tasks(client_notion_id=cnid))
+    except Exception:
+        logger.exception("client task ownership check (notion) failed")
+        return False
+    try:
+        conn = _su_conn()
+        row = conn.execute(
+            "SELECT 1 FROM tasks t JOIN clients c ON c.id = t.client_id "
+            "WHERE CAST(t.id AS TEXT)=? AND LOWER(c.name)=?", (task_id, cname)).fetchone()
+        conn.close()
+        return bool(row)
+    except Exception:
+        return False
+
+
+_PRIVATE_NOTE_SEG = re.compile(r"^\s*(?:notes?|my notes?|internal|creation date)\s*:", re.I)
+
+
+def _public_description(desc: str) -> str:
+    """Notes field minus the team's private segments ('Notes: ...', 'Creation Date: ...')."""
+    if not desc:
+        return ""
+    parts = [p.strip() for p in str(desc).split("|")]
+    return " | ".join(p for p in parts if p and not _PRIVATE_NOTE_SEG.match(p))
+
+
 @ops_bp.route("/api/client-portal/tasks/<task_id>/feedback", methods=["POST"])
 def submit_task_feedback(task_id):
     from routes.auth import _verify_client_session
@@ -3122,7 +3155,11 @@ def submit_task_feedback(task_id):
     comments = data.get("comments", "")
     audio_url = data.get("audio_url", None)
     source = data.get("source", "sqlite")
-    
+
+    # A client may only give feedback on THEIR OWN tasks (the id comes from the URL, so check it).
+    if not _client_owns_task(client, str(task_id)):
+        return jsonify({"error": "Not found"}), 404
+
     # Store feedback locally
     try:
         conn = _pt_conn()
