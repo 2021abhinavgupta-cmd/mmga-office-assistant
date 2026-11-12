@@ -181,6 +181,11 @@ def _urls_of(row) -> list:
         u = u.rstrip(".,)>]\"'")
         if u and u not in out:
             out.append(u)
+    try:
+        import shortlinks
+        out = [shortlinks.shorten(u) for u in out]
+    except Exception:
+        pass
     return out
 
 
@@ -437,7 +442,7 @@ def _gen(use, llm):
                     if u not in links:
                         links.append(u)
             if links:
-                text = text + "\n  " + "\n  ".join(links[:3])
+                text = text + "\n  " + "\n  ".join("LINK: " + u for u in links[:3])
             good.append((ids, text, meta))
         else:
             bad += 1
@@ -485,7 +490,7 @@ def _summary(rows, label: str, notes: list, llm) -> str | None:
             if u in shown or u in seen:
                 continue
             seen.add(u)
-            extra.append(f"- {r['sender_name']} ({_hm(r['created_at'])}): {u}")
+            extra.append(f"- {r['sender_name']} ({_hm(r['created_at'])}): LINK: {u}")
     links_block = ("\n\n*Links shared*\n" + "\n".join(extra[:25])
                    + (f"\n...and {len(extra) - 25} more" if len(extra) > 25 else "")) if extra else ""
     room = MAX_REPLY - len(links_block)

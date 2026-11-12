@@ -141,6 +141,16 @@ app.register_blueprint(group_proposals_bp)
 from routes.mood import mood_bp
 app.register_blueprint(mood_bp)
 
+
+@app.route("/l/<code>")
+def short_link_redirect(code):
+    import shortlinks
+    from flask import redirect
+    url = shortlinks.resolve(code)
+    if not url:
+        return "Link not found", 404
+    return redirect(url, code=302)
+
 # ── Run DB Migrations ─────────────────────────────────────────────────────────
 import db
 try:
