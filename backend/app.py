@@ -138,6 +138,8 @@ from routes.releases import releases_bp
 app.register_blueprint(releases_bp)
 from routes.group_proposals import group_proposals_bp
 app.register_blueprint(group_proposals_bp)
+from routes.mood import mood_bp
+app.register_blueprint(mood_bp)
 
 # ── Run DB Migrations ─────────────────────────────────────────────────────────
 import db

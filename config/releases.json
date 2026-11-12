@@ -77,5 +77,16 @@
       "Tap Add to put it on today's Daily Standup, or Reject to drop it. The card stays until you answer, then it goes away."
     ],
     "how": "Open any Lumina page, look at the bottom-right corner, then tap Add to my standup or Reject."
+  },
+  {
+    "id": "2026-11-12-tell-us-your-mood-each-day",
+    "date": "2026-11-12",
+    "title": "Tell us your mood each day",
+    "bullets": [
+      "After you log in, a small card asks how you are feeling: happy, mid or sad",
+      "You pick once a day and it stays on screen until you do",
+      "Your mood shows as an emoji next to your name on the Live Attendance board"
+    ],
+    "how": "After you check in, tap the emoji in the card at the bottom-right corner of Lumina."
   }
 ]

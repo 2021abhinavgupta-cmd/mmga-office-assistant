@@ -79,6 +79,10 @@ document.documentElement.style.visibility = 'hidden';
       const gp = document.createElement("script");
       gp.src = "groupprops.js";
       document.head.appendChild(gp);
+      // Daily mood check-in card (happy / mid / sad), required once a day after check-in.
+      const md = document.createElement("script");
+      md.src = "mood.js";
+      document.head.appendChild(md);
     }
 
     // Presence heartbeat: immediate + every 60s. Real checkout is inferred
