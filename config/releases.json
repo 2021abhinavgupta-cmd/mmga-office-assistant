@@ -109,5 +109,17 @@
       "You can change the client name, email, deadline and notes, the client login, add or change their WhatsApp number, and edit or add their tasks without leaving the page"
     ],
     "how": "Open Client Portal, then tap Edit client under a client's name."
+  },
+  {
+    "id": "2026-11-12-lumina-can-now-sit-in-a-client-s-whatsap",
+    "date": "2026-11-12",
+    "title": "Lumina can now sit in a client's WhatsApp group",
+    "bullets": [
+      "Add Lumina to a client's group and it answers only when someone says Lumina",
+      "It speaks very formally and politely, with no stickers or greetings",
+      "It reads and remembers the group chat, and can tell the client the status of their own deliverables",
+      "Anything it cannot answer (changes, approvals, pricing) is passed to the client's account manager"
+    ],
+    "how": "Add the Lumina number to the client's group, then type 'Lumina, this is the Omotec group' in it once."
   }
 ]

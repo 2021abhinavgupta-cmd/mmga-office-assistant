@@ -535,6 +535,19 @@ def extract_pending() -> dict:
         ensure_schema(conn)
         groups = [r[0] for r in conn.execute(
             "SELECT DISTINCT group_id FROM wa_group_log WHERE processed=0").fetchall()]
+        # Client groups are only stored so the assistant can follow them when addressed.
+        # No promises/asks/proposals are mined from them (that would DM and task staff
+        # from a client's chat); mark them read so they do not pile up as "waiting".
+        try:
+            import client_groups
+            skip = client_groups.ids()
+        except Exception:
+            skip = set()
+        if skip:
+            with conn:
+                for g in [g for g in groups if str(g) in skip]:
+                    conn.execute("UPDATE wa_group_log SET processed=1 WHERE group_id=?", (g,))
+            groups = [g for g in groups if str(g) not in skip]
         for gid in groups:
             try:
                 with conn:

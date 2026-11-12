@@ -592,6 +592,8 @@ async function groupName(sock, jid) {
 // The bridge asks Lumina which groups are allowed, so nothing from other groups
 // ever leaves this machine.
 let _obsAllow = new Set();
+let _clientGroups = new Set();   // a client's own group: never a sticker, greeting or reaction
+const isClientGroup = (jid) => _clientGroups.has(String(jid || "").replace(/\D/g, ""));
 let _obsAllowAt = 0;
 const _obsQueue = new Map();   // groupJid -> { name, msgs: [] }
 
@@ -605,7 +607,10 @@ async function refreshObserveAllow() {
     });
     if (!res.ok) return;
     const d = await res.json();
-    _obsAllow = new Set((d.effective || []).map((x) => String(x).replace(/\D/g, "")));
+    // `observe` = staff groups + client groups (older servers only send `effective`)
+    _obsAllow = new Set((d.observe || d.effective || []).map((x) => String(x).replace(/\D/g, "")));
+    // client groups: formal, no stickers, no greetings, no reactions
+    _clientGroups = new Set((d.client_group_ids || []).map((x) => String(x).replace(/\D/g, "")));
   } catch { /* keep the previous list */ }
 }
 
@@ -789,6 +794,7 @@ async function start() {
       if (update.action !== "add") return;
       const groupJid = update.id;
       if (!activeGroups.has(groupJid)) return;   // not an active/allow-listed group
+      if (isClientGroup(groupJid)) return;       // a client's group: no greetings or stickers
       const selfNum = bareJid(sock.user?.id || "");
       for (const p of update.participants || []) {
         if (bareJid(p) === selfNum) continue;    // the bridge itself was added — not a greeting
@@ -967,13 +973,14 @@ async function start() {
         await sock.sendPresenceUpdate("paused", jid).catch(() => {});
         if (reply) {
           await sock.sendMessage(jid, { text: reply });
-          if (isGroup) activeGroups.add(jid);   // burst detection may run here now
+          if (isGroup && !isClientGroup(jid)) activeGroups.add(jid);   // burst detection may run here now
           log(`out ${from}: ${reply.slice(0, 80)}`);
           archive({ dir: "out", chat: isGroup ? "group" : "dm", group_id: isGroup ? bareJid(jid) : undefined,
                     group: isGroup ? groupNm || "" : undefined, to: isGroup ? undefined : from, text: reply });
           // a sticker the agent explicitly asked for, or (DM only) random flair
           let sp = null;
-          if (data?.sticker) sp = pickSticker(data.sticker);
+          if (isGroup && isClientGroup(jid)) sp = null;   // formal: never a sticker in a client group
+          else if (data?.sticker) sp = pickSticker(data.sticker);
           else if (!isGroup && STICKER_RATE > 0 && Math.random() < 1 / STICKER_RATE)
             sp = pickSticker(null);
           if (sp) await sendSticker(sock, jid, sp);

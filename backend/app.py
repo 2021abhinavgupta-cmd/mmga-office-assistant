@@ -3708,7 +3708,7 @@ def whatsapp_bridge():
     if data.get("observe"):
         stored = 0
         try:
-            if group_id and whatsapp_agent._group_allowed(group_id):
+            if group_id and whatsapp_agent._group_observable(group_id):
                 import group_memory
                 stored = group_memory.record(group_id, group_name or "",
                                              data.get("messages") or [])
@@ -3721,7 +3721,7 @@ def whatsapp_bridge():
     if data.get("observe_media"):
         stored = 0
         try:
-            if group_id and whatsapp_agent._group_allowed(group_id):
+            if group_id and whatsapp_agent._group_observable(group_id):
                 import base64, group_memory, media_ai
                 raw = base64.b64decode(data.get("data_b64") or "")
                 kind = str(data.get("kind") or "")
@@ -3829,10 +3829,30 @@ def whatsapp_groups():
         if rem:
             stored = [x for x in stored if _digits(x) != rem]
         _store(stored)
+        # client groups (formal, client-scoped): {"client_group": "<id>", "client": "<name>"}
+        import client_groups
+        cg_add = _digits(body.get("client_group"))
+        if cg_add:
+            c = whatsapp_agent._find_client(str(body.get("client") or ""))
+            cid = (c or {}).get("notion_id") or (c or {}).get("id") or ""
+            if not c or not cid:
+                return jsonify({"error": "client not found"}), 404
+            client_groups.link(cg_add, c.get("name") or str(body.get("client")), str(cid),
+                               str(body.get("group_name") or ""), "api")
+        cg_rem = _digits(body.get("remove_client_group"))
+        if cg_rem:
+            client_groups.unlink(cg_rem)
 
+    import client_groups
     env_toks = [t for t in re.split(r"[,\s]+", os.getenv("WHATSAPP_GROUP_ALLOWLIST", "")) if t]
     effective = sorted({_digits(x) for x in stored} | {_digits(x) for x in env_toks} - {""})
-    return jsonify({"stored": stored, "env": env_toks, "effective": effective})
+    # `observe` = every group whose messages the bridge should store (staff + client groups);
+    # `client_groups` = the ones where the bridge must never send stickers or greetings.
+    cgl = client_groups.listing()
+    cg_ids = [g["group_id"] for g in cgl]
+    return jsonify({"stored": stored, "env": env_toks, "effective": effective,
+                    "client_groups": cgl, "client_group_ids": cg_ids,
+                    "observe": sorted(set(effective) | set(cg_ids))})
 
 
 if __name__ == "__main__":
