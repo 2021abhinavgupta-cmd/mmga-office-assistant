@@ -132,12 +132,6 @@
         <div style="color:var(--muted);font-size:.75rem;margin-top:6px">We save it and send the client a welcome message on WhatsApp. They can also message that number to ask about their own tasks.</div>
       </div>
     </div>
-    <div class="two" style="margin-top:20px;">
-      <div class="fg"><label>Who manages this client (DM)</label>
-        <select id="dm"><option value="">Choose later</option></select></div>
-      <div class="fg"><label>Co-DM (optional)</label>
-        <select id="co_dm"><option value="">None</option></select></div>
-    </div>
     <p class="err" id="err1">Please enter the client name.</p>
     <div class="btn-row"><button class="btn btn-acc" onclick="goStep2()">Next: Select Services →</button></div>
   </div>
@@ -236,17 +230,6 @@ if (!user.user_id) {
 }
 
 let EMP = {};
-(async function loadDmChoices(){
-  try {
-    const r = await fetch(`${API}/api/employees`, {credentials:"include"});
-    const list = (await r.json()).employees || [];
-    const off = new Set(["inactive","disabled","left","removed","archived","former"]);
-    const opts = list.filter(e => !off.has(String(e.status||"active").toLowerCase()))
-      .map(e => `<option value="${String(e.name).replace(/"/g,"&quot;")}">${e.name}${e.role ? " - "+e.role : ""}</option>`).join("");
-    document.getElementById("dm").insertAdjacentHTML("beforeend", opts);
-    document.getElementById("co_dm").insertAdjacentHTML("beforeend", opts);
-  } catch(e) { /* dropdown just stays at "Choose later" */ }
-})();
 const SVC_TASKS = {
   social:[
     {title:"Content Ideation",who:"emp006"},
@@ -366,10 +349,7 @@ async function createClient(){
           notes:        document.getElementById("notes").value.trim(),
           client_username: document.getElementById("client_username").value.trim(),
           client_password: document.getElementById("client_password").value.trim(),
-          client_whatsapp: document.getElementById("client_whatsapp").value.trim(),
-          dm:    document.getElementById("dm").value,
-          co_dm: document.getElementById("co_dm").value,
-          services:     [...selected],
+          client_whatsapp: document.getElementById("client_whatsapp").value.trim(),          services:     [...selected],
           tasks:        [],
         }),
         signal: AbortSignal.timeout(20000),
@@ -396,7 +376,6 @@ async function createClient(){
         `"${name}" created in Notion. ` +
         (data.portal_account === "created" ? `Client portal login created (username: ${document.getElementById("client_username").value.trim()}). ` :
          data.portal_account === "failed" ? `<b style="color:var(--red)">The client portal login could NOT be created (username may already be in use) - set it up in Client Admin.</b> ` : "") +
-        (data.dm_saved ? `Account manager saved. ` : "") +
         (data.welcome === "sent" ? `Welcome message queued on WhatsApp. ` :
          data.welcome === "bad_number" || data.welcome === "failed" ? `<b style="color:var(--red)">Could not send the WhatsApp welcome (check the number).</b> ` : "") +
         (data.notion_url ? `<a href="${data.notion_url}" target="_blank" style="color:var(--acc);text-decoration:none">→ Open in Notion ↗</a>` : "");

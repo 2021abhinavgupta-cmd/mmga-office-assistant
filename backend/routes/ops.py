@@ -1613,7 +1613,7 @@ def notion_create_client():
         portal_account = "incomplete"
 
     # Who manages this client (DM / co-DM): registered in the MMGA org list.
-    dm_name = str(body.get("dm", "") or "").strip()
+    dm_name = ""   # account-manager picker was removed from the onboarding page
     dm_saved = False
     if dm_name:
         svc_names = {"social": "SMM", "branding": "Branding", "website": "Website",
@@ -1650,7 +1650,6 @@ def notion_create_client():
                 linked = portal_account == "created"
                 text = (f"Hi! Welcome to MMGA, and thank you for choosing us. \U0001F389\n\n"
                         f"We've set up *{name}* on our side and the team is excited to get started with you."
-                        + (f"\n\nYour account manager is *{dm_name}*." if dm_name else "")
                         + (f"\n\nYou can log in to your client portal at https://lumina.mmga.agency/client-login.html "
                            f"with the username *{c_user}* (your password was shared by your account manager)."
                            if linked else "")
