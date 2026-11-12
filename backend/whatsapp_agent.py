@@ -4108,6 +4108,30 @@ _VOICE_NOTE = (
     "If something needs a yes/no confirmation, ask them to say yes.")
 
 
+CLIENT_BURST_MAX = 8        # messages a client may send ...
+CLIENT_BURST_WINDOW = 60    # ... per this many seconds
+_client_hits: dict = {}     # sender -> [timestamps, warned_in_this_window]
+
+
+def _client_burst_check(sender: str) -> str:
+    """'ok' | 'warn' (first message over the limit) | 'drop' (further ones). In-memory is fine:
+    one worker, and a restart only resets a one-minute window."""
+    import time
+    now = time.time()
+    key = _normalize_phone(sender) or str(sender)
+    hits, warned = _client_hits.get(key, ([], False))
+    hits = [t for t in hits if now - t < CLIENT_BURST_WINDOW]
+    if len(hits) < CLIENT_BURST_MAX:
+        hits.append(now)
+        _client_hits[key] = (hits, False)
+        return "ok"
+    _client_hits[key] = (hits, True)
+    if len(_client_hits) > 500:   # keep the dict small
+        for k in [k for k, v in _client_hits.items() if not v[0] or now - v[0][-1] > CLIENT_BURST_WINDOW]:
+            _client_hits.pop(k, None)
+    return "drop" if warned else "warn"
+
+
 def handle_message(sender: str, text: str, *,
                    group_id: str | None = None,
                    group_name: str | None = None,
@@ -4145,6 +4169,15 @@ def handle_message(sender: str, text: str, *,
             "Hi! This number isn't linked to an MMGA account yet, so I can't "
             "look anything up for you. Please contact the team to get set up."
         )
+
+    # Clients only: at most CLIENT_BURST_MAX messages per minute. The first message over the
+    # limit gets one short reply, anything further in that minute is ignored (no model call).
+    if identity["kind"] == "client" and not in_group:
+        verdict = _client_burst_check(sender)
+        if verdict == "warn":
+            return "You're sending messages very quickly. Give me a moment and then send them again."
+        if verdict == "drop":
+            return None
 
     # Alexa linking (routes/alexa.py): a one-time code said to the Echo.
     if identity["kind"] == "employee" and not in_group and channel == "whatsapp":
