@@ -126,6 +126,12 @@
       </div>
     </div>
     
+    <div style="margin-top:20px;">
+      <div class="fg"><label>Client WhatsApp number (optional)</label>
+        <input type="tel" id="client_whatsapp" placeholder="e.g. 98765 43210 or +91 98765 43210" autocomplete="off"/>
+        <div style="color:var(--muted);font-size:.75rem;margin-top:6px">We save it and send the client a welcome message on WhatsApp. With a portal username and password above, they can also message us to ask about their tasks.</div>
+      </div>
+    </div>
     <p class="err" id="err1">Please enter the client name.</p>
     <div class="btn-row"><button class="btn btn-acc" onclick="goStep2()">Next: Select Services →</button></div>
   </div>
@@ -280,6 +286,8 @@ function goStep2(){
   const cu=document.getElementById("client_username").value.trim(), cp=document.getElementById("client_password").value.trim();
   if((cu&&!cp)||(!cu&&cp)){e1.textContent="Fill both the portal username and password, or leave both blank.";e1.style.display="block";return;}
   if(cp&&cp.length<6){e1.textContent="Portal password should be at least 6 characters.";e1.style.display="block";return;}
+  const wd=document.getElementById("client_whatsapp").value.replace(/\D/g,"");
+  if(wd && (wd.length<10 || wd.length>15)){e1.textContent="That WhatsApp number does not look right. Use 10 digits, or the full number with country code.";e1.style.display="block";return;}
   e1.style.display="none";
   goStep(2);
 }
@@ -341,6 +349,7 @@ async function createClient(){
           notes:        document.getElementById("notes").value.trim(),
           client_username: document.getElementById("client_username").value.trim(),
           client_password: document.getElementById("client_password").value.trim(),
+          client_whatsapp: document.getElementById("client_whatsapp").value.trim(),
           services:     [...selected],
           tasks:        [],
         }),
@@ -368,6 +377,8 @@ async function createClient(){
         `"${name}" created in Notion. ` +
         (data.portal_account === "created" ? `Client portal login created (username: ${document.getElementById("client_username").value.trim()}). ` :
          data.portal_account === "failed" ? `<b style="color:var(--red)">The client portal login could NOT be created (username may already be in use) - set it up in Client Admin.</b> ` : "") +
+        (data.welcome === "sent" ? `Welcome message queued on WhatsApp. ` :
+         data.welcome === "bad_number" || data.welcome === "failed" ? `<b style="color:var(--red)">Could not send the WhatsApp welcome (check the number).</b> ` : "") +
         (data.notion_url ? `<a href="${data.notion_url}" target="_blank" style="color:var(--acc);text-decoration:none">→ Open in Notion ↗</a>` : "");
       
       const addLink = document.getElementById("add-tasks-link");

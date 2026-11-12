@@ -1612,6 +1612,41 @@ def notion_create_client():
     elif c_user or c_pass:
         portal_account = "incomplete"
 
+    # Client's WhatsApp number: saved, linked to their portal login (so the assistant answers them,
+    # scoped to their own tasks) and a warm welcome is sent once.
+    welcome = "skipped"
+    phone_digits = re.sub(r"\D", "", str(body.get("client_whatsapp", "") or ""))
+    if phone_digits:
+        if len(phone_digits) == 10:
+            phone_digits = "91" + phone_digits          # bare Indian mobile number
+        if not (11 <= len(phone_digits) <= 15):
+            welcome = "bad_number"
+        else:
+            try:
+                conn = _pt_conn()
+                with conn:
+                    conn.execute("CREATE TABLE IF NOT EXISTS client_whatsapp ("
+                                 "client_notion_id TEXT PRIMARY KEY, client_name TEXT, phone TEXT, created_at TEXT)")
+                    conn.execute("INSERT OR REPLACE INTO client_whatsapp VALUES (?,?,?,datetime('now'))",
+                                 (client["notion_id"], name, "+" + phone_digits))
+                    if portal_account == "created":
+                        conn.execute("UPDATE client_users SET whatsapp=? WHERE username=?",
+                                     ("+" + phone_digits, c_user))
+                conn.close()
+                import wa_outbox
+                linked = portal_account == "created"
+                text = (f"Hi! Welcome to MMGA, and thank you for choosing us. \U0001F389\n\n"
+                        f"We've set up *{name}* on our side and the team is excited to get started with you."
+                        + (f"\n\nYou can log in to your client portal at https://lumina.mmga.agency/client-login.html "
+                           f"with the username *{c_user}* (your password was shared by your account manager). "
+                           f"You can also message this number any time to ask about your tasks and progress."
+                           if linked else
+                           "\n\nYour account manager will be in touch shortly. You can message this number any time."))
+                welcome = "sent" if wa_outbox.enqueue(wa_outbox.wa_jid("+" + phone_digits), text) else "failed"
+            except Exception:
+                logger.exception("client whatsapp welcome failed")
+                welcome = "failed"
+
     EMP_NAMES = _load_emp_names()
     SVC_TASKS = {
         "content":  [("Content Brief & Research", "emp006"), ("Write Copy / Content Draft", "emp006"), ("Content Review & Approval", "emp004")],
@@ -1668,6 +1703,7 @@ def notion_create_client():
         "name": name,
         "tasks_created": tasks_created,
         "portal_account": portal_account,
+        "welcome": welcome,
         "notion_url": f"https://notion.so/{client['notion_id'].replace('-', '')}",
     })
 
