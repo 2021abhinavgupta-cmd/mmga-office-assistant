@@ -275,8 +275,12 @@ function goStep(n){
 
 function goStep2(){
   const name=document.getElementById("name").value.trim();
-  if(!name){document.getElementById("err1").style.display="block";return;}
-  document.getElementById("err1").style.display="none";
+  const e1=document.getElementById("err1");
+  if(!name){e1.textContent="Please enter the client name.";e1.style.display="block";return;}
+  const cu=document.getElementById("client_username").value.trim(), cp=document.getElementById("client_password").value.trim();
+  if((cu&&!cp)||(!cu&&cp)){e1.textContent="Fill both the portal username and password, or leave both blank.";e1.style.display="block";return;}
+  if(cp&&cp.length<6){e1.textContent="Portal password should be at least 6 characters.";e1.style.display="block";return;}
+  e1.style.display="none";
   goStep(2);
 }
 
@@ -362,6 +366,8 @@ async function createClient(){
       document.getElementById("main-card").style.display = "none";
       document.getElementById("success-msg").innerHTML =
         `"${name}" created in Notion. ` +
+        (data.portal_account === "created" ? `Client portal login created (username: ${document.getElementById("client_username").value.trim()}). ` :
+         data.portal_account === "failed" ? `<b style="color:var(--red)">The client portal login could NOT be created (username may already be in use) - set it up in Client Admin.</b> ` : "") +
         (data.notion_url ? `<a href="${data.notion_url}" target="_blank" style="color:var(--acc);text-decoration:none">→ Open in Notion ↗</a>` : "");
       
       const addLink = document.getElementById("add-tasks-link");
@@ -377,7 +383,7 @@ async function createClient(){
         body: JSON.stringify({
           user_id: UID, name,
           contact:      document.getElementById("contact").value.trim(),
-          requirements: document.getElementById("requirements").value.trim(),
+          requirements: finalRequirements,
           deadline:     document.getElementById("deadline")?.value || "",
           client_username: document.getElementById("client_username").value.trim(),
           client_password: document.getElementById("client_password").value.trim(),

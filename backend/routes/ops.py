@@ -1568,7 +1568,7 @@ def notion_create_client():
 
     c_user = body.get("client_username", "").strip()
     c_pass = body.get("client_password", "").strip()
-    if c_user:
+    if c_user and c_pass:   # never wipe an existing login unless a replacement is really being made
         try:
             # Admin is forcing creation: wipe any stuck or old credential with this username
             # so the new client can claim it seamlessly.
@@ -1594,6 +1594,7 @@ def notion_create_client():
 
     c_user = body.get("client_username", "").strip()
     c_pass = body.get("client_password", "").strip()
+    portal_account = "skipped"
     if c_user and c_pass:
         try:
             hashed_pass = generate_password_hash(c_pass)
@@ -1604,8 +1605,12 @@ def notion_create_client():
                     (c_user, hashed_pass, name, client["notion_id"])
                 )
             conn.close()
+            portal_account = "created"
         except Exception as e:
             logger.error(f"Failed to create client user: {e}")
+            portal_account = "failed"
+    elif c_user or c_pass:
+        portal_account = "incomplete"
 
     EMP_NAMES = _load_emp_names()
     SVC_TASKS = {
@@ -1642,7 +1647,9 @@ def notion_create_client():
             )
             if result:
                 tasks_created += 1
-    else:
+    elif body.get("auto_tasks"):
+        # Not used by the onboarding page: its "Add Tasks" step (add-tasks.html) creates the real
+        # workflow tasks, and auto-creating a second set here made duplicates for "website".
         for svc in body.get("services", []):
             for (task_title, emp_id) in SVC_TASKS.get(svc, []):
                 result = notion_store.create_task(
@@ -1660,6 +1667,7 @@ def notion_create_client():
         "notion_id": client["notion_id"],
         "name": name,
         "tasks_created": tasks_created,
+        "portal_account": portal_account,
         "notion_url": f"https://notion.so/{client['notion_id'].replace('-', '')}",
     })
 
