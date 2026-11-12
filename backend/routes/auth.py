@@ -423,7 +423,71 @@ def list_client_users():
          "client_notion_id": r[3] or "", "created_at": r[4], "whatsapp": r[5] or ""}
         for r in rows
     ]
-    return jsonify({"clients": clients})
+    numbers = {}
+    try:   # numbers saved per client (works with or without a portal login)
+        conn = _sessions_conn()
+        numbers = {r[0]: r[1] for r in conn.execute(
+            "SELECT client_notion_id, phone FROM client_whatsapp").fetchall()}
+        conn.close()
+    except Exception:
+        pass
+    return jsonify({"clients": clients, "numbers": numbers})
+
+
+@auth_bp.route("/api/auth/client-whatsapp", methods=["PUT"])
+def set_client_whatsapp():
+    """Add, change or clear a client's WhatsApp number from the Client Admin page. Works whether or
+    not the client has a portal login. Body: {client_notion_id, client_name, whatsapp, send_welcome}.
+    A new or changed number gets the welcome message (unless send_welcome is false)."""
+    import re
+    token = request.cookies.get("client_admin_token", "")
+    if not _verify_admin_session(token):
+        return jsonify({"error": "Unauthorized"}), 401
+    body = request.get_json(silent=True) or {}
+    nid = str(body.get("client_notion_id", "") or "").strip()
+    name = str(body.get("client_name", "") or "").strip()
+    if not nid:
+        return jsonify({"error": "client_notion_id is required"}), 400
+    digits = re.sub(r"\D", "", str(body.get("whatsapp", "") or ""))
+    if digits and len(digits) == 10:
+        digits = "91" + digits
+    if digits and not (11 <= len(digits) <= 15):
+        return jsonify({"error": "That number does not look right. Use 10 digits, or the full number with country code."}), 400
+    phone = ("+" + digits) if digits else ""
+
+    conn = _sessions_conn()
+    try:
+        with conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS client_whatsapp ("
+                         "client_notion_id TEXT PRIMARY KEY, client_name TEXT, phone TEXT, created_at TEXT)")
+            old = conn.execute("SELECT phone FROM client_whatsapp WHERE client_notion_id=?", (nid,)).fetchone()
+            old_phone = old[0] if old else ""
+            if phone:
+                conn.execute("INSERT OR REPLACE INTO client_whatsapp VALUES (?,?,?,datetime('now'))",
+                             (nid, name, phone))
+            else:
+                conn.execute("DELETE FROM client_whatsapp WHERE client_notion_id=?", (nid,))
+            conn.execute("UPDATE client_users SET whatsapp=? WHERE client_notion_id=?", (phone, nid))
+            user = conn.execute("SELECT username FROM client_users WHERE client_notion_id=? ORDER BY id LIMIT 1",
+                                (nid,)).fetchone()
+    finally:
+        conn.close()
+
+    welcome = "skipped"
+    if phone and phone != old_phone and body.get("send_welcome", True):
+        try:
+            import wa_outbox
+            username = user[0] if user else ""
+            text = (f"Hi! Welcome to MMGA, and thank you for choosing us. \U0001F389\n\n"
+                    f"We've set up *{name or 'your account'}* on our side and the team is excited to get started with you."
+                    + (f"\n\nYou can log in to your client portal at https://lumina.mmga.agency/client-login.html "
+                       f"with the username *{username}*." if username else "")
+                    + "\n\nYou can message this number any time to ask about your tasks and progress.")
+            welcome = "sent" if wa_outbox.enqueue(wa_outbox.wa_jid(phone), text) else "failed"
+        except Exception:
+            logger.exception("client welcome (admin page) failed")
+            welcome = "failed"
+    return jsonify({"success": True, "whatsapp": phone, "welcome": welcome})
 
 
 @auth_bp.route("/api/auth/clients", methods=["POST"])

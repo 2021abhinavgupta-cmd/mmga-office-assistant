@@ -161,6 +161,7 @@
     
     let dashboardData = { clients: [] };
     let portalAccounts = [];
+    let portalNumbers = {};
     let selectedClient = null;
     let editingTaskId = null;
 
@@ -193,6 +194,7 @@
       const res = await fetch(`${API}/api/auth/clients`);
       const data = await res.json();
       portalAccounts = data.clients || [];
+      portalNumbers = data.numbers || {};
     }
 
     function renderSidebar() {
@@ -227,30 +229,53 @@
       // Find matching portal account
       const portalAcc = portalAccounts.find(p => p.client_notion_id === c.notion_id);
 
+      const q = (s) => String(s || '').replace(/"/g, '&quot;');
+      const savedNum = (portalNumbers[c.notion_id] || (portalAcc && portalAcc.whatsapp) || '');
       let html = `
         <div class="card">
           <div class="section-title">
-            Portal Account Link
-            ${portalAcc ? `<span class="badge" style="background:var(--grn);color:#000;padding:4px 8px;border-radius:4px;font-size:0.7rem;">Linked to @${portalAcc.username}</span>` : `<span class="badge" style="background:var(--s3);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:0.7rem;">Not Linked</span>`}
+            Client Portal Login
+            ${portalAcc ? `<span class="badge" style="background:var(--grn);color:#000;padding:4px 8px;border-radius:4px;font-size:0.7rem;">Login: @${portalAcc.username}</span>` : `<span class="badge" style="background:var(--s3);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:0.7rem;">No login yet</span>`}
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Link to existing Portal Account</label>
-              <select id="link-account-select">
-                <option value="">-- Select an account --</option>
-                ${portalAccounts.map(p => `<option value="${p.id}" ${portalAcc && portalAcc.id === p.id ? 'selected' : ''}>@${p.username} (${p.client_name})</option>`).join("")}
-              </select>
+              <label>Username</label>
+              <input type="text" id="login-username" autocomplete="off" placeholder="e.g. acme" value="${q(portalAcc ? portalAcc.username : '')}">
             </div>
-            <button class="btn-sm" style="padding:10px 16px" onclick="linkAccount()">Save Link</button>
-          </div>
-          ${portalAcc ? `
-          <div class="form-row" style="margin-top:12px">
             <div class="form-group">
-              <label>WhatsApp number &mdash; lets this client use the WhatsApp assistant (scoped to their own deliverables)</label>
-              <input type="text" id="wa-number-input" placeholder="+9198XXXXXXXX" value="${(portalAcc.whatsapp || '').replace(/"/g, '&quot;')}">
+              <label>${portalAcc ? 'New password (leave blank to keep the current one)' : 'Password'}</label>
+              <input type="text" id="login-password" autocomplete="off" placeholder="${portalAcc ? 'unchanged' : 'at least 6 characters'}">
             </div>
-            <button class="btn-sm" style="padding:10px 16px" onclick="saveClientWhatsapp(${portalAcc.id})">Save number</button>
-          </div>` : ``}
+            <button class="btn-sm" style="padding:10px 16px" onclick="saveLogin()">${portalAcc ? 'Save login' : 'Create login'}</button>
+          </div>
+          <details style="margin-top:12px"><summary style="cursor:pointer;color:var(--muted);font-size:.8rem">Link to a different existing portal account</summary>
+            <div class="form-row" style="margin-top:8px">
+              <div class="form-group">
+                <select id="link-account-select">
+                  <option value="">-- Select an account --</option>
+                  ${portalAccounts.map(p => `<option value="${p.id}" ${portalAcc && portalAcc.id === p.id ? 'selected' : ''}>@${p.username} (${p.client_name})</option>`).join("")}
+                </select>
+              </div>
+              <button class="btn-sm" style="padding:10px 16px" onclick="linkAccount()">Save Link</button>
+            </div>
+          </details>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="section-title">
+            WhatsApp number
+            ${savedNum ? `<span class="badge" style="background:var(--grn);color:#000;padding:4px 8px;border-radius:4px;font-size:0.7rem;">${q(savedNum)}</span>` : `<span class="badge" style="background:var(--s3);color:var(--muted);padding:4px 8px;border-radius:4px;font-size:0.7rem;">Not added</span>`}
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Lets the client message the WhatsApp assistant about their own deliverables. Works with or without a portal login. Leave empty and save to remove it.</label>
+              <input type="text" id="wa-number-input" placeholder="98765 43210 or +91 98765 43210" value="${q(savedNum)}">
+            </div>
+            <button class="btn-sm" style="padding:10px 16px" onclick="saveClientWhatsapp()">Save number</button>
+          </div>
+          <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:.8rem;color:var(--muted)">
+            <input type="checkbox" id="wa-welcome" checked> Send the welcome message when the number is new or changed
+          </label>
         </div>
 
         <div class="section-title" style="margin-top: 24px">
@@ -314,20 +339,57 @@
       }
     }
 
-    async function saveClientWhatsapp(portalId) {
+    async function saveClientWhatsapp() {
       const val = document.getElementById("wa-number-input").value.trim();
-      const res = await fetch(`${API}/api/auth/clients/${portalId}`, {
+      const res = await fetch(`${API}/api/auth/client-whatsapp`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ whatsapp: val })
+        body: JSON.stringify({
+          client_notion_id: selectedClient.notion_id, client_name: selectedClient.name,
+          whatsapp: val, send_welcome: document.getElementById("wa-welcome").checked
+        })
       });
       const data = await res.json().catch(() => ({}));
       if(res.ok && data.success !== false) {
         await fetchPortalAccounts();
         renderMain();
-        toast(val ? "WhatsApp number saved" : "WhatsApp number cleared");
+        toast(!val ? "WhatsApp number removed"
+              : data.welcome === "sent" ? "Number saved and welcome message queued"
+              : data.welcome === "failed" ? "Number saved, but the welcome message could not be queued"
+              : "WhatsApp number saved");
       } else {
         toast("Error saving number: " + (data.error || res.status), "err");
+      }
+    }
+
+    // Create the client's portal login, or edit the username / password of the existing one.
+    async function saveLogin() {
+      const username = document.getElementById("login-username").value.trim();
+      const password = document.getElementById("login-password").value.trim();
+      const acc = portalAccounts.find(p => p.client_notion_id === selectedClient.notion_id);
+      if(!username) { toast("Enter a username.", "err"); return; }
+      if(password && password.length < 6) { toast("Password should be at least 6 characters.", "err"); return; }
+      let res;
+      if(acc) {
+        const body = { username };
+        if(password) body.password = password;
+        res = await fetch(`${API}/api/auth/clients/${acc.id}`, {
+          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      } else {
+        if(!password) { toast("Enter a password to create the login.", "err"); return; }
+        res = await fetch(`${API}/api/auth/clients`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, client_name: selectedClient.name,
+                                 client_notion_id: selectedClient.notion_id,
+                                 whatsapp: portalNumbers[selectedClient.notion_id] || "" }) });
+      }
+      const data = await res.json().catch(() => ({}));
+      if(res.ok && data.success !== false) {
+        await fetchPortalAccounts();
+        renderMain();
+        toast(acc ? "Login updated" : "Login created");
+      } else {
+        toast("Error: " + (data.error || res.status), "err");
       }
     }
 
