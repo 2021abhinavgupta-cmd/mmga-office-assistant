@@ -341,7 +341,7 @@ function renderClients(clients) {
             <div class="client-meta">
               ${tasks.length} task${tasks.length !== 1 ? 's' : ''}
               ${c.contact ? ' · ' + c.contact : ''}
-              ${IS_ADMIN ? `<br><span style="font-size:0.75rem;margin-top:4px;display:inline-block;color:var(--acc)">${c.client_username ? 'Login: @' + c.client_username + ' · ' : 'No login yet · '}<a href="client-admin.html?client=${encodeURIComponent(c.notion_id || c.id || '')}" onclick="event.stopPropagation()" style="color:var(--acc);font-weight:600">Edit login / WhatsApp / tasks</a></span>` : ''}
+              ${IS_ADMIN ? `<br><span style="font-size:0.75rem;margin-top:4px;display:inline-block;color:var(--acc)">${c.client_username ? 'Login: @' + c.client_username + ' · ' : 'No login yet · '}<a href="#" onclick="event.stopPropagation();event.preventDefault();openEdit('${String(c.notion_id || c.id || '').replace(/'/g, '')}')" style="color:var(--acc);font-weight:600">Edit client</a></span>` : ''}
             </div>
           </div>
         </div>
@@ -452,7 +452,111 @@ async function loadPortal() {
   }
 }
 
+// ── Edit client (login, WhatsApp number, tasks) ───────────────────────────────
+let ed = { client: null, accounts: [], numbers: {}, taskId: null };
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+function edToast(m, bad) {
+  const t = document.getElementById('ed-toast');
+  t.textContent = m; t.style.background = bad ? '#7f1d1d' : '#14532d'; t.style.display = 'block';
+  clearTimeout(window.__edt); window.__edt = setTimeout(() => t.style.display = 'none', 3500);
+}
+async function edApi(path, method, body) {
+  const r = await fetch(`${API}${path}`, { method, headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(() => ({}));
+  return { ok: r.ok && d.success !== false, d, status: r.status };
+}
+async function edLoadAccounts() {
+  const r = await fetch(`${API}/api/auth/clients`).catch(() => null);
+  if (r && r.ok) { const d = await r.json(); ed.accounts = d.clients || []; ed.numbers = d.numbers || {}; }
+}
+async function openEdit(id) {
+  ed.client = allClients.find(c => String(c.notion_id || c.id) === String(id));
+  if (!ed.client) return;
+  ed.taskId = null;
+  document.getElementById('ed-modal').style.display = 'flex';
+  document.getElementById('ed-body').innerHTML = '<p style="color:var(--muted)">Loading…</p>';
+  await edLoadAccounts();
+  renderEdit();
+}
+function closeEdit() { document.getElementById('ed-modal').style.display = 'none'; }
+function renderEdit() {
+  const c = ed.client, nid = c.notion_id || c.id;
+  const acc = ed.accounts.find(a => a.client_notion_id === nid);
+  const num = ed.numbers[nid] || (acc && acc.whatsapp) || '';
+  const inp = 'width:100%;padding:9px;background:#0d0d14;border:1px solid var(--bdr);border-radius:8px;color:var(--txt);font:inherit';
+  const lab = 'display:block;font-size:.72rem;color:var(--muted);margin:10px 0 4px';
+  const btn = 'padding:9px 16px;border:0;border-radius:8px;background:var(--acc);color:#000;font-weight:600;cursor:pointer';
+  const tasks = [...(c.tasks || [])].sort((a, b) => String(a.due_date || '9').localeCompare(String(b.due_date || '9')));
+  const et = ed.taskId && tasks.find(t => (t.notion_id || t.id) === ed.taskId);
+  document.getElementById('ed-title').textContent = c.name;
+  document.getElementById('ed-body').innerHTML = `
+    <h4 style="margin:0 0 4px">Portal login ${acc ? '<span style="color:var(--green);font-weight:400;font-size:.8rem">@' + esc(acc.username) + '</span>' : '<span style="color:var(--muted);font-weight:400;font-size:.8rem">none yet</span>'}</h4>
+    <label style="${lab}">Username</label><input id="ed-user" style="${inp}" value="${esc(acc ? acc.username : '')}" autocomplete="off">
+    <label style="${lab}">${acc ? 'New password (blank keeps the current one)' : 'Password (6+ characters)'}</label><input id="ed-pass" style="${inp}" autocomplete="off">
+    <div style="margin-top:10px"><button style="${btn}" onclick="edSaveLogin()">${acc ? 'Save login' : 'Create login'}</button></div>
+    <h4 style="margin:22px 0 4px">WhatsApp number ${num ? '<span style="color:var(--green);font-weight:400;font-size:.8rem">' + esc(num) + '</span>' : '<span style="color:var(--muted);font-weight:400;font-size:.8rem">not added</span>'}</h4>
+    <input id="ed-wa" style="${inp}" placeholder="98765 43210 or +91 98765 43210" value="${esc(num)}">
+    <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-size:.8rem;color:var(--muted)"><input type="checkbox" id="ed-welcome" checked> Send the welcome message if the number is new or changed</label>
+    <button style="${btn}" onclick="edSaveWa()">Save number</button>
+    <h4 style="margin:22px 0 6px">Tasks (${tasks.length})</h4>
+    <div style="max-height:200px;overflow:auto;border:1px solid var(--bdr);border-radius:8px">${tasks.map(t => `
+      <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-bottom:1px solid var(--bdr);font-size:.82rem">
+        <span>${esc(t.title)}<br><span style="color:var(--muted);font-size:.72rem">${esc((t.status || '').replace(/_/g, ' '))} · ${esc(t.due_date || 'no date')} · ${esc(t.assigned_to || 'unassigned')}</span></span>
+        <a href="#" onclick="event.preventDefault();ed.taskId='${esc(t.notion_id || t.id)}';renderEdit()" style="color:var(--acc)">Edit</a></div>`).join('') || '<div style="padding:12px;color:var(--muted)">No tasks yet.</div>'}</div>
+    <h4 style="margin:14px 0 4px">${et ? 'Edit task' : 'Add task'}</h4>
+    <label style="${lab}">Title</label><input id="ed-t-title" style="${inp}" value="${esc(et ? et.title : '')}">
+    <div style="display:flex;gap:8px"><div style="flex:1"><label style="${lab}">Assigned to</label><input id="ed-t-assign" style="${inp}" value="${esc(et ? et.assigned_to : '')}"></div>
+    <div style="flex:1"><label style="${lab}">Due date</label><input id="ed-t-date" type="date" lang="en-GB" style="${inp}" value="${esc(et ? et.due_date : '')}"></div></div>
+    ${et ? `<label style="${lab}">Status</label><select id="ed-t-status" style="${inp}">${['not_started','in_progress','in_review','approved','done'].map(s => `<option value="${s}" ${et.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}</select>` : ''}
+    <div style="margin-top:10px"><button style="${btn}" onclick="edSaveTask()">${et ? 'Save task' : 'Add task'}</button>
+    ${et ? '<button style="padding:9px 16px;margin-left:8px;border:1px solid var(--bdr);border-radius:8px;background:none;color:var(--txt);cursor:pointer" onclick="ed.taskId=null;renderEdit()">Cancel</button>' : ''}</div>`;
+}
+async function edSaveLogin() {
+  const c = ed.client, nid = c.notion_id || c.id, acc = ed.accounts.find(a => a.client_notion_id === nid);
+  const username = document.getElementById('ed-user').value.trim(), password = document.getElementById('ed-pass').value.trim();
+  if (!username) return edToast('Enter a username.', true);
+  if (password && password.length < 6) return edToast('Password should be at least 6 characters.', true);
+  let r;
+  if (acc) { const b = { username }; if (password) b.password = password; r = await edApi(`/api/auth/clients/${acc.id}`, 'PUT', b); }
+  else {
+    if (!password) return edToast('Enter a password to create the login.', true);
+    r = await edApi('/api/auth/clients', 'POST', { username, password, client_name: c.name, client_notion_id: nid, whatsapp: ed.numbers[nid] || '' });
+  }
+  if (!r.ok) return edToast('Error: ' + (r.d.error || r.status), true);
+  await edLoadAccounts(); c.client_username = username; renderEdit(); applyFilters();
+  edToast(acc ? 'Login updated' : 'Login created');
+}
+async function edSaveWa() {
+  const c = ed.client, nid = c.notion_id || c.id, v = document.getElementById('ed-wa').value.trim();
+  const r = await edApi('/api/auth/client-whatsapp', 'PUT', { client_notion_id: nid, client_name: c.name, whatsapp: v, send_welcome: document.getElementById('ed-welcome').checked });
+  if (!r.ok) return edToast('Error: ' + (r.d.error || r.status), true);
+  await edLoadAccounts(); renderEdit();
+  edToast(!v ? 'WhatsApp number removed' : r.d.welcome === 'sent' ? 'Number saved and welcome message queued' : 'WhatsApp number saved');
+}
+async function edSaveTask() {
+  const c = ed.client, nid = c.notion_id || c.id;
+  const title = document.getElementById('ed-t-title').value.trim(), assign = document.getElementById('ed-t-assign').value.trim(), date = document.getElementById('ed-t-date').value;
+  if (!title) return edToast('Title is required', true);
+  let r;
+  if (ed.taskId) r = await edApi(`/api/notion/tasks/${ed.taskId}`, 'PATCH', { new_title: title, assigned_to: assign, due_date: date, status: document.getElementById('ed-t-status').value });
+  else r = await edApi('/api/notion/tasks', 'POST', { title, assigned_to: assign, due_date: date, client_name: c.name, client_id: nid });
+  if (!r.ok) return edToast('Failed to save task: ' + (r.d.error || r.status), true);
+  const wasEdit = !!ed.taskId; ed.taskId = null;
+  edToast(wasEdit ? 'Task saved' : 'Task added');
+  await loadPortal();
+  ed.client = allClients.find(x => String(x.notion_id || x.id) === String(nid)) || c;
+  renderEdit();
+}
+
 loadPortal();
 </script>
+<div id="ed-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:900;align-items:center;justify-content:center" onclick="if(event.target===this)closeEdit()">
+  <div style="background:#12121a;border:1px solid var(--bdr);border-radius:14px;width:560px;max-width:94vw;max-height:90vh;overflow:auto;padding:22px;color:var(--txt)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 id="ed-title" style="margin:0"></h3><button onclick="closeEdit()" style="background:none;border:0;color:var(--muted);font-size:1.3rem;cursor:pointer">×</button></div>
+    <div id="ed-body"></div>
+  </div>
+</div>
+<div id="ed-toast" style="display:none;position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:8px;color:#fff;font-size:.85rem;z-index:1000"></div>
 </body>
 </html>

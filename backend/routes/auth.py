@@ -410,7 +410,7 @@ def client_logout():
 def list_client_users():
     """List all client portal accounts. Admin use."""
     token = request.cookies.get("client_admin_token", "")
-    if not _verify_admin_session(token):
+    if not _staff_or_admin(token):
         return jsonify({"error": "Unauthorized"}), 401
     conn = _sessions_conn()
     cur = conn.cursor()
@@ -441,7 +441,7 @@ def set_client_whatsapp():
     A new or changed number gets the welcome message (unless send_welcome is false)."""
     import re
     token = request.cookies.get("client_admin_token", "")
-    if not _verify_admin_session(token):
+    if not _staff_or_admin(token):
         return jsonify({"error": "Unauthorized"}), 401
     body = request.get_json(silent=True) or {}
     nid = str(body.get("client_notion_id", "") or "").strip()
@@ -494,7 +494,7 @@ def set_client_whatsapp():
 def create_client_user():
     """Create a new client portal account. Admin only."""
     token = request.cookies.get("client_admin_token", "")
-    if not _verify_admin_session(token):
+    if not _staff_or_admin(token):
         return jsonify({"error": "Unauthorized"}), 401
     body = request.get_json(silent=True) or {}
     username = body.get("username", "").strip()
@@ -530,7 +530,7 @@ def create_client_user():
 def delete_client_user(client_id):
     """Delete a client portal account."""
     token = request.cookies.get("client_admin_token", "")
-    if not _verify_admin_session(token):
+    if not _staff_or_admin(token):
         return jsonify({"error": "Unauthorized"}), 401
     conn = _sessions_conn()
     with conn:
@@ -576,6 +576,14 @@ def _verify_admin_session(token: str) -> bool:
         return False
     expires_at = row[0]
     return datetime.utcnow().isoformat() + "Z" <= expires_at
+
+
+
+def _staff_or_admin(token: str) -> bool:
+    """Client-admin password session OR a real logged-in employee session (every employee is admin, gotcha #60)."""
+    if _verify_admin_session(token):
+        return True
+    return bool(_verify_session(request.cookies.get("session_token", "")))
 
 
 @auth_bp.route("/api/auth/admin_portal_login", methods=["POST"])
@@ -633,7 +641,7 @@ def update_client_user(client_id):
     """Update an existing client portal account (username, password, client_name, notion_id)."""
     # Verify admin session
     token = request.cookies.get("client_admin_token", "")
-    if not _verify_admin_session(token):
+    if not _staff_or_admin(token):
         return jsonify({"error": "Unauthorized"}), 401
 
     body = request.get_json(silent=True) or {}

@@ -105,9 +105,9 @@
     "date": "2026-11-12",
     "title": "Edit a client straight from the Client Portal",
     "bullets": [
-      "Each client card now has an Edit link that opens that client in Client Admin",
-      "There you can change the client's login, add or change their WhatsApp number, and edit or add their tasks"
+      "Each client card on the Client Portal now has an Edit client link that opens a box right there",
+      "You can change the client login, add or change their WhatsApp number, and edit or add their tasks without leaving the page"
     ],
-    "how": "Open Client Portal, then tap Edit login / WhatsApp / tasks under a client's name."
+    "how": "Open Client Portal, then tap Edit client under a client's name."
   }
 ]
