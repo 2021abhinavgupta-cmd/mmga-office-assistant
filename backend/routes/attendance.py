@@ -1129,8 +1129,16 @@ def attendance_export_sheets():
 
 @attendance_bp.route("/api/employees", methods=["GET"])
 def get_employees():
-    """Returns all employees with their current status."""
+    """Returns the employees. People marked inactive / left (e.g. Sid, Rishika)
+    are left out so they vanish from every list, login grid and dropdown;
+    ?all=1 returns everyone (name lookups for old records)."""
     data = _load_employees()
+    if request.args.get("all") != "1":
+        data = dict(data)
+        data["employees"] = [
+            e for e in data.get("employees", [])
+            if str(e.get("status", "active")).strip().lower() not in _INACTIVE_STATUSES
+        ]
     return jsonify(data)
 
 

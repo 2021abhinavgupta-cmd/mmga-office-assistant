@@ -145,7 +145,9 @@ def auth_login():
 
     data = _load_employees()
     emp = next((e for e in data.get("employees", []) if e["id"] == user_id), None)
-    if not emp:
+    if not emp or str(emp.get("status", "active")).strip().lower() in (
+            "inactive", "disabled", "left", "removed", "archived", "former"):
+        # people who have left cannot sign in (same answer as an unknown id)
         return jsonify({"error": "Employee not found"}), 404
 
     if emp.get("pin", "0000") != pin:
