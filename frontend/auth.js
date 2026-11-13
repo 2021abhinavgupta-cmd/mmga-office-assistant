@@ -46,7 +46,7 @@ document.documentElement.style.visibility = 'hidden';
     // If the check itself fails (network hiccup), fail open rather than
     // trap someone out of the whole app.
     const __page = location.pathname.split("/").pop() || "index.html";
-    if (__page !== "standup.html" && __page !== "checkin.html") {
+    if (__page !== "standup.html" && __page !== "checkin.html" && __page !== "everyone-tasks.html") {
       try {
         const lr = await fetch(
           `${authApi}/api/standup/lock-status?user_id=${encodeURIComponent(user.user_id)}`,

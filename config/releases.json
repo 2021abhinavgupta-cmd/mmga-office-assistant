@@ -121,5 +121,17 @@
       "Anything it cannot answer (changes, approvals, pricing) is passed to the client's account manager"
     ],
     "how": "Add the Lumina number to the client's group, then type 'Lumina, this is the Omotec group' in it once."
+  },
+  {
+    "id": "2026-11-13-see-everyone-s-tasks-in-one-place",
+    "date": "2026-11-13",
+    "title": "See everyone's tasks in one place",
+    "bullets": [
+      "A new Everyone's Tasks page shows each teammate's standup tasks on their own card",
+      "Each card shows when they checked in and checked out",
+      "Cards with more than 3 tasks have Next and Prev buttons",
+      "Search for a teammate by name"
+    ],
+    "how": "Open Daily Standup, then tap View everyone's tasks."
   }
 ]

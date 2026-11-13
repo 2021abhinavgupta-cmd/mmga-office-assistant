@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Everyone's Tasks | Daily Standup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="shared-config.js"></script>
+  <script src="auth.js"></script>
+  <style>
+    :root{--acc:#f5a623;--txt:#f1f1f6;--muted:#a9a9bd;--grn:#22d3a0;--red:#ff5c5c}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Inter',sans-serif;color:var(--txt);min-height:100vh;line-height:1.5;
+      background:radial-gradient(900px 500px at -8% 110%, rgba(255,90,10,.10), transparent 70%),linear-gradient(180deg,#0a0605 0%,#060404 100%);
+      background-attachment:fixed}
+    /* fluted (reeded) orange glass backdrop, same as the standup page */
+    body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:
+        repeating-linear-gradient(90deg, rgba(10,2,0,.62) 0px, rgba(10,2,0,.10) 8px, rgba(0,0,0,0) 18px, rgba(255,190,110,.10) 27px, rgba(10,2,0,.62) 38px),
+        linear-gradient(90deg, rgba(0,0,0,0) 36%, rgba(110,18,0,.62) 56%, rgba(190,48,0,.88) 74%, rgba(255,100,8,1) 90%, rgba(255,150,30,1) 100%);
+      -webkit-mask-image:radial-gradient(ellipse 78% 96% at 100% 2%, #000 24%, rgba(0,0,0,.5) 52%, rgba(0,0,0,.18) 74%, transparent 92%);
+      mask-image:radial-gradient(ellipse 78% 96% at 100% 2%, #000 24%, rgba(0,0,0,.5) 52%, rgba(0,0,0,.18) 74%, transparent 92%)}
+    body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:radial-gradient(1100px 520px at 100% -12%, rgba(255,120,20,.30), transparent 62%)}
+    .wrap{position:relative;z-index:1;max-width:1410px;margin:0 auto;padding:14px 36px 48px}
+    .hdr{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:32px}
+    .hdr h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:2.6rem;font-weight:800;letter-spacing:-.8px;display:flex;align-items:center;gap:12px;line-height:1.1}
+    .hdr h1 span{color:var(--acc)}
+    .hdr h1 .star{color:#ff8a1f;font-size:2rem}
+    .greet{color:#e8e8f0;font-size:1.02rem;margin-top:12px}
+    .nav{display:flex;gap:16px;flex-wrap:wrap}
+    .nl{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;font-size:1rem;font-weight:700;color:#fff;text-decoration:none;border-radius:100px;
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px);
+      box-shadow:0 8px 20px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.16);transition:transform .2s}
+    .nl:hover{transform:translateY(-1px);border-color:var(--acc)}
+    .nl-primary{background:linear-gradient(135deg,#ff8a1f,#ff5a00);border-color:transparent;
+      box-shadow:0 14px 36px rgba(255,100,0,.62), 0 0 0 1px rgba(255,170,80,.35), inset 0 1px 0 rgba(255,255,255,.35)}
+
+    .panel{border-radius:34px;padding:30px 28px 28px;
+      background:
+        radial-gradient(560px 280px at 100% 100%, rgba(255,110,10,.14), transparent 70%),
+        linear-gradient(160deg, rgba(255,255,255,.09) 0%, rgba(24,10,5,.66) 36%, rgba(14,6,3,.76) 100%);
+      -webkit-backdrop-filter:blur(22px) saturate(105%);backdrop-filter:blur(22px) saturate(105%);
+      border:1px solid;border-color:rgba(255,255,255,.22) rgba(255,160,70,.30) rgba(255,140,50,.55) rgba(255,255,255,.14);
+      box-shadow:0 34px 80px rgba(0,0,0,.6),0 18px 50px rgba(255,80,0,.18),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -1px 0 rgba(255,150,50,.5),inset 0 -50px 70px -50px rgba(255,100,10,.22)}
+    .panel-hd{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+    .panel-hd h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.7rem;font-weight:800;letter-spacing:-.4px;display:flex;align-items:center;gap:14px}
+    .panel-hd h2 svg{color:#ff8a1f}
+    .back{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:#fff;text-decoration:none;
+      background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+    .back:hover{border-color:var(--acc)}
+    .tools{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+    .legend{display:flex;gap:16px;font-size:.78rem;color:var(--muted);align-items:center}
+    .legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+    .search{display:flex;align-items:center;gap:10px;min-width:260px;padding:0 18px;height:42px;border-radius:100px;
+      background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 2px 8px rgba(0,0,0,.3)}
+    .search svg{color:#fff;flex-shrink:0}
+    .search input{flex:1;background:transparent;border:0;outline:0;color:#fff;font-family:inherit;font-size:.9rem;min-width:0}
+    .search input::placeholder{color:#d8d8e6}
+
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;align-items:stretch}
+    @media(max-width:1250px){.grid{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:950px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:620px){.grid{grid-template-columns:1fr}.wrap{padding:12px 14px 36px}.hdr h1{font-size:2rem}}
+    .pcard{display:flex;flex-direction:column;border-radius:22px;padding:20px 22px 16px;
+      background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow:0 10px 26px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.10), inset 0 -10px 20px -14px rgba(0,0,0,.5)}
+    .pc-top{display:flex;align-items:center;gap:16px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.16);margin-bottom:12px;min-height:84px}
+    .avatar{width:48px;height:48px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:1.25rem;color:#1a0d00;
+      background:radial-gradient(circle at 35% 28%, #ffc14a, #ff8a00 55%, #f26a00);
+      box-shadow:0 6px 18px rgba(255,110,0,.40), inset 0 1px 0 rgba(255,255,255,.45)}
+    .pc-name{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.25rem;font-weight:800;letter-spacing:-.2px}
+    .pc-status{font-size:.9rem;color:#ececf4}
+    .pc-status.off{color:var(--muted)}
+    .pc-status .out{display:block;color:var(--muted);font-size:.82rem}
+    .tasks{list-style:none;display:flex;flex-direction:column;gap:11px;flex:1;min-height:92px}
+    .tasks li{display:flex;gap:11px;align-items:flex-start;font-size:1rem;line-height:1.35;color:#fff}
+    .tasks li::before{content:"";flex-shrink:0;width:7px;height:7px;margin-top:8px;border-radius:50%;background:#fff}
+    .tasks li.empty::before{display:none}
+    .tasks li.carry{color:#ff9a1a;font-weight:700}
+    .tasks li.carry::before{background:#ff9a1a}
+    .tasks li.done{text-decoration:line-through;color:#f1f1f6}
+    .tasks li.blocked .blk{display:block;font-size:.78rem;color:var(--red);font-weight:600;text-decoration:none}
+    .empty{color:var(--muted);font-style:italic;font-size:.92rem}
+    .pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10)}
+    .pager .count{font-size:.8rem;color:var(--muted)}
+    .pbtn{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,140,30,.45);color:#ff9a2e;border-radius:100px;padding:7px 15px;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;
+      background:linear-gradient(180deg,rgba(255,130,20,.26),rgba(255,90,0,.12));box-shadow:0 6px 16px rgba(255,90,0,.2), inset 0 1px 0 rgba(255,200,120,.25)}
+    .pbtn:hover{color:#fff;border-color:#ff9a2e}
+    .pbtn[disabled]{opacity:.35;cursor:default}
+    .none{grid-column:1/-1;text-align:center;color:var(--muted);padding:40px 0}
+    #toast{position:fixed;bottom:20px;right:20px;background:#1b1b22;border:1px solid rgba(255,255,255,.14);padding:11px 18px;border-radius:12px;font-size:.84rem;display:none;z-index:9999}
+  </style>
+</head>
+<body>
+<div id="toast"></div>
+<div class="wrap">
+  <div class="hdr">
+    <div>
+      <h1><span class="star">&#10033;</span> Daily <span>Standup</span></h1>
+      <p class="greet" id="greeting-line">Here is what the team is working on today.</p>
+    </div>
+    <div class="nav">
+      <a href="projects.html" class="nl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M3 12h9"/></svg> Project Board</a>
+      <a href="leave.html" class="nl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendar</a>
+      <a href="dashboard.html" class="nl nl-primary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</a>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-hd">
+      <h2>
+        <a class="back" href="standup.html" title="Back to my standup"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="currentColor"><circle cx="8.5" cy="7.5" r="3.2"/><circle cx="17" cy="8.5" r="2.6"/><path d="M2 19c0-3.6 2.9-6 6.5-6S15 15.4 15 19v1H2z"/><path d="M15.6 13.3c.5-.2 1-.3 1.4-.3 2.8 0 5 2 5 5v1h-5.5v-1c0-1.9-.4-3.5-.9-4.7z"/></svg>
+        Everyone&rsquo;s Tasks
+      </h2>
+      <div class="tools">
+        <div class="legend">
+          <span><i style="background:#ff9a1a"></i>Carried over</span>
+          <span><i style="background:#fff"></i>Today</span>
+          <span><s>Done</s></span>
+        </div>
+        <label class="search">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input id="search" type="text" placeholder="Search by name..." autocomplete="off"/>
+        </label>
+      </div>
+    </div>
+    <div class="grid" id="grid"><div class="none">Loading&hellip;</div></div>
+  </div>
+</div>
+
+<script>
+const API = location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "http://localhost:5000" : location.origin;
+const user = JSON.parse(localStorage.getItem("agency_portal_user") || "{}");
+const PAGE_SIZE = 3;
+const pageOf = {};          // uid -> current page (kept across refreshes)
+let people = [];            // [{id,name,checkin,checkout,tasks:[]}]
+
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[m]); }
+function toast(msg){ const t = document.getElementById("toast"); t.textContent = msg; t.style.display = "block"; setTimeout(() => t.style.display = "none", 3000); }
+
+function clock12(hms){
+  if (!hms) return "";
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(hms));
+  if (!m) return String(hms);
+  let h = parseInt(m[1], 10); const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return String(h).padStart(2, "0") + ":" + m[2] + " " + ap;
+}
+
+function taskClass(t, today){
+  if (t.status === "done" || t.status === "need_for_approval") return "done";
+  const old = t.carried_from && t.carried_from !== today;
+  return old ? "carry" : "";
+}
+
+function cardHtml(p){
+  const total = p.tasks.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  let pg = Math.min(pageOf[p.id] || 0, pages - 1);
+  pageOf[p.id] = pg;
+  const slice = p.tasks.slice(pg * PAGE_SIZE, pg * PAGE_SIZE + PAGE_SIZE);
+  let status;
+  if (p.checkin) {
+    status = `<div class="pc-status">Checked in &ndash; ${esc(clock12(p.checkin))}` +
+             (p.checkout ? `<span class="out">Checked out &ndash; ${esc(clock12(p.checkout))}</span>` : "") + `</div>`;
+  } else {
+    status = `<div class="pc-status off">Not checked in</div>`;
+  }
+  const items = slice.length
+    ? slice.map(t => `<li class="${taskClass(t, p.today)}${t.blocker ? " blocked" : ""}"><span>${esc(t.title)}${t.blocker ? `<span class="blk">Blocker: ${esc(t.blocker)}</span>` : ""}</span></li>`).join("")
+    : `<li class="empty" style="list-style:none">No tasks yet</li>`;
+  const pager = total > PAGE_SIZE
+    ? `<div class="pager">
+         <button class="pbtn" onclick="turn('${esc(p.id)}',-1)" ${pg === 0 ? "disabled" : ""}>&larr; Prev</button>
+         <span class="count">${pg + 1} / ${pages} &middot; ${total} tasks</span>
+         <button class="pbtn" onclick="turn('${esc(p.id)}',1)" ${pg >= pages - 1 ? "disabled" : ""}>Next &rarr;</button>
+       </div>` : "";
+  return `<div class="pcard">
+    <div class="pc-top">
+      <div class="avatar">${esc((p.name || "?").charAt(0).toUpperCase())}</div>
+      <div><div class="pc-name">${esc(p.name)}</div>${status}</div>
+    </div>
+    <ul class="tasks">${items}</ul>
+    ${pager}
+  </div>`;
+}
+
+function render(){
+  const q = (document.getElementById("search").value || "").trim().toLowerCase();
+  const list = people.filter(p => !q || (p.name || "").toLowerCase().includes(q));
+  document.getElementById("grid").innerHTML = list.length
+    ? list.map(cardHtml).join("")
+    : `<div class="none">No one matches &ldquo;${esc(q)}&rdquo;.</div>`;
+}
+
+function turn(uid, d){
+  const p = people.find(x => x.id === uid);
+  if (!p) return;
+  const pages = Math.max(1, Math.ceil(p.tasks.length / PAGE_SIZE));
+  pageOf[uid] = Math.max(0, Math.min(pages - 1, (pageOf[uid] || 0) + d));
+  render();
+}
+
+async function load(){
+  try {
+    if (!window.EMPLOYEES || !window.EMPLOYEES.length) await loadEmployees();
+    const [sr, ar] = await Promise.all([
+      fetch(`${API}/api/standup/today`).then(r => r.json()),
+      fetch(`${API}/api/attendance/today`).then(r => r.json()).catch(() => ({records: []}))
+    ]);
+    const today = sr.date || new Date().toISOString().slice(0, 10);
+    const att = new Map((ar.records || []).map(r => [r.user_id, r]));
+    const tbu = sr.tasks_by_user || {};
+    people = (window.EMPLOYEES || []).map(e => {
+      const a = att.get(e.id) || {};
+      const tasks = (tbu[e.id] || []).filter(t => t.status !== "deleted" && t.status !== "delegated");
+      // open work first (carried over before new), finished work last
+      const rank = t => taskClass(t, today) === "done" ? 2 : (taskClass(t, today) === "carry" ? 0 : 1);
+      tasks.sort((x, y) => rank(x) - rank(y));
+      return { id: e.id, name: e.name, checkin: a.checkin_time || "", checkout: a.checkout_time || "", tasks, today };
+    });
+    // checked-in people first, in the order they arrived; the rest after, by name
+    people.sort((a, b) => {
+      if (a.checkin && b.checkin) return a.checkin.localeCompare(b.checkin);
+      if (a.checkin) return -1;
+      if (b.checkin) return 1;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+    render();
+  } catch (e) {
+    console.error(e);
+    document.getElementById("grid").innerHTML = `<div class="none">Could not load tasks. Please refresh.</div>`;
+  }
+}
+
+document.getElementById("search").addEventListener("input", render);
+(function greet(){
+  const h = new Date().getHours();
+  const g = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  document.getElementById("greeting-line").textContent = `${g}, ${user.user_name || "there"}! Here is what the team is working on today.`;
+})();
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
