@@ -137,6 +137,7 @@
 const API = location.hostname === "localhost" || location.hostname === "127.0.0.1" ? "http://localhost:5000" : location.origin;
 const user = JSON.parse(localStorage.getItem("agency_portal_user") || "{}");
 const PAGE_SIZE = 3;
+const HIDDEN_IDS = new Set(["emp004"]);   // Kshitij is not shown on this page
 const pageOf = {};          // uid -> current page (kept across refreshes)
 let people = [];            // [{id,name,checkin,checkout,tasks:[]}]
 
@@ -216,7 +217,7 @@ async function load(){
     const today = sr.date || new Date().toISOString().slice(0, 10);
     const att = new Map((ar.records || []).map(r => [r.user_id, r]));
     const tbu = sr.tasks_by_user || {};
-    people = (window.EMPLOYEES || []).map(e => {
+    people = (window.EMPLOYEES || []).filter(e => !HIDDEN_IDS.has(e.id)).map(e => {
       const a = att.get(e.id) || {};
       const tasks = (tbu[e.id] || []).filter(t => t.status !== "deleted" && t.status !== "delegated");
       // open work first (carried over before new), finished work last
