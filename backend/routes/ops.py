@@ -2483,8 +2483,8 @@ def export_standup_sheets():
     export: All / Summary / one sheet per person (see standup_export.py).
     Optional ?from=YYYY-MM-DD&to=YYYY-MM-DD; default is everything. Real
     session required (same check as the attendance export)."""
-    from routes.attendance import _verified_admin
-    if not _verified_admin():
+    # Only Noorish (HR, emp009) may export, checked from the real session.
+    if _verify_session(request.cookies.get("session_token", "")) != "emp009":
         return "Unauthorized", 403
     import standup_export
     from datetime import date as _date

@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>Daily Standup | Agency Portal Assistant</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Syne:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="shared-config.js"></script>
   <script src="auth.js"></script>
@@ -96,6 +96,70 @@
     .risk-pill{padding:4px 12px;border-radius:100px;font-size:0.72rem;font-weight:600;white-space:nowrap}
     .rp-critical{background:rgba(255,92,92,0.15);color:#ff8888;border:1px solid rgba(255,92,92,0.3)}
     .rp-at_risk{background:rgba(245,166,35,0.15);color:#ffd088;border:1px solid rgba(245,166,35,0.3)}
+
+    /* Look: dark glass cards on an orange glow (matches the approved design) */
+    body{font-family:'Inter',sans-serif;background:
+      radial-gradient(1100px 700px at 108% -8%, rgba(255,115,10,.78), transparent 64%),
+      radial-gradient(820px 560px at 102% 72%, rgba(255,90,0,.42), transparent 68%),
+      linear-gradient(90deg, transparent 0 76%, rgba(255,110,10,.10) 76% 80%, transparent 80% 84%, rgba(255,110,10,.15) 84% 89%, transparent 89% 92%, rgba(255,110,10,.24) 92% 100%),
+      #060607 !important; background-attachment: fixed}
+    .wrap{max-width:1410px;padding:14px 36px 40px}
+    .hdr{margin-bottom:32px}
+    .hdr h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:2.6rem;font-weight:800;letter-spacing:-.8px;display:flex;align-items:center;gap:12px;line-height:1.1}
+    .hdr h1 .star{color:#ff8a1f;font-size:2rem;margin-right:2px}
+    .nl{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;font-size:1rem;font-weight:700;color:#fff;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px)}
+    .nl-primary{background:linear-gradient(135deg,#ff8a1f,#ff5a00);border-color:transparent;color:#fff;box-shadow:0 10px 30px rgba(255,106,0,.5)}
+    .nl-primary:hover{background:linear-gradient(135deg,#ff9a3a,#ff6a14);color:#fff}
+    .nav{gap:16px}
+    .layout{gap:28px}
+    .card{background:linear-gradient(165deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.16);border-radius:30px;padding:36px 36px 32px;backdrop-filter:blur(16px);box-shadow:0 24px 70px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08)}
+    .card h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:1.55rem;font-weight:800;letter-spacing:-.4px}
+    .card-sub{font-size:1rem;color:#f1f1f6;margin-bottom:26px}
+    .pill-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);color:#fff;padding:9px 16px;border-radius:14px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit}
+    .pill-btn:hover{border-color:var(--acc)}
+    .task-add-row{gap:14px;margin-bottom:26px}
+    .task-input{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px 22px;font-size:1.02rem;font-family:inherit;color:#fff}
+    .task-add-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:0 28px;font-size:1.02rem;font-weight:800;color:#fff;font-family:inherit;display:flex;align-items:center}
+    .task-add-btn.auto-fill{margin-left:0;color:#ff9a2e;background:linear-gradient(180deg,rgba(255,120,20,.22),rgba(255,90,0,.12));border:1px solid rgba(255,120,20,.45);box-shadow:0 6px 20px rgba(255,90,0,.22)}
+    #add-post-date-check,label[for="add-post-date-check"]{display:none}
+    .task-add-row + div{margin:0 !important;height:0;overflow:visible}
+    .task-stats{gap:14px;margin:6px 0 22px}
+    .task-stats span{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:12px 26px;font-size:1.02rem;font-weight:700}
+    .task-list{gap:16px}
+    .task-item{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px 22px}
+    .task-item.done{opacity:1}
+    .task-item.done textarea{text-decoration:none !important;color:#fff !important}
+    .task-item.carried{border-left:5px solid #ff9a2e;padding-left:20px}
+    .task-check{width:26px;height:26px;border-radius:8px;border:2px solid rgba(255,255,255,.35)}
+    .task-check.checked{background:#22d3a0;border-color:#22d3a0;color:#05261c}
+    .task-item textarea{font-size:1.05rem !important;font-weight:600;color:#fff}
+    .carried-badge{background:rgba(255,140,30,.18);color:#ff9a2e;border:1px solid rgba(255,140,30,.3);border-radius:100px;padding:5px 12px;font-size:.78rem;font-weight:700}
+    .task-del{font-size:1.05rem;color:#fff}
+    .wrap-divider{display:none}
+    .btn-wrap{margin-top:22px;background:linear-gradient(90deg,rgba(255,255,255,.1),rgba(255,106,0,.85) 85%,#ff6a00);border:1px solid rgba(255,140,30,.5);border-radius:20px;padding:22px 24px;font-size:1.08rem;font-weight:800;color:#fff;font-family:inherit;box-shadow:0 14px 40px rgba(255,90,0,.35)}
+    .btn-wrap:hover:not(:disabled){background:linear-gradient(90deg,rgba(255,255,255,.14),#ff7a14 85%,#ff6a00);border-color:rgba(255,160,50,.7)}
+    #refresh-team-btn,#history-cal-btn{background:rgba(255,255,255,.09) !important;border:1px solid rgba(255,255,255,.1) !important;color:#fff !important;border-radius:16px !important;font-size:.82rem !important;font-weight:600;padding:11px 20px !important;font-family:inherit}
+    #history-cal-btn{width:46px !important;height:auto !important;padding:11px 0 !important;color:#ff9a2e !important}
+    #lock-summary{font-size:1.02rem !important;color:#ffa31a !important;margin:2px 0 18px !important}
+    #team-standups{max-height:620px;overflow-y:auto;padding-right:10px}
+    #team-standups::-webkit-scrollbar{width:9px}
+    #team-standups::-webkit-scrollbar-track{background:rgba(255,255,255,.05);border-radius:10px}
+    #team-standups::-webkit-scrollbar-thumb{background:#ff6a1a;border-radius:10px}
+    .standup-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:22px 24px;margin-bottom:18px}
+    .standup-card:has(> .sc-header[style*="border-bottom: 1px"]){border:1.5px solid rgba(255,255,255,.65);background:rgba(255,255,255,.07);box-shadow:0 0 0 1px rgba(255,255,255,.05)}
+    .sc-avatar{width:46px;height:46px;font-size:1.15rem;background:linear-gradient(135deg,#ffa31a,#ff7a00) !important;color:#1a0d00 !important}
+    .sc-name{font-size:1.1rem !important;font-weight:800 !important}
+    .sc-time{font-size:.95rem !important;color:#e4e4ee !important}
+    .sc-chevron{color:#b9b9e6 !important}
+    .sc-field .fl,.sc-lbl{color:#cfcfe0}
+    .sc-header{margin-bottom:0 !important}
+    .standup-card{padding:18px 24px;margin-bottom:16px}
+    .standup-card li{font-size:1rem;line-height:1.5}
+    .sc-time{font-size:.92rem !important}
+    .chip-nostrike{display:inline-block;font-size:.72rem;font-weight:600;color:#e4e4ee;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);padding:4px 10px;border-radius:8px;white-space:nowrap;text-decoration:none}
+    .task-edit{background:none;border:none;color:#ff9a2e;cursor:pointer;padding:4px;display:flex;align-items:center}
+    [id^="add-subtask-btn-"]{font-size:.8rem !important;color:#fff !important;background:rgba(255,255,255,.07) !important;border:1px solid rgba(255,255,255,.08) !important;border-radius:9px !important;padding:6px 13px !important;font-family:inherit}
+    .standup-card .sc-field .fl,.standup-card div[style*="uppercase"]{letter-spacing:.14em}
     /* Mobile Responsive */
     @media (max-width: 768px) {
       .wrap { padding: 16px 12px; }
@@ -119,14 +183,13 @@
   </div>
   <div class="hdr">
     <div>
-      <h1>☀ Daily <span>Standup</span></h1>
-      <p id="greeting-line" style="color:var(--muted);font-size:.83rem;margin-top:4px">Good morning! Quick update.</p>
+      <h1><span class="star">✱</span> Daily <span>Standup</span></h1>
+      <p id="greeting-line" style="color:#e8e8f0;font-size:1.02rem;margin-top:12px">Good morning! Quick update.</p>
     </div>
     <div class="nav">
-      <a href="projects.html" class="nl"> Board</a>
-      <a href="my-tasks.html" class="nl"> My Tasks</a>
-      <a href="leave.html" class="nl"> Calendar</a>
-      <a href="dashboard.html" class="nl"> Dashboard</a>
+      <a href="projects.html" class="nl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18M3 12h9"/></svg> Project Board</a>
+      <a href="leave.html" class="nl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Calendar</a>
+      <a href="dashboard.html" class="nl nl-primary"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg> Dashboard</a>
     </div>
   </div>
 
@@ -136,14 +199,14 @@
 
       <!-- Personal Task Tracker -->
       <div class="card">
-        <h2 style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span> Today's Task List</span><button type="button" onclick="openBin()" style="background:var(--s2);border:1px solid var(--bdr);color:var(--muted);padding:5px 11px;border-radius:var(--rs);font-size:0.72rem;font-weight:500;cursor:pointer">Recycle bin</button></h2>
-        <p class="card-sub">Personal tasks — tick off as you go. Unfinished tasks carry over tomorrow.</p>
+        <h2 style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span> Today's Task List</span><button type="button" onclick="openBin()" class="pill-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> Recycle bin</button></h2>
+        <p class="card-sub">Personal tasks, tick off as you go it gets carried over.</p>
 
         <div class="task-add-row">
           <input class="task-input" id="new-task-input" list="notion-tasks-list" placeholder="Add a task for today…" onkeydown="if(event.key==='Enter')addTask(document.querySelector('.task-add-btn'))"/>
           <datalist id="notion-tasks-list"></datalist>
-          <button class="task-add-btn" onclick="addTask(this)" style="display:flex;align-items:center;"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg> Add</button>
-          <button class="task-add-btn" id="autofill-btn" onclick="autoFillStandup()" style="background:var(--s2);color:var(--acc);margin-left:8px;white-space:nowrap;display:flex;align-items:center;" title="Auto-fill tasks from Notion (In Progress / Due Today)"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg> Auto-Fill</button>
+          <button class="task-add-btn" onclick="addTask(this)">Add</button>
+          <button class="task-add-btn auto-fill" id="autofill-btn" onclick="autoFillStandup()" title="Auto-fill tasks from Notion (In Progress / Due Today)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Auto-Fill</button>
         </div>
         <div style="display:flex; align-items:center; gap: 8px; margin-top: 10px; margin-bottom: 24px; margin-left: 4px;">
           <input type="checkbox" id="add-post-date-check" onchange="document.getElementById('post-date-picker').style.display=this.checked?'block':'none'" style="cursor:pointer;" />
@@ -163,7 +226,7 @@
         <div class="wrap-divider"></div>
 
         <button class="btn btn-wrap" id="wrap-btn" onclick="wrapUpDay()">
-          <span> Wrap Up Day — carry unfinished to tomorrow</span>
+          <span>Wrap Up Day — carry unfinished to tomorrow →</span>
         </button>
         <div id="wrap-confirm" style="display:none;margin-top:10px;background:rgba(34,211,160,.08);border:1px solid rgba(34,211,160,.25);border-radius:var(--rs);padding:11px;text-align:center;font-size:.83rem;color:var(--grn)"></div>
       </div>
@@ -182,16 +245,16 @@
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
            <h2 style="margin-bottom:0"> Team Standups</h2>
            <div style="display:flex;gap:8px;align-items:center">
-             <button id="refresh-team-btn" onclick="loadTeamStandups()" style="display:flex;align-items:center;background:var(--s2);border:1px solid var(--bdr);color:var(--muted);padding:6px 12px;border-radius:var(--rs);font-size:0.75rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='var(--txt)';this.style.borderColor='var(--acc)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--bdr)'"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21v-5h5"/></svg> Refresh</button>
-             <button style="display:flex;align-items:center;background:var(--s2);border:1px solid var(--bdr);color:var(--muted);padding:6px 12px;border-radius:var(--rs);font-size:0.75rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='var(--txt)';this.style.borderColor='var(--acc)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--bdr)'" onclick="window.location.href=API+'/api/export/standup-sheets'"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Excel</button>
+             
+             <button id="refresh-team-btn" onclick="loadTeamStandups()" style="display:flex;align-items:center;background:var(--s2);border:1px solid var(--bdr);color:var(--muted);padding:6px 12px;border-radius:var(--rs);font-size:0.75rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='var(--txt)';this.style.borderColor='var(--acc)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--bdr)'"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.8c1.8.7 3 2.4 3 5.2"/></svg>View everyone's tasks</button>
+             <span id="export-xl-wrap" style="display:none"><button style="display:flex;align-items:center;background:var(--s2);border:1px solid var(--bdr);color:var(--muted);padding:6px 12px;border-radius:var(--rs);font-size:0.75rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.color='var(--txt)';this.style.borderColor='var(--acc)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--bdr)'" onclick="window.location.href=API+'/api/export/standup-sheets'"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Export Excel</button></span>
+           <span style="position:relative;display:inline-flex"><button type="button" id="history-cal-btn" title="Pick a day" onclick="var d=document.getElementById('history-date');d.showPicker?d.showPicker():d.focus()" style="display:flex;align-items:center;justify-content:center;width:38px;height:34px;background:var(--s2);border:1px solid var(--bdr);color:var(--muted);border-radius:var(--rs);cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></button><input type="date" lang="en-GB" id="history-date" style="position:absolute;left:0;bottom:0;width:38px;height:1px;opacity:0;pointer-events:none;background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);color:var(--txt);padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:0.8rem;outline:none;cursor:pointer;" onchange="loadTeamStandups(this.value)" /></span>
            </div>
         </div>
-        <p class="card-sub">See what everyone is working on</p>
+        <p class="card-sub">See what everyone is working on.</p>
         <p id="lock-summary" style="display:none;color:var(--acc);font-size:.78rem;margin:-6px 0 10px"></p>
 
-        <div style="display:flex; gap:10px; align-items:center; margin-bottom:14px">
-           <input type="date" lang="en-GB" id="history-date" style="background:var(--s2);border:1px solid var(--bdr);border-radius:var(--rs);color:var(--txt);padding:6px 10px;font-family:'DM Sans',sans-serif;font-size:0.8rem;outline:none;cursor:pointer;" onchange="loadTeamStandups(this.value)" />
-        </div>
+        
         
         <div id="team-standups"><div class="empty">Loading…</div></div>
       </div>
@@ -229,6 +292,7 @@
 const API = location.hostname==="localhost"||location.hostname==="127.0.0.1" ? "http://localhost:5000" : location.origin;
 const user = JSON.parse(localStorage.getItem("agency_portal_user")||"{}");
 const UID = user.user_id;
+  if (UID === 'emp009') { const w = document.getElementById('export-xl-wrap'); if (w) w.style.display = ''; }
 if (!UID) window.location.href = "login.html";
 const IS_ADMIN = user.is_admin === true;
 
@@ -425,7 +489,7 @@ function renderTasks(){
                    ${t.status==="done" || t.status==="need_for_approval" || t.status==="delegated" ? "disabled" : ""}>${esc(t.title)}</textarea>
             ${(t.title||'').toLowerCase().includes('/daily')?`<span class="carried-badge" style="background:rgba(34,211,160,0.15);color:var(--grn);border:none;">/daily</span>`:""}
             ${(t.title||'').toLowerCase().includes('/alternate')?`<span class="carried-badge" style="background:rgba(92,158,255,0.15);color:var(--blu);border:none;">/alternate</span>`:""}
-            ${t.carried_from?`<span class="carried-badge">↩ from ${t.carried_from}</span>`:""}
+            ${t.carried_from?`<span class="carried-badge">↷ from ${t.carried_from}</span>`:""}
             ${t.delegated_from?`<span class="carried-badge" style="background:#8b5cf6;color:#fff;border:none">Delegated from ${t.delegated_from}</span>`:""}
             ${t.status==="delegated"?`<span class="carried-badge" style="background:#8b5cf6;color:#fff;border:none">Delegated to ${t.delegated_to}</span>`:""}
             ${(t.status!=="done" && t.status!=="need_for_approval") ? `
@@ -445,7 +509,7 @@ function renderTasks(){
         </div>
         <div style="display:flex; align-items:center; gap:4px">
           ${t.notion_id ? '' : `<button onclick="pushToBoard(${t.id}, this)" title="Push to Notion Board" style="background:none;border:none;color:var(--acc);cursor:pointer;font-size:1.1rem;padding:2px;transition:opacity 0.2s;margin-right:2px;">↗</button>`}
-          <button class="task-del" onclick="deleteTask(${t.id})" title="Remove">✕</button>
+          <button class="task-edit" onclick="var x=document.querySelector('#task-${t.id} .task-title-input');if(x){x.disabled=false;x.focus();x.setSelectionRange(x.value.length,x.value.length);}" title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button><button class="task-del" onclick="deleteTask(${t.id})" title="Remove">✕</button>
         </div>
       </div>
       ${subtasksHtml}
@@ -774,7 +838,7 @@ async function loadTeamStandups(dateStr){
     return;
   }
   const refreshBtn = document.getElementById("refresh-team-btn");
-  if (refreshBtn) { refreshBtn.textContent = " ⏳"; refreshBtn.disabled = true; }
+  if (refreshBtn) { refreshBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.8c1.8.7 3 2.4 3 5.2"/></svg>Loading…'; refreshBtn.disabled = true; }
   const query = dateStr ? `?date=${dateStr}` : "";
   const r = await fetch(`${API}/api/standup/today${query}`);
   const data = await r.json();
@@ -882,7 +946,7 @@ async function loadTeamStandups(dateStr){
                       ${task.blocker ? `<div style="color:var(--red);font-size:0.75rem;margin-left:14px;margin-top:2px;text-decoration:none;"> Blocker: ${esc(task.blocker)}</div>` : ""}
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding-top: 2px;">
-                      ${task.due_date ? `<span style="font-size:10px; color:var(--blu); background:rgba(92,158,255,0.15); padding:2px 5px; border-radius:4px; white-space:nowrap">Post: ${formatShortDate(task.due_date)}</span>` : ''}
+                      ${task.due_date ? `<span class="chip-nostrike" style="color:var(--blu); background:rgba(92,158,255,0.15); border-color:rgba(92,158,255,.3)">Post: ${formatShortDate(task.due_date)}</span>` : ''}
                     </div>
                 </li>`;
             });
@@ -926,7 +990,7 @@ async function loadTeamStandups(dateStr){
                       ${task.blocker ? `<div style="color:var(--red);font-size:0.75rem;margin-left:22px;margin-top:2px;text-decoration:none;"> Blocker: ${esc(task.blocker)}</div>` : ""}
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding-top: 2px;">
-                      ${task.due_date ? `<span style="font-size:10px; color:var(--blu); background:rgba(92,158,255,0.15); padding:2px 5px; border-radius:4px; white-space:nowrap">Post: ${formatShortDate(task.due_date)}</span>` : (task.carried_from ? `<span style="font-size:10px; color:var(--muted); background:rgba(255,255,255,0.05); padding:2px 5px; border-radius:4px; white-space:nowrap">Started: ${formatShortDate(task.carried_from)}</span>` : '')}
+                      ${task.due_date ? `<span style="font-size:10px; color:var(--blu); background:rgba(92,158,255,0.15); padding:2px 5px; border-radius:4px; white-space:nowrap">Post: ${formatShortDate(task.due_date)}</span>` : (task.carried_from ? `<span class="chip-nostrike">Started: ${formatShortDate(task.carried_from)}</span>` : '')}
                       ${overdueBadge}
                     </div>
                 </li>`;
@@ -962,7 +1026,7 @@ async function loadTeamStandups(dateStr){
       </div>
     </div>`;
   }).join("");
-  if (refreshBtn) { refreshBtn.textContent = " ↻ Refresh"; refreshBtn.disabled = false; }
+  if (refreshBtn) { refreshBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:7px"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5.2a3 3 0 0 1 0 5.6M18 14.8c1.8.7 3 2.4 3 5.2"/></svg>View everyone\'s tasks'; refreshBtn.disabled = false; }
 }
 
 // ── Alerts (admin) ────────────────────────────────────────────────────────────
