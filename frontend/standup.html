@@ -296,8 +296,8 @@
 
         <div class="wrap-divider"></div>
 
-        <button class="btn btn-wrap" id="wrap-btn" onclick="wrapUpDay()">
-          <span>Wrap Up Day — carry unfinished to tomorrow →</span>
+        <button class="btn btn-wrap" id="wrap-btn" onclick="checkOutNow()">
+          <span>Check Out →</span>
         </button>
         <div id="wrap-confirm" style="display:none;margin-top:10px;background:rgba(34,211,160,.08);border:1px solid rgba(34,211,160,.25);border-radius:var(--rs);padding:11px;text-align:center;font-size:.83rem;color:var(--grn)"></div>
       </div>
@@ -834,6 +834,36 @@ async function restoreBin(id){
     await loadMyTasks();
     openBin();
   }catch(e){toast("Could not restore","err");}
+}
+
+async function checkOutNow(){
+  const btn  = document.getElementById("wrap-btn");
+  const conf = document.getElementById("wrap-confirm");
+  const label = btn.querySelector("span");
+  btn.disabled = true;
+  label.textContent = "Checking out\u2026";
+  try{
+    const loc = window.getAttendanceLocation
+      ? await window.getAttendanceLocation().catch(() => null)
+      : null;
+    const r = await fetch(`${API}/api/attendance/checkout`,{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({user_id:UID, ...(loc||{})})
+    });
+    const d = await r.json().catch(()=>({}));
+    if(r.ok && d.success!==false){
+      const now = new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+      conf.style.display = "block";
+      conf.textContent = "Checked out at " + now + ". Unfinished tasks carry over to tomorrow on their own.";
+      toast("Checked out", "ok");
+    }else{
+      toast((d && d.error) || "Could not check out", "err");
+    }
+  }catch(e){
+    toast("Could not check out", "err");
+  }
+  btn.disabled = false;
+  label.textContent = "Check Out \u2192";
 }
 
 async function wrapUpDay(){
