@@ -205,6 +205,32 @@
     .btn-wrap{box-shadow:0 18px 44px rgba(255,90,0,.42), inset 0 1px 0 rgba(255,210,150,.35), inset 0 -12px 24px -12px rgba(255,120,20,.5) !important}
     .task-item.carried{border-left:5px solid #ff9a2e !important}
     .sc-avatar{box-shadow:0 6px 18px rgba(255,110,0,.45), inset 0 1px 0 rgba(255,255,255,.45) !important}
+    /* Fluted-glass (reeded) backdrop, like the reference */
+    body{background:
+      radial-gradient(900px 500px at -8% 110%, rgba(255,90,10,.10), transparent 70%),
+      linear-gradient(180deg,#0a0605 0%,#060404 100%) !important;background-attachment:fixed}
+    body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;filter:none;
+      background:
+        repeating-linear-gradient(90deg, rgba(10,2,0,.62) 0px, rgba(10,2,0,.10) 8px, rgba(0,0,0,0) 18px, rgba(255,190,110,.10) 27px, rgba(10,2,0,.62) 38px),
+        linear-gradient(90deg, rgba(0,0,0,0) 36%, rgba(110,18,0,.62) 56%, rgba(190,48,0,.88) 74%, rgba(255,100,8,1) 90%, rgba(255,150,30,1) 100%) !important;
+      -webkit-mask-image:radial-gradient(ellipse 78% 96% at 100% 2%, #000 24%, rgba(0,0,0,.5) 52%, rgba(0,0,0,.18) 74%, transparent 92%);
+      mask-image:radial-gradient(ellipse 78% 96% at 100% 2%, #000 24%, rgba(0,0,0,.5) 52%, rgba(0,0,0,.18) 74%, transparent 92%)}
+    body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+      background:radial-gradient(1100px 520px at 100% -12%, rgba(255,120,20,.30), transparent 62%)}
+    .card{
+      background:
+        radial-gradient(560px 280px at 100% 100%, rgba(255,110,10,.14), transparent 70%),
+        linear-gradient(160deg, rgba(255,255,255,.09) 0%, rgba(24,10,5,.66) 36%, rgba(14,6,3,.76) 100%) !important;
+      -webkit-backdrop-filter:blur(22px) saturate(105%) !important;backdrop-filter:blur(22px) saturate(105%) !important;
+      border-color:rgba(255,255,255,.22) rgba(255,160,70,.30) rgba(255,140,50,.55) rgba(255,255,255,.14) !important;
+      box-shadow:
+        0 34px 80px rgba(0,0,0,.6),
+        0 18px 50px rgba(255,80,0,.18),
+        inset 0 1px 0 rgba(255,255,255,.28),
+        inset 0 -1px 0 rgba(255,150,50,.5),
+        inset 0 -50px 70px -50px rgba(255,100,10,.22) !important}
+    .sc-avatar{background:radial-gradient(circle at 35% 28%, #ffc14a, #ff8a00 55%, #f26a00) !important}
+    .standup-card{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.03)) !important}
     /* Mobile Responsive */
     @media (max-width: 768px) {
       .wrap { padding: 16px 12px; }
