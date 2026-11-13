@@ -25,7 +25,11 @@
         background:transparent;border:1px solid var(--bdr,var(--border,#2c2c35))}
       #mood-card button:hover{border-color:var(--acc,var(--accent,#f97316))}
       #mood-card button:disabled{opacity:.5;cursor:default}
-      #mood-card .m-lab{font-size:10px;opacity:.65;margin-top:4px}`;
+      #mood-card .m-lab{font-size:10px;opacity:.65;margin-top:4px}
+      #mood-card .m-why{width:100%;margin-top:12px;padding:9px 11px;border-radius:10px;font:inherit;font-size:13px;
+        background:transparent;color:inherit;border:1px solid var(--bdr,var(--border,#2c2c35));outline:none}
+      #mood-card .m-why:focus{border-color:var(--acc,var(--accent,#f97316))}
+      #mood-card .m-hint{font-size:11px;opacity:.55;margin-top:6px}`;
     document.head.appendChild(css);
     card = document.createElement("div");
     card.id = "mood-card";
@@ -34,7 +38,10 @@
       <div class="m-title">How are you feeling today?</div>
       <div class="m-row">${[["awesome","🤩","Awesome"],["happy","😊","Happy"],["mid","😐","Mid"],["sad","😞","Sad"],["stressed","😫","Stressed"]]
         .map(([k, e, l]) => `<div style="flex:1;text-align:center"><button type="button" data-m="${k}">${e}</button><div class="m-lab">${l}</div></div>`).join("")}
-      </div>`;
+      </div>
+      <input class="m-why" id="mood-why" type="text" maxlength="300" autocomplete="off"
+        placeholder="Why? (optional, type a short reason)">
+      <div class="m-hint">Type a reason first if you like, then tap how you feel.</div>`;
     card.querySelectorAll("button").forEach(b =>
       b.addEventListener("click", () => answer(b.getAttribute("data-m"))));
     document.body.appendChild(card);
@@ -47,11 +54,13 @@
 
   async function answer(mood) {
     if (card) card.querySelectorAll("button").forEach(b => { b.disabled = true; });
+    const whyEl = document.getElementById("mood-why");
+    const reason = whyEl ? whyEl.value.trim() : "";
     try {
       const r = await fetch(`${API}/api/mood`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mood }),
+        body: JSON.stringify({ mood, reason }),
       });
       if (r.ok) {
         hide();

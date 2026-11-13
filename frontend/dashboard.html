@@ -482,6 +482,42 @@ const API = (window.location.protocol === "file:" || !window.location.hostname)
 let employeesMap = {};
 let serverTodayIST = null; // set from the server's own "today" response, not the browser's local clock
 
+function attrEsc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"})[m]);
+}
+
+// Click a mood emoji on a Live Attendance card to see why (if they wrote a reason).
+function showMoodReason(el, ev) {
+  if (ev) ev.stopPropagation();
+  const old = document.getElementById("mood-reason-pop");
+  const same = old && old._src === el;
+  if (old) old.remove();
+  if (same) return;
+  const pop = document.createElement("div");
+  pop.id = "mood-reason-pop";
+  pop._src = el;
+  const reason = el.getAttribute("data-reason") || "";
+  const title = el.getAttribute("data-name") + " is feeling " + el.getAttribute("data-mood");
+  pop.style.cssText = "position:absolute;z-index:9999;max-width:260px;padding:10px 12px;border-radius:10px;font-size:.8rem;line-height:1.4;" +
+    "background:var(--surface,#17171c);color:var(--text,#ececf1);border:1px solid var(--accent,#f5a623);box-shadow:0 10px 30px rgba(0,0,0,.5)";
+  const head = document.createElement("div");
+  head.style.cssText = "font-weight:700;margin-bottom:4px";
+  head.textContent = title;
+  const body = document.createElement("div");
+  body.style.color = reason ? "inherit" : "var(--muted,#999)";
+  body.textContent = reason || "No reason given.";
+  pop.appendChild(head);
+  pop.appendChild(body);
+  document.body.appendChild(pop);
+  const r = el.getBoundingClientRect();
+  pop.style.top = (window.scrollY + r.bottom + 8) + "px";
+  pop.style.left = Math.max(8, Math.min(window.scrollX + r.left - 10, window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8)) + "px";
+}
+document.addEventListener("click", () => {
+  const p = document.getElementById("mood-reason-pop");
+  if (p) p.remove();
+});
+
 async function loadAttendance() {
   const wrap  = document.getElementById("attendance-wrap");
   const badge = document.getElementById("att-summary-badge");
@@ -538,7 +574,8 @@ async function loadAttendance() {
         checkout_time: daily.checkout_time || null,
         checkin_lat: daily.checkin_lat, checkin_lng: daily.checkin_lng,
         checkout_lat: daily.checkout_lat, checkout_lng: daily.checkout_lng,
-        mood: daily.mood || null
+        mood: daily.mood || null,
+        mood_reason: daily.mood_reason || ""
       };
     });
 
@@ -595,7 +632,7 @@ async function loadAttendance() {
           : "";
 
         return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-weight:700;font-size:.95rem">${statusDot}${emp.name}${emp.mood ? ` <span title="Mood today: ${emp.mood}">${{awesome:"🤩",happy:"😊",mid:"😐",sad:"😞",stressed:"😫"}[emp.mood] || ""}</span>` : ""}</div>
+          <div style="font-weight:700;font-size:.95rem">${statusDot}${emp.name}${emp.mood ? ` <span class="mood-chip" style="cursor:pointer" title="Mood today: ${emp.mood} (click to see why)" data-name="${attrEsc(emp.name)}" data-mood="${attrEsc(emp.mood)}" data-reason="${attrEsc(emp.mood_reason || '')}" onclick="showMoodReason(this, event)">${{awesome:"🤩",happy:"😊",mid:"😐",sad:"😞",stressed:"😫"}[emp.mood] || ""}</span>` : ""}</div>
           <div style="color:var(--muted);font-size:.75rem">${emp.role}</div>
           <div style="font-size:.78rem;color:var(--text)"> In: <span style="color:var(--muted)">${checkin}</span>${mapsLink(emp.checkin_lat, emp.checkin_lng)}</div>
           <div style="font-size:.78rem;color:var(--text)"> Out: <span style="color:var(--muted)">${checkout}</span>${mapsLink(emp.checkout_lat, emp.checkout_lng)}</div>

@@ -469,14 +469,17 @@ def attendance_today():
     rows = cur.fetchall()
     conn.close()
     try:
-        from routes.mood import moods_for
+        from routes.mood import moods_for, mood_reasons_for
         mood_map = moods_for(date_ist)
+        reason_map = mood_reasons_for(date_ist)
     except Exception:
         mood_map = {}
+        reason_map = {}
     records = [
         {"user_id": r[0], "date": date_ist, "checkin_time": r[1], "checkout_time": r[2],
          "checkin_lat": r[3], "checkin_lng": r[4],
-         "checkout_lat": r[5], "checkout_lng": r[6], "mood": mood_map.get(r[0])}
+         "checkout_lat": r[5], "checkout_lng": r[6], "mood": mood_map.get(r[0]),
+         "mood_reason": reason_map.get(r[0], "")}
         for r in rows
     ]
     # someone may have a mood without an attendance row; keep them out (cards key on attendance)

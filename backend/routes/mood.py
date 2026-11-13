@@ -22,6 +22,10 @@ def ensure_table(conn):
                created_at TEXT,
                PRIMARY KEY (user_id, date))"""
     )
+    try:
+        conn.execute("ALTER TABLE daily_mood ADD COLUMN reason TEXT DEFAULT ''")
+    except Exception:
+        pass   # column already there
 
 
 def moods_for(date_str: str) -> dict:
@@ -29,6 +33,19 @@ def moods_for(date_str: str) -> dict:
     try:
         ensure_table(conn)
         rows = conn.execute("SELECT user_id, mood FROM daily_mood WHERE date=?", (date_str,)).fetchall()
+        return {r[0]: r[1] for r in rows}
+    finally:
+        conn.close()
+
+
+def mood_reasons_for(date_str: str) -> dict:
+    """user_id -> the optional note they typed with today's mood (only non-empty ones)."""
+    conn = get_connection()
+    try:
+        ensure_table(conn)
+        rows = conn.execute(
+            "SELECT user_id, reason FROM daily_mood WHERE date=? AND COALESCE(reason,'')<>''", (date_str,)
+        ).fetchall()
         return {r[0]: r[1] for r in rows}
     finally:
         conn.close()
@@ -59,33 +76,39 @@ def mood_set():
     uid, err = _require_session()
     if err:
         return err
-    mood = str((request.get_json(silent=True) or {}).get("mood", "")).strip().lower()
+    body = request.get_json(silent=True) or {}
+    mood = str(body.get("mood", "")).strip().lower()
     if mood not in MOODS:
         return jsonify({"success": False, "error": "mood must be one of: " + ", ".join(MOODS)}), 400
+    # optional note: why they feel this way (single line, capped)
+    reason = " ".join(str(body.get("reason") or "").split())[:300]
     conn = get_connection()
     prev = None
+    prev_reason = ""
     try:
         ensure_table(conn)
-        row = conn.execute("SELECT mood FROM daily_mood WHERE user_id=? AND date=?", (uid, today_ist())).fetchone()
+        row = conn.execute("SELECT mood, COALESCE(reason,'') FROM daily_mood WHERE user_id=? AND date=?",
+                           (uid, today_ist())).fetchone()
         prev = row[0] if row else None
+        prev_reason = row[1] if row else ""
         conn.execute(
-            """INSERT INTO daily_mood (user_id, date, mood, created_at) VALUES (?,?,?,?)
-               ON CONFLICT(user_id, date) DO UPDATE SET mood=excluded.mood""",
-            (uid, today_ist(), mood, str(now_ist())),
+            """INSERT INTO daily_mood (user_id, date, mood, created_at, reason) VALUES (?,?,?,?,?)
+               ON CONFLICT(user_id, date) DO UPDATE SET mood=excluded.mood, reason=excluded.reason""",
+            (uid, today_ist(), mood, str(now_ist()), reason),
         )
         conn.commit()
     finally:
         conn.close()
-    if prev != mood:
-        _tell_hr(uid, mood, prev)
-    return jsonify({"success": True, "mood": mood})
+    if prev != mood or reason != prev_reason:
+        _tell_hr(uid, mood, prev, reason)
+    return jsonify({"success": True, "mood": mood, "reason": reason})
 
 
 HR_USER_ID = "emp009"   # Noorish
 _EMOJI = {"awesome": "🤩", "happy": "😊", "mid": "😐", "sad": "😞", "stressed": "😫"}
 
 
-def _tell_hr(uid: str, mood: str, prev: str | None) -> None:
+def _tell_hr(uid: str, mood: str, prev: str | None, reason: str = "") -> None:
     """WhatsApp HR when someone fills or changes today's mood. Never raises."""
     try:
         if uid == HR_USER_ID:
@@ -101,6 +124,8 @@ def _tell_hr(uid: str, mood: str, prev: str | None) -> None:
             text = f"{name} changed their mood today: {_EMOJI.get(prev, '')} {prev} -> {_EMOJI.get(mood, '')} {mood}"
         else:
             text = f"{name} is feeling {_EMOJI.get(mood, '')} {mood} today."
+        if reason:
+            text += f"\nReason: {reason}"
         wa_outbox.enqueue(jid, text)
     except Exception:
         pass
