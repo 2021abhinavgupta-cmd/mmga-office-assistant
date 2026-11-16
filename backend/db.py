@@ -152,6 +152,13 @@ def init_db():
             pass  # Column already exists
 
         try:
+            # Recycle bin: "delete forever" / the nightly clear set purged=1 instead of deleting the
+            # row, so the 'person already removed this task' memory (Sync All) is kept.
+            conn.execute("ALTER TABLE standup_tasks ADD COLUMN purged INTEGER DEFAULT 0")
+        except Exception:
+            pass  # Column already exists
+
+        try:
             conn.execute("ALTER TABLE standup_tasks ADD COLUMN notion_id TEXT DEFAULT NULL")
         except Exception:
             pass  # Column already exists

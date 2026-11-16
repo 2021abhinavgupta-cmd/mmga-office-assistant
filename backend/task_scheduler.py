@@ -410,6 +410,33 @@ def _run_release_sync():
         logger.exception("release sync failed")
 
 
+def _run_bin_clear():
+    """Every night from 23:45 IST (once per day): empty everyone's Daily Standup recycle bin.
+    Runs every 10 minutes, checks the IST clock itself, and claims the day in app_settings
+    first so overlapping/restarted runs cannot clear twice. Rows are marked purged, not deleted."""
+    try:
+        from datetime import datetime as _dt
+        from utils import IST
+        now = _dt.now(IST)
+        if now.hour != 23 or now.minute < 45:
+            return
+        from db import get_connection
+        key = "bin_clear_" + now.strftime("%Y-%m-%d")
+        conn = get_connection()
+        try:
+            cur = conn.execute("INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)", (key, now.isoformat()))
+            conn.commit()
+            if cur.rowcount == 0:
+                return          # already cleared tonight
+        finally:
+            conn.close()
+        from routes.ops import clear_all_bins
+        n = clear_all_bins()
+        logger.info("Nightly recycle-bin clear: %s task(s) cleared", n)
+    except Exception:
+        logger.exception("nightly bin clear failed")
+
+
 def _run_asks_digest():
     """17:00-18:30 IST weekday digest to whoever directed work in the group (group_intel)."""
     try:
@@ -557,6 +584,9 @@ def init_scheduler(app):
         # plenty; this isn't reacting to anything time-sensitive.
         scheduler.add_job(_run_data_retention, "cron", hour=3, minute=30,
                           id="data_retention_sweep", replace_existing=True)
+        # Empty every Daily Standup recycle bin each night (23:45 IST; job checks the clock itself).
+        scheduler.add_job(_run_bin_clear, "interval", minutes=10,
+                          id="bin_clear", replace_existing=True)
         # Database compaction, every second night (the job itself enforces 47h).
         scheduler.add_job(_run_db_compact, "cron", hour=3, minute=50,
                           id="db_compact", replace_existing=True)

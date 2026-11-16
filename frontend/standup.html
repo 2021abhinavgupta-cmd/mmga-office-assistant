@@ -811,7 +811,7 @@ async function openBin(){
     ov.id="bin-overlay";
     ov.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px";
     ov.onclick=e=>{if(e.target===ov)ov.style.display="none";};
-    ov.innerHTML='<div style="background:var(--s1);border:1px solid var(--bdr);border-radius:12px;width:min(520px,100%);max-height:80vh;display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bdr)"><strong>Recycle bin</strong><button type="button" onclick="document.getElementById(\'bin-overlay\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer">&times;</button></div><div id="bin-list" style="overflow:auto;padding:8px 16px 16px"></div></div>';
+    ov.innerHTML='<div style="background:var(--s1);border:1px solid var(--bdr);border-radius:12px;width:min(520px,100%);max-height:80vh;display:flex;flex-direction:column"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--bdr)"><strong>Recycle bin</strong><button type="button" onclick="document.getElementById(\'bin-overlay\').style.display=\'none\'" style="background:none;border:none;color:var(--muted);font-size:1.2rem;cursor:pointer">&times;</button></div><div id="bin-bar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;border-bottom:1px solid var(--bdr)"></div><div id="bin-list" style="overflow:auto;padding:4px 16px 8px"></div><div style="padding:10px 16px;border-top:1px solid var(--bdr);font-size:.72rem;color:var(--muted)">The bin is emptied automatically every night at 11:45 PM.</div></div>';
     document.body.appendChild(ov);
   }
   ov.style.display="flex";
@@ -821,9 +821,75 @@ async function openBin(){
     const r=await fetch(`${API}/api/standup/bin?user_id=${encodeURIComponent(UID)}`);
     const d=await r.json();
     const ts=d.tasks||[];
-    if(!ts.length){list.innerHTML='<p style="color:var(--muted);font-size:.85rem">Nothing here. Tasks you cross off stay here for '+(d.days||30)+' days so you can bring them back.</p>';return;}
-    list.innerHTML=ts.map(t=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr)"><div style="min-width:0"><div style="font-size:.88rem;word-break:break-word">'+escBin(t.title)+'</div><div style="font-size:.7rem;color:var(--muted)">From '+escBin(t.date)+(t.delegated_from?' · given by '+escBin(t.delegated_from):'')+'</div></div><button type="button" onclick="restoreBin('+t.id+')" style="flex-shrink:0;background:var(--acc);border:none;color:#fff;padding:6px 12px;border-radius:var(--rs);font-size:.75rem;cursor:pointer">Restore</button></div>').join("");
+    binSel=new Set();binConfirm=null;binLast=null;
+    binRender(ts);return;
   }catch(e){list.innerHTML='<p style="color:var(--muted);font-size:.85rem">Could not load the bin. Try again.</p>';}
+}
+/* Bin selection: tick rows (shift-click selects a range), Select all, then Restore or Delete forever. */
+let binItems=[], binSel=new Set(), binLast=null, binConfirm=null;
+const BIN_BTN='border-radius:var(--rs);font-size:.75rem;cursor:pointer;padding:6px 12px;';
+function binRender(ts){
+  if(ts) binItems=ts;
+  binSel=new Set([...binSel].filter(id=>binItems.some(t=>t.id===id)));
+  const list=document.getElementById("bin-list"), bar=document.getElementById("bin-bar");
+  if(!list||!bar) return;
+  if(!binItems.length){
+    bar.style.display="none";
+    list.innerHTML='<p style="color:var(--muted);font-size:.85rem">Nothing here. Tasks you cross off appear here, and the bin is emptied every night.</p>';
+    return;
+  }
+  const n=binSel.size, all=n===binItems.length;
+  bar.style.display="flex";
+  if(binConfirm){
+    const cnt=binConfirm==="all"?binItems.length:n;
+    bar.innerHTML='<span style="font-size:.82rem;flex:1;min-width:180px">Delete '+cnt+' task'+(cnt===1?'':'s')+' forever? This cannot be undone.</span>'
+      +'<button type="button" onclick="binDoDelete()" style="'+BIN_BTN+'background:#dc2626;border:none;color:#fff">Delete forever</button>'
+      +'<button type="button" onclick="binCancel()" style="'+BIN_BTN+'background:none;border:1px solid var(--bdr);color:var(--txt)">Cancel</button>';
+  }else{
+    bar.innerHTML='<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer"><input type="checkbox" '+(all?'checked ':'')+'onchange="binSelectAll(this.checked)" style="width:16px;height:16px;accent-color:var(--acc)">'+(n?n+' selected':'Select all')+'</label>'
+      +'<span style="flex:1"></span>'
+      +(n?'<button type="button" onclick="binRestoreSelected()" style="'+BIN_BTN+'background:var(--acc);border:none;color:#fff">Restore ('+n+')</button>'
+        +'<button type="button" onclick="binAskDelete(\'sel\')" style="'+BIN_BTN+'background:none;border:1px solid #dc2626;color:#dc2626">Delete forever ('+n+')</button>':'')
+      +'<button type="button" onclick="binAskDelete(\'all\')" style="'+BIN_BTN+'background:none;border:1px solid var(--bdr);color:var(--muted)">Empty bin</button>';
+  }
+  const hc=bar.querySelector('input[type=checkbox]'); if(hc) hc.indeterminate=n>0&&!all;
+  list.innerHTML=binItems.map(t=>{
+    const on=binSel.has(t.id);
+    return '<div onclick="binToggle('+t.id+',event)" style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--bdr);cursor:pointer;border-radius:6px;'+(on?'background:rgba(249,115,22,.10)':'')+'">'
+      +'<input type="checkbox" '+(on?'checked ':'')+'tabindex="-1" style="width:16px;height:16px;flex-shrink:0;pointer-events:none;accent-color:var(--acc)">'
+      +'<div style="min-width:0;flex:1"><div style="font-size:.88rem;word-break:break-word">'+escBin(t.title)+'</div><div style="font-size:.7rem;color:var(--muted)">From '+escBin(t.date)+(t.delegated_from?' · given by '+escBin(t.delegated_from):'')+'</div></div>'
+      +'<button type="button" onclick="event.stopPropagation();restoreBin('+t.id+')" style="flex-shrink:0;background:none;border:1px solid var(--bdr);color:var(--txt);'+BIN_BTN+'">Restore</button></div>';
+  }).join("");
+}
+function binToggle(id,ev){
+  if(ev&&ev.shiftKey&&binLast!==null){
+    const a=binItems.findIndex(t=>t.id===binLast), b=binItems.findIndex(t=>t.id===id);
+    if(a>=0&&b>=0){const [lo,hi]=a<b?[a,b]:[b,a];for(let i=lo;i<=hi;i++)binSel.add(binItems[i].id);}
+  }else if(binSel.has(id)) binSel.delete(id); else binSel.add(id);
+  binLast=id; binConfirm=null; binRender();
+}
+function binSelectAll(on){ binSel=on?new Set(binItems.map(t=>t.id)):new Set(); binConfirm=null; binRender(); }
+function binAskDelete(kind){ binConfirm=kind==="all"?"all":"sel"; binRender(); }
+function binCancel(){ binConfirm=null; binRender(); }
+async function binRestoreSelected(){
+  const ids=[...binSel]; if(!ids.length) return;
+  try{
+    const r=await fetch(`${API}/api/standup/bin/restore-many`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({user_id:UID,ids})});
+    const d=await r.json();
+    if(!r.ok||!d.success){toast(d.error||"Could not restore","err");return;}
+    toast(d.restored+" task"+(d.restored===1?"":"s")+" restored to today's list");
+    await loadMyTasks(); openBin();
+  }catch(e){toast("Could not restore","err");}
+}
+async function binDoDelete(){
+  const body=binConfirm==="all"?{user_id:UID,all:true}:{user_id:UID,ids:[...binSel]};
+  try{
+    const r=await fetch(`${API}/api/standup/bin/purge`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(!r.ok||!d.success){toast(d.error||"Could not delete","err");return;}
+    toast(d.cleared+" task"+(d.cleared===1?"":"s")+" deleted forever");
+    binConfirm=null; openBin();
+  }catch(e){toast("Could not delete","err");}
 }
 async function restoreBin(id){
   try{

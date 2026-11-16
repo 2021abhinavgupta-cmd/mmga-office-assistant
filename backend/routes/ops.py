@@ -1390,7 +1390,7 @@ def standup_bin():
     try:
         rows = conn.execute(
             "SELECT id, title, date, updated_at, notion_id, due_date, blocker, delegated_from "
-            "FROM standup_tasks WHERE user_id=? AND status='deleted' AND date>=? "
+            "FROM standup_tasks WHERE user_id=? AND status='deleted' AND date>=? AND COALESCE(purged,0)=0 "
             "ORDER BY date DESC, id DESC", (user_id, since)).fetchall()
     finally:
         conn.close()
@@ -1442,6 +1442,85 @@ def standup_bin_restore(task_id: int):
         except Exception:
             logger.exception(f"Could not restore Notion page {nid} for standup row {task_id}")
     return jsonify({"success": True, "restored_to": today})
+
+
+@ops_bp.route("/api/standup/bin/restore-many", methods=["POST"])
+def standup_bin_restore_many():
+    """Restore several crossed-off tasks at once. Body: { user_id, ids: [..] }"""
+    body = request.get_json(silent=True) or {}
+    user_id = (body.get("user_id") or "").strip()
+    ids = [int(i) for i in (body.get("ids") or []) if str(i).lstrip("-").isdigit()][:500]
+    if not user_id or not ids:
+        return jsonify({"error": "user_id and ids required"}), 400
+    today = today_ist()
+    restored, notion_ids = 0, []
+    conn = _su_conn()
+    try:
+        with conn:
+            for tid in ids:
+                row = conn.execute(
+                    "SELECT notion_id, status FROM standup_tasks WHERE id=? AND user_id=?", (tid, user_id)).fetchone()
+                if not row or row[1] != "deleted":
+                    continue
+                nid = row[0]
+                twin = conn.execute(
+                    "SELECT id FROM standup_tasks WHERE user_id=? AND date=? AND notion_id=? "
+                    "AND status NOT IN ('deleted','delegated')", (user_id, today, nid)).fetchone() if nid else None
+                if twin:
+                    conn.execute("DELETE FROM standup_tasks WHERE id=?", (tid,))   # already back on today's list
+                else:
+                    conn.execute("UPDATE standup_tasks SET status='pending', purged=0, date=?, updated_at=? WHERE id=?",
+                                 (today, now_ist(), tid))
+                restored += 1
+                if nid:
+                    notion_ids.append(nid)
+    finally:
+        conn.close()
+    for nid in notion_ids:
+        try:
+            notion_store.unarchive_notion_page(nid)
+        except Exception:
+            logger.exception(f"Could not restore Notion page {nid}")
+    return jsonify({"success": True, "restored": restored, "restored_to": today})
+
+
+@ops_bp.route("/api/standup/bin/purge", methods=["POST"])
+def standup_bin_purge():
+    """Delete forever: take tasks out of the bin for good (they cannot be restored). The row is kept,
+    marked purged, so a removed task is still remembered as removed (Sync All will not re-add it).
+    Body: { user_id, ids: [..] }  or  { user_id, all: true } (empty the whole bin)"""
+    body = request.get_json(silent=True) or {}
+    user_id = (body.get("user_id") or "").strip()
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    conn = _su_conn()
+    try:
+        with conn:
+            if body.get("all"):
+                cur = conn.execute("UPDATE standup_tasks SET purged=1 WHERE user_id=? AND status='deleted' "
+                                   "AND COALESCE(purged,0)=0", (user_id,))
+            else:
+                ids = [int(i) for i in (body.get("ids") or []) if str(i).lstrip("-").isdigit()][:500]
+                if not ids:
+                    return jsonify({"error": "ids required"}), 400
+                cur = conn.execute(
+                    f"UPDATE standup_tasks SET purged=1 WHERE user_id=? AND status='deleted' "
+                    f"AND COALESCE(purged,0)=0 AND id IN ({','.join('?' * len(ids))})", [user_id, *ids])
+            n = cur.rowcount
+    finally:
+        conn.close()
+    return jsonify({"success": True, "cleared": n})
+
+
+def clear_all_bins() -> int:
+    """Nightly: empty every person's recycle bin (same soft 'purged' mark as Delete forever)."""
+    conn = _su_conn()
+    try:
+        with conn:
+            cur = conn.execute("UPDATE standup_tasks SET purged=1 WHERE status='deleted' AND COALESCE(purged,0)=0")
+            return cur.rowcount
+    finally:
+        conn.close()
 
 
 @ops_bp.route("/api/standup/carry-over", methods=["POST"])
