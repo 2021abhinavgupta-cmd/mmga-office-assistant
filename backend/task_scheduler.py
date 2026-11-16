@@ -458,6 +458,49 @@ def _run_data_retention():
         logger.warning(f"Data retention sweep failed (non-fatal): {e}")
 
 
+def _run_db_compact():
+    """Every second night (03:50): VACUUM app.db so space freed by deletes (data
+    retention, trimmed logs) is actually returned to the volume. SQLite never
+    shrinks its file by itself; on 2026-11-16 the file was 121 MB holding 20 MB
+    of data. The job fires daily but acts only if the last compaction was 47+
+    hours ago (persisted in app_settings, so deploys/restarts don't reset the
+    rhythm). VACUUM needs room for a compacted copy, so it skips when free
+    space is short."""
+    import os
+    import shutil
+    from datetime import datetime as _dt
+    try:
+        from db import get_connection, DB_PATH
+        conn = get_connection()
+        try:
+            row = conn.execute("SELECT value FROM app_settings WHERE key='db_compact_last'").fetchone()
+            if row and row[0]:
+                try:
+                    if (_dt.utcnow() - _dt.fromisoformat(row[0])).total_seconds() < 47 * 3600:
+                        return
+                except ValueError:
+                    pass
+            size = os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0
+            free = shutil.disk_usage(os.path.dirname(DB_PATH)).free
+            if free < size + 50 * 1024 * 1024:
+                logger.warning("DB compaction skipped: only %.0f MB free for a %.0f MB database",
+                               free / 1e6, size / 1e6)
+                return
+            # claim the slot first so an overlapping run cannot start a second VACUUM
+            conn.execute("INSERT INTO app_settings (key, value) VALUES ('db_compact_last', ?) "
+                         "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                         (_dt.utcnow().isoformat(timespec="seconds"),))
+            conn.commit()
+            conn.execute("VACUUM")
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        finally:
+            conn.close()
+        after = os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0
+        logger.info("DB compaction: %.1f MB -> %.1f MB", size / 1e6, after / 1e6)
+    except Exception as e:
+        logger.warning(f"DB compaction failed (non-fatal): {e}")
+
+
 def _run_overtime_conversion():
     """Wraps leave_store.run_overtime_conversion_sweep() for the nightly
     job below -- computes yesterday's per-employee overtime and converts
@@ -514,6 +557,9 @@ def init_scheduler(app):
         # plenty; this isn't reacting to anything time-sensitive.
         scheduler.add_job(_run_data_retention, "cron", hour=3, minute=30,
                           id="data_retention_sweep", replace_existing=True)
+        # Database compaction, every second night (the job itself enforces 47h).
+        scheduler.add_job(_run_db_compact, "cron", hour=3, minute=50,
+                          id="db_compact", replace_existing=True)
         # Overtime -> comp-off conversion -- computes yesterday's overtime
         # for every active employee and converts any 24hr crossing into a
         # +1 leave day (leave_store.py). Off-peak overnight job (02:00 IST).
