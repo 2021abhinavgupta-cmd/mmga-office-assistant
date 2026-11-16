@@ -2304,3 +2304,80 @@ def companion_releases_test():
     if not entry:
         return jsonify({"error": "unknown slug"}), 404
     return jsonify({"queued": releases.announce(entry, only_ids=ids), "text": releases._whatsapp_text(entry)})
+
+# ── Clients/tasks: Notion -> Lumina's own database ──────────────────────────────
+# All token-gated like every other companion route. See local_store.py / local_import.py.
+
+@companion_bp.route("/api/companion/local-status", methods=["GET"])
+def companion_local_status():
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    import notion_store, local_store
+    conn = get_connection()
+    try:
+        st = {k: (conn.execute("SELECT value FROM app_settings WHERE key=?", (k,)).fetchone() or [None])[0]
+              for k in ("task_backend", "local_import_last", "local_verify_last", "local_switched_at")}
+    finally:
+        conn.close()
+    for k in ("local_import_last", "local_verify_last"):
+        try:
+            st[k] = json.loads(st[k]) if st[k] else None
+        except Exception:
+            pass
+    return jsonify({"backend": notion_store.backend(), "settings": st, "local_counts": local_store.counts()})
+
+
+@companion_bp.route("/api/companion/local-import", methods=["POST"])
+def companion_local_import():
+    """Copy Notion -> local tables (read-only on Notion, never deletes). Safe to repeat."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    import local_import
+    try:
+        return jsonify({"success": True, "report": local_import.import_from_notion()})
+    except Exception as e:
+        logging.getLogger(__name__).exception("local import failed")
+        return jsonify({"success": False, "error": f"{type(e).__name__}: {e}"[:300]}), 500
+
+
+@companion_bp.route("/api/companion/local-verify", methods=["GET"])
+def companion_local_verify():
+    """Compare what Notion returns with what the local store returns, field by field."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    import local_import
+    try:
+        return jsonify(local_import.compare())
+    except Exception as e:
+        logging.getLogger(__name__).exception("local verify failed")
+        return jsonify({"error": f"{type(e).__name__}: {e}"[:300]}), 500
+
+
+@companion_bp.route("/api/companion/task-backend", methods=["POST"])
+def companion_task_backend():
+    """?to=local  -> fresh import, verify identical, then switch (refuses if anything differs
+    unless force=1).  ?to=notion -> switch back (edits made while local exist only locally)."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    import local_import
+    to = (request.args.get("to") or "").lower()
+    try:
+        if to == "local":
+            return jsonify(local_import.switch_to_local(force=request.args.get("force") == "1"))
+        if to == "notion":
+            return jsonify(local_import.switch_to_notion())
+    except Exception as e:
+        logging.getLogger(__name__).exception("task backend switch failed")
+        return jsonify({"switched": False, "error": f"{type(e).__name__}: {e}"[:300]}), 500
+    return jsonify({"error": "to must be 'local' or 'notion'"}), 400
+
+
+@companion_bp.route("/api/companion/local-export", methods=["GET"])
+def companion_local_export():
+    """Full backup of the local clients/tasks (including archived rows and the original Notion JSON)."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    import local_store
+    resp = jsonify(local_store.export_all())
+    resp.headers["Content-Disposition"] = "attachment; filename=lumina-clients-tasks.json"
+    return resp

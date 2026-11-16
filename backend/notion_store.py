@@ -1039,6 +1039,8 @@ def get_dashboard_data() -> dict:
     Returns { clients: [ { ...client, tasks: [...] } ] }
     Used by /api/notion/dashboard to power projects.html
     """
+    if _use_local():
+        return _build_dashboard_data()      # local DB is fast; no cache needed
     if not is_configured():
         return {"configured": False, "clients": []}
 
@@ -1091,3 +1093,106 @@ def _build_dashboard_data() -> dict:
         })
 
     return {"configured": True, "clients": clients}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BACKEND SWITCH  (Notion  <->  Lumina's own SQLite store, local_store.py)
+# ══════════════════════════════════════════════════════════════════════════════
+# While the switch is 'local', every public function below is answered by the
+# same-named function in local_store.py. The switch is app_settings key
+# 'task_backend' ('notion' default | 'local'); env TASK_BACKEND overrides it.
+# force_notion() lets the import / verify tools read the real Notion while the
+# switch is on.
+
+import functools
+import threading
+
+_TLS = threading.local()
+_BACKEND_CACHE = {"v": "notion", "ts": 0.0}
+
+
+def backend() -> str:
+    env = (os.getenv("TASK_BACKEND") or "").strip().lower()
+    if env in ("local", "notion"):
+        return env
+    now = time.time()
+    if now - _BACKEND_CACHE["ts"] < 5:
+        return _BACKEND_CACHE["v"]
+    v = "notion"
+    try:
+        from db import get_connection
+        conn = get_connection()
+        try:
+            row = conn.execute("SELECT value FROM app_settings WHERE key='task_backend'").fetchone()
+        finally:
+            conn.close()
+        if row and str(row[0]).strip().lower() == "local":
+            v = "local"
+    except Exception:
+        v = _BACKEND_CACHE["v"]        # DB hiccup: keep the last known answer
+    _BACKEND_CACHE["v"], _BACKEND_CACHE["ts"] = v, now
+    return v
+
+
+def set_backend(value: str) -> None:
+    """Persist the switch (takes effect on this process immediately)."""
+    from db import get_connection
+    value = "local" if str(value).strip().lower() == "local" else "notion"
+    conn = get_connection()
+    try:
+        conn.execute("INSERT INTO app_settings (key, value) VALUES ('task_backend', ?) "
+                     "ON CONFLICT(key) DO UPDATE SET value=excluded.value", (value,))
+        conn.commit()
+    finally:
+        conn.close()
+    _BACKEND_CACHE["v"], _BACKEND_CACHE["ts"] = value, time.time()
+
+
+def _use_local() -> bool:
+    if getattr(_TLS, "force_notion", False):
+        return False
+    return backend() == "local"
+
+
+class force_notion:
+    """with notion_store.force_notion(): ...  -- talk to the real Notion even when the switch is local."""
+    def __enter__(self):
+        self._prev = getattr(_TLS, "force_notion", False)
+        _TLS.force_notion = True
+    def __exit__(self, *a):
+        _TLS.force_notion = self._prev
+        return False
+
+
+def _switchable(fn):
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        if _use_local():
+            import local_store
+            return getattr(local_store, fn.__name__)(*args, **kwargs)
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+for _name in ("is_configured", "get_schema_report", "create_client", "list_clients",
+              "append_client_requirements", "update_client", "update_client_status",
+              "create_task", "list_tasks", "get_task_type", "get_task_summary", "update_task",
+              "set_client_id", "is_client_active", "archive_notion_page", "unarchive_notion_page"):
+    globals()[_name] = _switchable(globals()[_name])
+
+
+def query_all_raw(database: str):
+    """Yield every raw (non-archived) page of the 'clients' or 'tasks' Notion database, in
+    Notion's order. Read-only. Used by the one-time import."""
+    db_id = _clients_db() if database == "clients" else _tasks_db()
+    payload = {"page_size": 100}
+    if database == "tasks":
+        payload["sorts"] = [{"timestamp": "created_time", "direction": "descending"}]
+    while True:
+        r = _notion_request("POST", f"https://api.notion.com/v1/databases/{db_id}/query",
+                            headers=_headers(), json=payload)
+        data = r.json()
+        for p in data.get("results", []):
+            yield p
+        if not data.get("has_more"):
+            break
+        payload["start_cursor"] = data.get("next_cursor")
