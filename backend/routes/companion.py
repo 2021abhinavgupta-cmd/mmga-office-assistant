@@ -1670,6 +1670,32 @@ def companion_sheet_edit_log_stats():
         return jsonify({"error": "sheet-edit-log stats failed"}), 500
 
 
+@companion_bp.route("/api/companion/client-welcome", methods=["POST"])
+def companion_client_welcome():
+    """Re-send a client's WhatsApp welcome. ?client=<name part>; optional &password= to print it.
+    Token-gated. Uses the number saved in client_whatsapp."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    q = (request.args.get("client") or "").strip().lower()
+    if not q:
+        return jsonify({"error": "client required"}), 400
+    import wa_outbox
+    conn = get_connection()
+    try:
+        rows = conn.execute("SELECT client_notion_id, client_name, phone FROM client_whatsapp").fetchall()
+        hit = [r for r in rows if q in (r[1] or "").lower()]
+        if len(hit) != 1:
+            return jsonify({"error": "match %d clients" % len(hit), "names": [r[1] for r in rows]}), 400
+        nid, name, phone = hit[0]
+        u = conn.execute("SELECT username FROM client_users WHERE client_notion_id=? ORDER BY id LIMIT 1",
+                         (nid,)).fetchone()
+    finally:
+        conn.close()
+    text = wa_outbox.client_welcome_text(name, u[0] if u else "", request.args.get("password", ""))
+    ok = wa_outbox.enqueue(wa_outbox.wa_jid(phone), text)
+    return jsonify({"queued": bool(ok), "client": name, "to": phone[:-4] + "XXXX", "username": u[0] if u else ""})
+
+
 @companion_bp.route("/api/companion/client-real-task-count", methods=["GET"])
 def companion_client_real_task_count():
     """Read-only: how many REAL tasks a client currently has in Notion right
