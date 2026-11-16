@@ -1729,12 +1729,7 @@ def notion_create_client():
                 conn.close()
                 import wa_outbox
                 linked = portal_account == "created"
-                text = (f"Hi! Welcome to MMGA, and thank you for choosing us. \U0001F389\n\n"
-                        f"We've set up *{name}* on our side and the team is excited to get started with you."
-                        + (f"\n\nYou can log in to your client portal at https://lumina.mmga.agency/client-login.html "
-                           f"with the username *{c_user}* (your password was shared by your account manager)."
-                           if linked else "")
-                        + "\n\nYou can message this number any time to ask about your tasks and progress.")
+                text = wa_outbox.client_welcome_text(name, c_user if linked else "", c_pass if linked else "")
                 welcome = "sent" if wa_outbox.enqueue(wa_outbox.wa_jid("+" + phone_digits), text) else "failed"
             except Exception:
                 logger.exception("client whatsapp welcome failed")

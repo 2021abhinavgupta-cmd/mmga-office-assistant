@@ -24,6 +24,35 @@ logger = logging.getLogger(__name__)
 _INACTIVE = {"inactive", "disabled", "left", "removed", "archived", "former"}
 
 
+def client_welcome_text(name: str, username: str = "", password: str = "") -> str:
+    """Welcome message for a new client. With a login, shows Username / Password on separate lines.
+    password is only known at onboarding; elsewhere (hashed) pass "" and it says it was shared separately."""
+    lines = [
+        "Dear Valued Client,",
+        "",
+        "Welcome to MMGA, and thank you for choosing us.",
+        f"We have set up *{name or 'your account'}* and our team is excited to get started with you.",
+    ]
+    if username:
+        lines += [
+            "",
+            "*Your Client Portal Access*",
+            "Portal: https://lumina.mmga.agency/client-login.html",
+            f"Username: {username}",
+            f"Password: {password}" if password else "Password: shared with you separately by your account manager",
+        ]
+        if password:
+            lines += ["", "For your security, please change your password after your first login."]
+    lines += [
+        "",
+        "You can message this number at any time to ask about your tasks and progress.",
+        "",
+        "Warm regards,",
+        "Team MMGA",
+    ]
+    return "\n".join(lines)
+
+
 def wa_jid(raw: str) -> str:
     """A WhatsApp DM JID from a stored number ('+91 97029 08716' -> ...)."""
     d = re.sub(r"\D", "", raw or "")
