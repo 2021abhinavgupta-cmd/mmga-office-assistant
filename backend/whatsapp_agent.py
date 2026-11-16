@@ -2536,7 +2536,8 @@ def _run_tool(name: str, tool_input: dict, identity: dict,
                             "team to connect it so I can pull up your work.")
                 tasks = _tasks_for_client(identity["client_name"], cnid)
                 if not tasks:
-                    return "You have no deliverables listed right now."
+                    return ("Your content calendar is currently being prepared. "
+                            "Our team will share it with you as soon as it is ready.")
                 shown = tasks[:15]
                 head = "Your deliverables"
                 if len(tasks) > len(shown):
