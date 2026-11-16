@@ -29,6 +29,13 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+# Short-lived cache of get_dashboard_data() (the project board). Building it takes
+# one Notion query per client plus a full-workspace pass, 6-8 s every time; the
+# board is opened constantly. Cleared by _notion_request on any Notion write.
+_DASH_CACHE = {"data": None, "ts": 0.0, "gen": 0}
+_DASH_TTL = 25  # seconds
+
+
 def _notion_request(method: str, url: str, **kwargs) -> requests.Response:
     """
     Make a Notion API request with 3-attempt exponential backoff.
@@ -44,6 +51,12 @@ def _notion_request(method: str, url: str, **kwargs) -> requests.Response:
                 time.sleep(wait)
                 continue
             r.raise_for_status()
+            # Any write (PATCH/DELETE, or a POST that is not a database query, e.g.
+            # creating a page) makes the cached project-board data stale.
+            if method.upper() in ("PATCH", "DELETE") or (
+                    method.upper() == "POST" and not str(url).rstrip("/").endswith("/query")):
+                _DASH_CACHE["ts"] = 0.0
+                _DASH_CACHE["gen"] += 1
             return r
         except requests.exceptions.Timeout as e:
             logger.warning(f"Notion request timed out (attempt {attempt}): {url}")
@@ -1029,6 +1042,21 @@ def get_dashboard_data() -> dict:
     if not is_configured():
         return {"configured": False, "clients": []}
 
+    if _DASH_CACHE["data"] is not None and (time.time() - _DASH_CACHE["ts"]) < _DASH_TTL:
+        import copy
+        return copy.deepcopy(_DASH_CACHE["data"])   # callers edit the result in place
+
+    gen = _DASH_CACHE["gen"]
+    result = _build_dashboard_data()
+    # Only cache if no Notion write happened while we were building it.
+    if _DASH_CACHE["gen"] == gen:
+        import copy
+        _DASH_CACHE["data"] = copy.deepcopy(result)
+        _DASH_CACHE["ts"] = time.time()
+    return result
+
+
+def _build_dashboard_data() -> dict:
     clients = list_clients()
 
     # Per-client filtered queries (server-side "Client ID equals" filter),
