@@ -1527,7 +1527,8 @@ def notion_status():
     configured = notion_store.is_configured()
     return jsonify({
         "configured": configured,
-        "message": "Notion is connected" if configured else (
+        "backend": notion_store.backend(),
+        "message": ("Using Lumina's own database" if notion_store.backend() == "local" else "Notion is connected") if configured else (
             "Set NOTION_TOKEN, NOTION_CLIENTS_DB_ID, NOTION_TASKS_DB_ID in config/.env"
         ),
     })
