@@ -93,8 +93,28 @@ def _upsert(conn, table: str, row: dict, raw: dict) -> str:
     return "updated"
 
 
-def import_from_notion() -> dict:
-    """Pull every client and task page from Notion into the local tables. Idempotent."""
+QUICK_TASK_CLIENT = "__quick__"
+
+
+def standup_ref_ids() -> set:
+    """Notion task ids that any standup row points at (so nothing a standup references is left behind)."""
+    conn = get_connection()
+    try:
+        return {r[0] for r in conn.execute(
+            "SELECT DISTINCT notion_id FROM standup_tasks WHERE notion_id IS NOT NULL AND notion_id<>''").fetchall()}
+    finally:
+        conn.close()
+
+
+def _in_scope(client_id: str, task_id: str, client_ids: set, ref_ids: set) -> bool:
+    """scope=visible: only what Lumina shows today -- tasks of a listed client, quick tasks, and any
+    task a standup row points at. Orphan / leftover Notion pages stay in Notion only."""
+    return (client_id in client_ids) or client_id == QUICK_TASK_CLIENT or (task_id in ref_ids)
+
+
+def import_from_notion(scope: str = "visible") -> dict:
+    """Pull clients and tasks from Notion into the local tables. Idempotent.
+    scope="visible" (default) copies only what Lumina currently shows; scope="all" copies every page."""
     started = time.time()
     ls.ensure_tables()
     report = {"clients": {"seen": 0, "inserted": 0, "updated": 0, "skipped_local": 0, "marked_archived": 0},
@@ -107,6 +127,12 @@ def import_from_notion() -> dict:
         # leaves the local tables untouched
         client_rows = [(_client_row(p, i), p) for i, p in enumerate(clients_raw, start=1)]
         task_rows = [(_task_row(p), p) for p in tasks_raw]
+        report["tasks"]["in_notion"] = len(task_rows)
+        if scope != "all":
+            cids = {p["id"] for p in clients_raw}
+            refs = standup_ref_ids()
+            task_rows = [(r, p) for r, p in task_rows if _in_scope(r["client_id"], r["id"], cids, refs)]
+        report["scope"] = scope
 
     conn = get_connection()
     try:
@@ -135,11 +161,15 @@ def import_from_notion() -> dict:
     return report
 
 
-def compare() -> dict:
+def compare(scope: str = "visible") -> dict:
     """Run the same calls against Notion and against local_store; list every difference."""
     with ns.force_notion():
         n_tasks = ns.list_tasks()
         n_clients = ns.list_clients()
+    if scope != "all":
+        cids = {c["notion_id"] for c in n_clients}
+        refs = standup_ref_ids()
+        n_tasks = [t for t in n_tasks if _in_scope(t["client_notion_id"], t["notion_id"], cids, refs)]
     l_tasks = ls.list_tasks()
     l_clients = ls.list_clients()
 
@@ -189,12 +219,12 @@ def _remember(key: str, value: str) -> None:
         logger.exception("local_import: could not record state")
 
 
-def switch_to_local(force: bool = False) -> dict:
+def switch_to_local(force: bool = False, scope: str = "visible") -> dict:
     """Fresh import -> compare -> flip the switch only if identical -> catch up any gap writes."""
     if ns.backend() == "local":
         return {"switched": False, "reason": "already local", "counts": ls.counts()}
-    imp = import_from_notion()
-    cmp_ = compare()
+    imp = import_from_notion(scope)
+    cmp_ = compare(scope)
     if not cmp_["identical"] and not force:
         return {"switched": False, "reason": "local copy differs from Notion; not switching",
                 "import": imp, "compare": cmp_}
@@ -203,7 +233,7 @@ def switch_to_local(force: bool = False) -> dict:
     # A Lumina write could have reached Notion between the compare and the flip; pick those up.
     # Rows already edited locally are protected from being overwritten.
     try:
-        catch = import_from_notion()
+        catch = import_from_notion(scope)
     except Exception as e:
         catch = {"error": f"{type(e).__name__}: {e}"}
     return {"switched": True, "import": imp, "compare": {k: v for k, v in cmp_.items() if k != "tasks" and k != "clients"}
@@ -217,3 +247,42 @@ def switch_to_notion() -> dict:
     return {"switched": True, "backend": "notion", "counts": ls.counts(),
             "warning": "Changes made while the local store was active are not in Notion; "
                        "download /api/companion/local-export to keep them."}
+
+
+def preview() -> dict:
+    """Read-only look at what is in Notion right now versus what Lumina shows, and what the
+    default (scope=visible) import would copy or leave behind. Writes nothing anywhere."""
+    with ns.force_notion():
+        clients = ns.list_clients()
+        tasks = ns.list_tasks()
+    cids = {c["notion_id"] for c in clients}
+    refs = standup_ref_ids()
+    keep, left = [], []
+    for t in tasks:
+        (keep if _in_scope(t["client_notion_id"], t["notion_id"], cids, refs) else left).append(t)
+    per_client = [{"client": c["name"], "status": c["status"],
+                   "tasks": sum(1 for t in keep if t["client_notion_id"] == c["notion_id"])} for c in clients]
+    conn = get_connection()
+    try:
+        su_total = conn.execute("SELECT COUNT(*) FROM standup_tasks").fetchone()[0]
+        su_by_user = conn.execute(
+            "SELECT user_id, COUNT(*) FROM standup_tasks WHERE status NOT IN ('deleted','delegated') "
+            "AND date=(SELECT MAX(date) FROM standup_tasks s2 WHERE s2.user_id=standup_tasks.user_id) "
+            "GROUP BY user_id").fetchall()
+    finally:
+        conn.close()
+    return {
+        "notion": {"clients": len(clients), "tasks": len(tasks)},
+        "will_copy": {"clients": len(clients), "tasks": len(keep),
+                      "quick_tasks": sum(1 for t in keep if t["client_notion_id"] == QUICK_TASK_CLIENT),
+                      "referenced_by_standup_only": sum(
+                          1 for t in keep if t["client_notion_id"] not in cids
+                          and t["client_notion_id"] != QUICK_TASK_CLIENT)},
+        "per_client": per_client,
+        "stay_in_notion_only": {"tasks": len(left), "examples": [
+            {"title": t["title"], "client": t["client_name"], "status": t["status"], "due": t["due_date"],
+             "assigned_to": t["assigned_to"]} for t in left[:40]]},
+        "daily_standup": {"rows_in_lumina_untouched": su_total,
+                          "open_rows_on_each_persons_latest_day": {u: n for u, n in su_by_user},
+                          "note": "standup_tasks lives in Lumina's own database already; the import never reads or changes it"},
+    }

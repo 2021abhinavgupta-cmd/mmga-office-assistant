@@ -2327,6 +2327,19 @@ def companion_local_status():
     return jsonify({"backend": notion_store.backend(), "settings": st, "local_counts": local_store.counts()})
 
 
+@companion_bp.route("/api/companion/local-preview", methods=["GET"])
+def companion_local_preview():
+    """Read-only: what Notion holds vs what Lumina shows, and what the import would copy / leave."""
+    if not _auth_ok():
+        return jsonify({"error": "unauthorized"}), 401
+    import local_import
+    try:
+        return jsonify(local_import.preview())
+    except Exception as e:
+        logging.getLogger(__name__).exception("local preview failed")
+        return jsonify({"error": f"{type(e).__name__}: {e}"[:300]}), 500
+
+
 @companion_bp.route("/api/companion/local-import", methods=["POST"])
 def companion_local_import():
     """Copy Notion -> local tables (read-only on Notion, never deletes). Safe to repeat."""
@@ -2334,7 +2347,7 @@ def companion_local_import():
         return jsonify({"error": "unauthorized"}), 401
     import local_import
     try:
-        return jsonify({"success": True, "report": local_import.import_from_notion()})
+        return jsonify({"success": True, "report": local_import.import_from_notion(request.args.get("scope", "visible"))})
     except Exception as e:
         logging.getLogger(__name__).exception("local import failed")
         return jsonify({"success": False, "error": f"{type(e).__name__}: {e}"[:300]}), 500
@@ -2347,7 +2360,7 @@ def companion_local_verify():
         return jsonify({"error": "unauthorized"}), 401
     import local_import
     try:
-        return jsonify(local_import.compare())
+        return jsonify(local_import.compare(request.args.get("scope", "visible")))
     except Exception as e:
         logging.getLogger(__name__).exception("local verify failed")
         return jsonify({"error": f"{type(e).__name__}: {e}"[:300]}), 500
@@ -2363,7 +2376,8 @@ def companion_task_backend():
     to = (request.args.get("to") or "").lower()
     try:
         if to == "local":
-            return jsonify(local_import.switch_to_local(force=request.args.get("force") == "1"))
+            return jsonify(local_import.switch_to_local(force=request.args.get("force") == "1",
+                                                      scope=request.args.get("scope", "visible")))
         if to == "notion":
             return jsonify(local_import.switch_to_notion())
     except Exception as e:
