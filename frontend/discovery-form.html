@@ -6,106 +6,164 @@
   <title>Discovery Questionnaire | MMGA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:        #0a0a0f;
-      --surface:   #12121a;
-      --surface2:  #1a1a26;
-      --border:    rgba(255,255,255,0.08);
-      --text:      #e8e8f0;
-      --muted:     #6b6b8a;
-      --accent:    #8B5A2B;
-      --accent-hover: #a06b36;
+      --bg:        #0a0a0d;
+      --text:      #f2f2f5;
+      --muted:     #9a9aa6;
+      --orange:    #ff6a00;
+      --orange-2:  #ff8a2a;
       --green:     #22d3a0;
       --red:       #ef4444;
-      --radius:    14px;
-      --radius-sm: 8px;
+      --line:      rgba(255,255,255,0.10);
+      --field:     rgba(255,255,255,0.055);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
-    /* ── Background ── */
-    .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-    .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.15; animation: orb-drift 20s ease-in-out infinite; }
-    .orb-1 { width: 500px; height: 500px; background: var(--accent);  top: -10%; left: -5%; }
-    .orb-3 { width: 300px; height: 300px; background: var(--green);   top: 50%; right: -10%; animation-delay: -14s; }
-    @keyframes orb-drift {
-      0%, 100% { transform: translate(0,0) scale(1); }
-      33%       { transform: translate(40px,-30px) scale(1.08); }
-      66%       { transform: translate(-20px,40px) scale(0.94); }
+    /* ── Backdrop: dark, orange reeded glow top right ── */
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        repeating-linear-gradient(90deg, rgba(10,10,13,.55) 0 18px, rgba(10,10,13,0) 18px 38px),
+        linear-gradient(90deg, rgba(10,10,13,0) 35%, rgba(255,106,0,.55) 78%, rgba(255,138,42,.95) 100%);
+      -webkit-mask-image: radial-gradient(ellipse 65% 70% at 100% 0%, #000 0%, rgba(0,0,0,.55) 45%, transparent 75%);
+              mask-image: radial-gradient(ellipse 65% 70% at 100% 0%, #000 0%, rgba(0,0,0,.55) 45%, transparent 75%);
+    }
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(ellipse 50% 45% at 96% 0%, rgba(255,106,0,.28), transparent 70%),
+                  radial-gradient(ellipse 40% 40% at 0% 100%, rgba(255,106,0,.07), transparent 70%);
     }
 
-    .container { position: relative; z-index: 1; max-width: 800px; margin: 40px auto; padding: 0 24px; }
-    
-    .form-header { text-align: center; margin-bottom: 40px; }
-    .form-header h1 { font-size: 2.2rem; font-weight: 700; color: #fff; margin-bottom: 12px; }
-    .form-header p { color: var(--muted); font-size: 1.05rem; line-height: 1.5; max-width: 600px; margin: 0 auto; }
+    .container { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 32px 24px 60px; }
 
-    .q-card { background: var(--surface); border: 1px solid var(--border); border-top: 4px solid var(--accent); border-radius: var(--radius); padding: 32px; margin-bottom: 24px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-    
-    .q-section-title { font-size: 1.25rem; font-weight: 600; color: var(--accent); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-    
-    .q-group { margin-bottom: 24px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; font-size: 1.35rem; margin-bottom: 26px; }
+    .brand svg { width: 26px; height: 26px; color: var(--orange); }
+    .brand b { color: var(--orange-2); font-weight: 700; }
+
+    .form-header h1 { font-family: 'Plus Jakarta Sans', sans-serif; font-size: clamp(1.9rem, 4.2vw, 2.8rem); font-weight: 800; letter-spacing: -.02em; margin-bottom: 10px; }
+    .form-header h1 span { color: var(--orange); }
+    .form-header p { color: #d8d8e0; font-size: 1.02rem; line-height: 1.5; margin-bottom: 28px; }
+
+    /* ── Glass shell ── */
+    .shell {
+      border-radius: 30px; padding: 30px 34px 34px;
+      background: linear-gradient(160deg, rgba(40,34,32,.72), rgba(20,17,17,.78));
+      border: 1px solid rgba(255,255,255,.12); border-bottom-color: rgba(255,106,0,.45); border-right-color: rgba(255,106,0,.3);
+      backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+      box-shadow: 0 24px 70px rgba(0,0,0,.5), 0 14px 50px rgba(255,106,0,.16), inset 0 1px 0 rgba(255,255,255,.1);
+    }
+
+    /* ── Stepper ── */
+    .stepper { display: flex; margin-bottom: 30px; }
+    .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; text-align: center; font-size: .86rem; color: #d0d0d8; cursor: pointer; }
+    .step::before { content: ""; position: absolute; top: 13px; left: -50%; width: 100%; height: 2px; background: rgba(255,255,255,.22); z-index: 0; }
+    .step:first-child::before { display: none; }
+    .step.done::before, .step.on::before { background: var(--orange); }
+    .dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); background: #17151a; display: grid; place-items: center; position: relative; z-index: 1; }
+    .dot::after { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+    .step.on .dot { border-color: var(--orange); box-shadow: 0 0 0 4px rgba(255,106,0,.18); }
+    .step.on .dot::after { background: var(--orange); }
+    .step.done .dot { background: var(--orange); border-color: var(--orange); }
+    .step.done .dot::after { width: 6px; height: 11px; border: solid #fff; border-width: 0 2.5px 2.5px 0; border-radius: 0; background: none; transform: rotate(45deg) translate(-1px,-1px); }
+    .step.on { color: #fff; font-weight: 600; }
+
+    /* ── Section card ── */
+    .q-card {
+      display: none; border-radius: 24px; padding: 30px 36px 34px;
+      background: rgba(18,16,18,.62); border: 1px solid rgba(255,255,255,.08); border-top: 3px solid var(--orange);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    .q-card.on { display: block; animation: fade .25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .q-section-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.55rem; font-weight: 700; color: var(--orange); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+
+    .q-group { margin-bottom: 22px; }
     .q-group:last-child { margin-bottom: 0; }
-    .q-group label { display: block; font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 10px; }
-    .q-group .required { color: var(--red); margin-left: 4px; }
-    
-    .q-input { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 14px 16px; border-radius: var(--radius-sm); font-size: 1rem; width: 100%; outline: none; transition: all 0.2s; font-family: inherit; }
-    .q-input:focus { border-color: var(--accent); background: rgba(255,255,255,0.03); }
-    textarea.q-input { resize: vertical; min-height: 100px; }
+    .q-group label { display: block; font-size: 1rem; font-weight: 600; margin-bottom: 10px; }
+    .q-group .required { color: #ff4d2e; margin-left: 4px; }
+    .q-group a { color: var(--orange-2); font-size: .85rem; margin-left: 8px; }
 
-    .btn-submit { background: var(--accent); color: #000; border: none; padding: 16px 32px; border-radius: 100px; font-size: 1.1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; width: 100%; margin-top: 16px; box-shadow: 0 4px 15px rgba(139, 90, 43, 0.4); }
-    .btn-submit:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 90, 43, 0.6); }
-    .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+    .q-input { background: var(--field); border: 1px solid var(--line); color: var(--text); padding: 15px 18px; border-radius: 12px; font-size: 1rem; width: 100%; outline: none; transition: border-color .2s, background .2s; font-family: inherit; }
+    .q-input::placeholder { color: #7d7d88; }
+    .q-input:focus { border-color: var(--orange); background: rgba(255,255,255,.075); box-shadow: 0 0 0 3px rgba(255,106,0,.14); }
+    textarea.q-input { resize: vertical; min-height: 96px; }
 
-    /* Toast */
-    .toast { position: fixed; bottom: -60px; left: 50%; transform: translateX(-50%); background: var(--green); color: #000; padding: 12px 24px; border-radius: 100px; font-weight: 600; font-size: 0.9rem; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    /* ── Nav buttons ── */
+    .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px; }
+    .btn { border: none; border-radius: 100px; padding: 14px 34px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: transform .15s, box-shadow .2s, background .2s; }
+    .btn-back { background: rgba(255,255,255,.08); color: #fff; border: 1px solid var(--line); }
+    .btn-back:hover { background: rgba(255,255,255,.14); }
+    .btn-next { background: linear-gradient(135deg, var(--orange-2), var(--orange)); color: #fff; box-shadow: 0 6px 22px rgba(255,106,0,.4); margin-left: auto; }
+    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,106,0,.55); }
+    .btn:disabled { opacity: .65; cursor: not-allowed; transform: none; }
+    .count { color: var(--muted); font-size: .85rem; }
+
+    .toast { position: fixed; bottom: -70px; left: 50%; transform: translateX(-50%); background: var(--green); color: #000; padding: 12px 24px; border-radius: 100px; font-weight: 600; font-size: .9rem; transition: bottom .3s cubic-bezier(.175,.885,.32,1.275); z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,.4); }
     .toast.show { bottom: 30px; }
     .toast.err { background: var(--red); color: #fff; }
-    
+
     .success-msg { text-align: center; display: none; padding: 60px 20px; }
-    .success-msg h2 { color: var(--green); font-size: 2rem; margin-bottom: 16px; }
-    .success-msg p { color: var(--muted); font-size: 1.1rem; }
+    .success-msg h2 { font-family: 'Plus Jakarta Sans', sans-serif; color: var(--green); font-size: 2rem; margin-bottom: 14px; }
+    .success-msg p { color: #d0d0d8; font-size: 1.05rem; }
+
+    @media (max-width: 720px) {
+      .container { padding: 22px 14px 40px; }
+      .shell { padding: 20px 14px 22px; border-radius: 24px; }
+      .q-card { padding: 22px 18px 26px; }
+      .step span { display: none; }
+      .step.on span { display: block; position: absolute; top: 40px; white-space: nowrap; }
+      .stepper { margin-bottom: 44px; }
+    }
   </style>
 </head>
 <body>
 
-<div class="bg-orbs" aria-hidden="true">
-  <div class="orb orb-1"></div>
-  <div class="orb orb-3"></div>
-</div>
-
 <div class="container">
-  
+
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2v20M3.5 7l17 10M3.5 17l17-10"/></svg>
+    <div>MMGA <b>Lumina</b></div>
+  </div>
+
   <div class="form-header">
-    <h1>Discovery Questionnaire</h1>
-    <p>Please fill out this comprehensive questionnaire to help us understand your business goals, workflows, and visual design preferences.</p>
+    <h1>Discovery <span>Questionnaire</span></h1>
+    <p>Help MMGA understand your business goals, workflows, and visual design preferences.</p>
   </div>
 
   <div id="loading" style="text-align:center; padding: 40px; color: var(--muted);">Loading questionnaire...</div>
 
-  <form id="discovery-form" style="display: none;" onsubmit="submitForm(event)">
-    <!-- Identity Card -->
-    <div class="q-card">
-      <h3 class="q-section-title">Your Details</h3>
-      <div class="q-group">
-        <label>Company Name <span class="required">*</span></label>
-        <input type="text" id="company_name" class="q-input" required placeholder="e.g. Acme Corp">
-      </div>
-      <div class="q-group">
-        <label>Email Address <span class="required">*</span></label>
-        <input type="email" id="email" class="q-input" required placeholder="e.g. hello@acmecorp.com">
-      </div>
-    </div>
-    
-    <div id="dynamic-fields"></div>
+  <div id="wrap" class="shell" style="display:none;">
+    <div class="stepper" id="stepper"></div>
 
-    <button type="submit" class="btn-submit" id="submitBtn">Submit Answers</button>
-  </form>
-  
+    <form id="discovery-form" onsubmit="submitForm(event)" novalidate>
+      <!-- Identity step -->
+      <div class="q-card" data-title="Your Details">
+        <h3 class="q-section-title">Your Details</h3>
+        <div class="q-group">
+          <label>Company Name <span class="required">*</span></label>
+          <input type="text" id="company_name" class="q-input" required placeholder="e.g. Acme Corp">
+        </div>
+        <div class="q-group">
+          <label>Email Address <span class="required">*</span></label>
+          <input type="email" id="email" class="q-input" required placeholder="e.g. hello@acmecorp.com">
+        </div>
+      </div>
+
+      <div id="dynamic-fields" style="display:contents;"></div>
+
+      <div class="nav">
+        <button type="button" class="btn btn-back" id="backBtn" onclick="go(-1)" style="visibility:hidden;">Back</button>
+        <span class="count" id="count"></span>
+        <button type="button" class="btn btn-next" id="nextBtn" onclick="go(1)">Next</button>
+      </div>
+    </form>
+  </div>
+
   <div id="success-view" class="success-msg">
-    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 24px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#22d3a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 24px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
     <h2>Thank You!</h2>
     <p>Your discovery questionnaire has been successfully submitted. We will review your answers and be in touch soon.</p>
   </div>
@@ -120,32 +178,32 @@
     : (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
         ? "http://localhost:5000"
         : window.location.origin);
-  
+
   let questions = [];
+  let cur = 0;
   const urlParams = new URLSearchParams(window.location.search);
   const formId = urlParams.get('form_id') || 'discovery_global';
 
   function showToast(msg, isErr = false) {
     const t = document.getElementById('toast');
     t.textContent = msg;
-    if (isErr) t.classList.add('err'); else t.classList.remove('err');
+    t.classList.toggle('err', !!isErr);
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 3000);
   }
 
   async function loadForm() {
     const loading = document.getElementById('loading');
-    const form = document.getElementById('discovery-form');
-    
     try {
       const res = await fetch(`${API}/api/form-templates/${formId}`);
       const data = await res.json();
-      
       if (data.success && data.template && data.template.length > 0) {
         questions = data.template;
         renderQuestions();
         loading.style.display = 'none';
-        form.style.display = 'block';
+        document.getElementById('wrap').style.display = 'block';
+        buildStepper();
+        show(0);
       } else {
         loading.innerHTML = '<div style="color:var(--muted);">No questionnaire has been configured yet.</div>';
       }
@@ -156,48 +214,88 @@
 
   function renderQuestions() {
     const container = document.getElementById('dynamic-fields');
-    
-    // Group by section
     const sections = {};
     questions.forEach(q => {
       const s = q.section || "General";
-      if (!sections[s]) sections[s] = [];
-      sections[s].push(q);
+      (sections[s] = sections[s] || []).push(q);
     });
 
     let html = '';
     for (const [sName, qs] of Object.entries(sections)) {
-      html += `<div class="q-card">
+      html += `<div class="q-card" data-title="${escapeHtml(sName)}">
                  <h3 class="q-section-title">${escapeHtml(sName)}</h3>`;
-      
       qs.forEach(q => {
         html += `
           <div class="q-group">
             <label>
               ${escapeHtml(q.label)}
-              ${q.reference_link ? `<a href="${escapeHtml(q.reference_link)}" target="_blank" style="color:var(--accent); text-decoration:underline; font-size:0.85rem; margin-left:8px;">Link</a>` : ''}
+              ${q.reference_link ? `<a href="${escapeHtml(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}
             </label>
-            ${q.type === 'textarea' 
+            ${q.type === 'textarea'
               ? `<textarea id="q_${q.id}" class="q-input" placeholder="Type your answer here..."></textarea>`
-              : `<input type="text" id="q_${q.id}" class="q-input" placeholder="Type your answer here...">`
-            }
-          </div>
-        `;
+              : `<input type="text" id="q_${q.id}" class="q-input" placeholder="Type your answer here...">`}
+          </div>`;
       });
       html += `</div>`;
     }
-    
     container.innerHTML = html;
+  }
+
+  function cards() { return Array.from(document.querySelectorAll('#discovery-form .q-card')); }
+
+  function buildStepper() {
+    const st = document.getElementById('stepper');
+    st.innerHTML = cards().map((c, i) =>
+      `<div class="step" onclick="jump(${i})"><div class="dot"></div><span>${escapeHtml(c.dataset.title)}</span></div>`
+    ).join('');
+  }
+
+  // check required fields of one step; show it if invalid
+  function stepValid(i) {
+    const card = cards()[i];
+    const bad = Array.from(card.querySelectorAll('input[required]')).find(el => !el.checkValidity());
+    if (bad) {
+      show(i);
+      bad.reportValidity();
+      showToast("Please fill in the required fields.", true);
+      return false;
+    }
+    return true;
+  }
+
+  function jump(i) {
+    for (let k = cur; k < i; k++) if (!stepValid(k)) return;
+    show(i);
+  }
+
+  function go(d) {
+    const last = cards().length - 1;
+    if (d > 0 && !stepValid(cur)) return;
+    if (d > 0 && cur === last) { document.getElementById('discovery-form').requestSubmit(); return; }
+    show(Math.max(0, Math.min(last, cur + d)));
+  }
+
+  function show(i) {
+    cur = i;
+    const cs = cards();
+    cs.forEach((c, k) => c.classList.toggle('on', k === i));
+    document.querySelectorAll('#stepper .step').forEach((s, k) => {
+      s.classList.toggle('on', k === i);
+      s.classList.toggle('done', k < i);
+    });
+    document.getElementById('backBtn').style.visibility = i === 0 ? 'hidden' : 'visible';
+    document.getElementById('nextBtn').textContent = i === cs.length - 1 ? 'Submit Answers' : 'Next';
+    document.getElementById('count').textContent = `Step ${i + 1} of ${cs.length}`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function submitForm(e) {
     e.preventDefault();
-    
     const company_name = document.getElementById('company_name').value.trim();
     const email = document.getElementById('email').value.trim();
-    
-    if (!company_name || !email) {
-      showToast("Please fill in your company name and email.", true);
+    if (!company_name || !email || !document.getElementById('email').checkValidity()) {
+      show(0);
+      showToast("Please fill in your company name and a valid email.", true);
       return;
     }
 
@@ -207,7 +305,7 @@
       if (el) answers[q.id] = el.value.trim();
     });
 
-    const btn = document.getElementById('submitBtn');
+    const btn = document.getElementById('nextBtn');
     btn.textContent = "Submitting...";
     btn.disabled = true;
 
@@ -218,9 +316,8 @@
         body: JSON.stringify({ form_id: formId, company_name, email, answers })
       });
       const data = await res.json();
-      
       if (data.success) {
-        document.getElementById('discovery-form').style.display = 'none';
+        document.getElementById('wrap').style.display = 'none';
         document.getElementById('success-view').style.display = 'block';
         window.scrollTo(0, 0);
       } else {
@@ -236,7 +333,7 @@
   }
 
   function escapeHtml(unsafe) {
-    return (unsafe || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    return (unsafe == null ? "" : String(unsafe)).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 
   document.addEventListener('DOMContentLoaded', loadForm);
