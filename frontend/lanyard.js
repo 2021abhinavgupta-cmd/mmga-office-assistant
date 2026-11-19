@@ -90,6 +90,7 @@
 .ly-name{margin-top:.55em;width:100%;text-align:center;font-weight:700;font-size:1.08em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ly-role{margin-top:.15em;width:100%;text-align:center;font-size:.8em;color:#9b9bab;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ly-stat{margin-top:.5em;font-size:.62em;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#8a8a99;white-space:nowrap}
+.ly-stat2{margin-top:.5em;display:flex;gap:.9em;justify-content:center;font-size:.64em;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#6b6b78;white-space:nowrap}.ly-stat2 .on{color:#22d3a0}.ly-stat2 .out{color:#ffb15c}
 .ly-stat.on{color:#22d3a0}.ly-stat.out{color:#ffb15c}
 .ly-bar{margin-top:auto;width:100%;border-top:1px dashed rgba(255,255,255,.15);padding-top:.5em}
 .ly-bar svg{display:block;width:100%;height:1.6em;color:rgba(236,236,241,.8)}
@@ -142,8 +143,7 @@
     const digits = String(p.id || "").replace(/\D/g, "").padStart(3, "0");
     const mine = !!opts.me && p.id === opts.me;
     const stat = !p.inTime ? `<div class="ly-stat">${opts.today ? "Not in yet" : "No check-in"}</div>`
-      : p.outTime ? `<div class="ly-stat out">Out ${esc(hhmm(p.outTime))}</div>`
-        : `<div class="ly-stat on">In ${esc(hhmm(p.inTime))}</div>`;
+      : `<div class="ly-stat2"><span class="on">In ${esc(hhmm(p.inTime))}</span><span class="${p.outTime ? "out" : ""}">Out ${p.outTime ? esc(hhmm(p.outTime)) : "--:--"}</span></div>`;
     const front = `<span class="ly-face front">
       <span class="ly-band" style="height:4.3em"></span><span class="ly-hole"></span>
       <span class="ly-photo"><span>${esc(initials(p.name))}<img src="avatars/${esc(p.id)}.jpg" alt="" draggable="false" onerror="this.remove()"></span><i class="ly-dot ${p.working ? "on" : ""}"></i></span>
