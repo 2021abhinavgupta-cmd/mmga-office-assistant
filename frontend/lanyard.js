@@ -121,7 +121,7 @@
 
   function geometry(W, n) {
     const u = W / 124, H = W * RATIO;
-    const railR = Math.max(3, 4.2 * u), railY = 30 + railR, ring = 9 * u, pivotY = railY + ring * 0.8;
+    const railR = Math.max(3, 4.2 * u), railY = 14 + 16 * u + railR, ring = 9 * u, pivotY = railY + ring * 0.8;
     const strapW = Math.max(8, 11 * u), crimp = 6 * u, reel = 21 * u, cordRest = 12 * u, clipH = 13 * u, clipW = 30 * u;
     const items = [];
     for (let i = 0; i < n; i++) {
@@ -182,11 +182,18 @@
   function render(container, people, opts) {
     opts = opts || {};
     injectCss();
+    // The signed-in person's badge goes in the middle of the row, so it can be
+    // scrolled to the centre of the screen.
+    people = people.slice();
+    const meIdx = opts.me ? people.findIndex(p => p.id === opts.me) : -1;
+    if (meIdx >= 0) { const [me] = people.splice(meIdx, 1); people.splice(Math.floor(people.length / 2), 0, me); }
     const n = Math.max(1, people.length);
-    const width = Math.max(320, container.clientWidth || 900);
-    const W = Math.round(Math.max(96, Math.min(124, (width - 40) / (n * 1.16 + 0.4))) * 4) / 4;
-    const pitch = Math.max(W * 1.16, Math.min(W * 1.62, (width - 40 - W * 0.6) / n));
-    const innerW = Math.max(width - 2, pitch * (n - 1) + W + 40);
+    const width = Math.max(300, container.clientWidth || 900);
+    // 4 badges fit on screen (2 on a phone); the rest scroll sideways.
+    const visible = Math.min(n, width < 640 ? 2 : 4);
+    const pitch = (width - 2) / visible;
+    const W = Math.round(Math.max(120, Math.min(240, pitch / 1.2)) * 4) / 4;
+    const innerW = Math.max(width - 2, pitch * n);
     const g = geometry(W, people.length);
     const start = innerW / 2 - (pitch * (people.length - 1)) / 2;
     const base = W / 11.2;
@@ -227,7 +234,13 @@
     const scroll = oldStage ? oldStage.scrollLeft : 0;
     container.innerHTML = `<div class="ly-stage">${html}</div><div class="ly-caption"><p id="ly-cap1"></p><small id="ly-cap2"></small></div>`;
     const stage = container.querySelector(".ly-stage");
-    stage.scrollLeft = scroll;
+    const myPos = opts.me ? people.findIndex(p => p.id === opts.me) : -1;
+    if (!state.centered && myPos >= 0) {
+      state.centered = true;
+      stage.scrollLeft = Math.max(0, start + myPos * pitch - stage.clientWidth / 2);
+    } else {
+      stage.scrollLeft = scroll;
+    }
 
     const items = Array.from(stage.querySelectorAll(".ly-item"));
     state.sim = items.map((el, i) => {
@@ -269,6 +282,16 @@
     });
     stage.onmousemove = (ev) => hover(ev);
     stage.onmouseleave = () => { state.hoverHit = -1; };
+    // Scrolling the rail (finger swipe on a phone, scrollbar/trackpad on a
+    // laptop) makes the badges swing against the direction of travel.
+    let lastScroll = stage.scrollLeft;
+    stage.addEventListener("scroll", () => {
+      const dx = stage.scrollLeft - lastScroll;
+      lastScroll = stage.scrollLeft;
+      if (!dx) return;
+      const amt = Math.max(-7, Math.min(7, dx * 0.35));
+      state.sim.forEach((_, i) => impulse(i, amt * (0.8 + (i % 3) * 0.15)));
+    }, { passive: true });
 
     if (!state.keyBound) {
       state.keyBound = true;

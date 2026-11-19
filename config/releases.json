@@ -133,5 +133,17 @@
       "Search for a teammate by name"
     ],
     "how": "Open Daily Standup, then tap View everyone's tasks."
+  },
+  {
+    "id": "2026-11-19-attendance-is-now-id-badges",
+    "date": "2026-11-19",
+    "title": "Attendance is now ID badges",
+    "bullets": [
+      "Everyone's attendance on the Dashboard now shows as hanging ID badges with their photo",
+      "Your own badge sits in the middle of the screen when you open the page",
+      "Tap any badge to flip it and see when that person came in and left",
+      "4 badges show at a time (2 on a phone); swipe or scroll sideways to see the rest"
+    ],
+    "how": "Open the Dashboard, tap your own badge, then tap Check In or Check Out on the back."
   }
 ]
