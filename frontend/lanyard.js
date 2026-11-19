@@ -64,7 +64,7 @@
 .ly-cord{position:absolute;width:1.5px;background:rgba(230,230,240,.6)}
 .ly-clip{position:absolute;clip-path:polygon(24% 0,76% 0,100% 72%,94% 100%,6% 100%,0 72%);background:linear-gradient(180deg,#6b6b73,#2c2c32)}
 .ly-clipstem{position:absolute;border-radius:0 0 2px 2px;background:linear-gradient(180deg,#5b5b63,#2c2c32)}
-.ly-shadow{position:absolute;border-radius:10px;background:rgba(0,0,0,.6);filter:blur(8px);transform:translate(5px,6px)}
+.ly-shadow{position:absolute;border-radius:10px;background:rgba(0,0,0,.35);transform:translate(4px,5px)}
 .ly-card{position:absolute;pointer-events:auto;cursor:pointer;border:0;padding:0;background:none;outline:none;border-radius:.85em;perspective:900px;font-family:inherit;color:#ececf1;text-align:left}
 .ly-card{transition:transform .35s cubic-bezier(.3,1.45,.5,1)}.ly-card[aria-pressed=true]{transform:scale(1.14)}
 .ly-card:focus-visible{outline:2px solid #ff8a1f;outline-offset:4px}
@@ -282,16 +282,6 @@
     });
     stage.onmousemove = (ev) => hover(ev);
     stage.onmouseleave = () => { state.hoverHit = -1; };
-    // Scrolling the rail (finger swipe on a phone, scrollbar/trackpad on a
-    // laptop) makes the badges swing against the direction of travel.
-    let lastScroll = stage.scrollLeft;
-    stage.addEventListener("scroll", () => {
-      const dx = stage.scrollLeft - lastScroll;
-      lastScroll = stage.scrollLeft;
-      if (!dx) return;
-      const amt = Math.max(-7, Math.min(7, dx * 0.35));
-      state.sim.forEach((_, i) => impulse(i, amt * (0.8 + (i % 3) * 0.15)));
-    }, { passive: true });
 
     if (!state.keyBound) {
       state.keyBound = true;
@@ -304,7 +294,7 @@
 
     if (!state.introDone) {
       state.introDone = true;
-      if (!reduced()) items.forEach((_, i) => setTimeout(() => impulse(i, (i % 2 ? -1 : 1) * (30 - (i % 4) * 3)), 60 + i * 70));
+      if (!reduced()) items.forEach((_, i) => setTimeout(() => impulse(i, (i % 2 ? -1 : 1) * 8), 60 + i * 70));
     }
   }
 
@@ -333,9 +323,7 @@
       const tap = s.el.querySelector(".ly-tapme");
       if (tap) tap.style.display = on ? "none" : "";
     });
-    impulse(i, i % 2 ? 9 : -9);
-    if (i > 0) impulse(i - 1, 6);
-    if (i < state.sim.length - 1) impulse(i + 1, -6);
+    impulse(i, i % 2 ? 4 : -4);
     caption();
   }
 
@@ -348,7 +336,7 @@
       const r = s.el.querySelector(".ly-card").getBoundingClientRect();
       if (ev.clientX >= r.left - 4 && ev.clientX <= r.right + 4 && ev.clientY >= r.top - 40 && ev.clientY <= r.bottom) hit = i;
     });
-    if (hit >= 0 && hit !== state.hoverHit) impulse(hit, Math.max(-24, Math.min(24, -vx * 22)));
+    if (hit >= 0 && hit !== state.hoverHit) impulse(hit, Math.max(-8, Math.min(8, -vx * 8)));
     state.hoverHit = hit;
   }
 
@@ -362,11 +350,11 @@
   function step(now) {
     const dt = state.last ? Math.min(0.05, (now - state.last) / 1000) : 1 / 60;
     state.last = now;
-    const sub = 4, h = dt / sub;
+    const sub = 2, h = dt / sub;
     let busy = false;
     state.sim.forEach((s) => {
       for (let k = 0; k < sub; k++) {
-        s.v += (-s.k * s.a - 2.2 * s.v) * h;
+        s.v += (-s.k * s.a - 3.5 * s.v) * h;
         s.a = Math.max(-18, Math.min(18, s.a + s.v * h));
       }
       if (!s.el.isConnected) return;
