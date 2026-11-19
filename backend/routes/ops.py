@@ -3590,12 +3590,45 @@ def save_discovery_submission():
         from db import get_connection
         conn = get_connection()
         with conn:
-            conn.execute(
+            cur = conn.execute(
                 "INSERT INTO discovery_submissions (form_id, company_name, email, answers_json) VALUES (?, ?, ?, ?)", 
                 (form_id, company_name, email, json.dumps(answers))
             )
+            sub_id = cur.lastrowid
         conn.close()
+        # Build the Excel, store it on the row and email Vidit + Kshitij (background, never blocks the client)
+        try:
+            import discovery_export
+            threading.Thread(target=discovery_export.finalize_submission,
+                             args=(sub_id, company_name, email, answers, form_id), daemon=True).start()
+        except Exception:
+            logger.exception("discovery export could not start")
         return jsonify({"success": True})
     except Exception as e:
         logger.error(f"Error saving discovery submission: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@ops_bp.route("/api/discovery-submissions/<int:sub_id>/xlsx", methods=["GET"])
+def download_discovery_xlsx(sub_id):
+    """Download a submission as a formatted Excel file (employee session required)."""
+    if not _verify_session(request.cookies.get("session_token", "")):
+        return jsonify({"error": "Unauthorized"}), 403
+    try:
+        import io
+        import discovery_export
+        from db import get_connection
+        conn = get_connection()
+        r = conn.execute("SELECT form_id, company_name, email, answers_json, submitted_at, xlsx_blob "
+                         "FROM discovery_submissions WHERE id=?", (sub_id,)).fetchone()
+        conn.close()
+        if not r:
+            return jsonify({"error": "Not found"}), 404
+        data = r[5]
+        if not data:  # submitted before this feature existed: build on demand
+            data = discovery_export.build_xlsx(r[1], r[2], json.loads(r[3] or "{}"), r[0], r[4] or "")
+        return send_file(io.BytesIO(bytes(data)), mimetype=discovery_export.XLSX_MIME,
+                         as_attachment=True, download_name=discovery_export.safe_name(r[1]))
+    except Exception as e:
+        logger.error(f"discovery xlsx download failed: {e}")
+        return jsonify({"error": "Could not build the file"}), 500

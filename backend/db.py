@@ -425,6 +425,10 @@ def init_db():
             conn.execute("ALTER TABLE discovery_submissions ADD COLUMN form_id TEXT DEFAULT 'discovery_global'")
         except Exception:
             pass  # Column already exists
+        try:
+            conn.execute("ALTER TABLE discovery_submissions ADD COLUMN xlsx_blob BLOB")
+        except Exception:
+            pass  # Column already exists
         
         # Seed default questionnaire
         cur = conn.execute("SELECT id FROM form_templates WHERE id='discovery_global'")

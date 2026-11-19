@@ -81,7 +81,8 @@ def name_for(user_id: str) -> str:
 
 
 def _send_brevo(to: list[str], subject: str, body: str, reply_to: str = "",
-                from_name: str = "", cc: list[str] | None = None, html: str = "") -> bool:
+                from_name: str = "", cc: list[str] | None = None, html: str = "",
+                attachments: list | None = None) -> bool:
     """One API call per recipient, so people never see each other's
     addresses and "reply all" can't spray the whole company."""
     import requests
@@ -94,6 +95,10 @@ def _send_brevo(to: list[str], subject: str, body: str, reply_to: str = "",
                    "to": [{"email": addr}], "subject": subject, "textContent": body}
         if html:
             payload["htmlContent"] = html
+        if attachments:
+            import base64
+            payload["attachment"] = [{"name": fn, "content": base64.b64encode(data).decode()}
+                                     for fn, data, _mt in attachments]
         if reply_to:
             payload["replyTo"] = {"email": reply_to}
         if cc:
@@ -116,9 +121,10 @@ def _send_brevo(to: list[str], subject: str, body: str, reply_to: str = "",
 
 
 def _send_now(to: list[str], subject: str, body: str, reply_to: str = "",
-              from_name: str = "", cc: list[str] | None = None, html: str = "") -> bool:
+              from_name: str = "", cc: list[str] | None = None, html: str = "",
+              attachments: list | None = None) -> bool:
     if provider() == "brevo":
-        return _send_brevo(to, subject, body, reply_to, from_name, cc, html)
+        return _send_brevo(to, subject, body, reply_to, from_name, cc, html, attachments)
     host = os.getenv("SMTP_HOST", "")
     port = int(os.getenv("SMTP_PORT", "587") or 587)
     user = os.getenv("SMTP_USER", "")
@@ -135,6 +141,9 @@ def _send_now(to: list[str], subject: str, body: str, reply_to: str = "",
     msg.set_content(body)
     if html:
         msg.add_alternative(html, subtype="html")
+    for fn, data, mt in (attachments or []):
+        maintype, _, subtype = mt.partition("/")
+        msg.add_attachment(data, maintype=maintype, subtype=subtype, filename=fn)
     try:
         if port == 465:
             with smtplib.SMTP_SSL(host, port, timeout=15) as srv:
@@ -155,7 +164,7 @@ def _send_now(to: list[str], subject: str, body: str, reply_to: str = "",
 
 
 def send(to, subject: str, body: str, reply_to: str = "", from_name: str = "",
-         wait: bool = False, cc=None, html: str = "") -> bool:
+         wait: bool = False, cc=None, html: str = "", attachments=None) -> bool:
     """Send an email. Returns False (and logs) when no transport is configured.
     By default sends on a background thread so a slow mail server never
     delays the HTTP request; wait=True sends inline and returns the result."""
@@ -167,8 +176,8 @@ def send(to, subject: str, body: str, reply_to: str = "", from_name: str = "",
         return False
     cc = [c for c in ([cc] if isinstance(cc, str) else list(cc or [])) if c]
     if wait:
-        return _send_now(to, subject, body, reply_to, from_name, cc, html)
-    threading.Thread(target=_send_now, args=(to, subject, body, reply_to, from_name, cc, html),
+        return _send_now(to, subject, body, reply_to, from_name, cc, html, attachments)
+    threading.Thread(target=_send_now, args=(to, subject, body, reply_to, from_name, cc, html, attachments),
                      daemon=True).start()
     return True
 
