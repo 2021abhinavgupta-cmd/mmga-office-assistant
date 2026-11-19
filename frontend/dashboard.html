@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <!-- Auth guard: redirects to login.html if session is invalid (#1) -->
   <script src="auth.js"></script>
+  <script src="lanyard.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
@@ -392,7 +393,7 @@
        Both buttons hit the same /api/attendance/checkin|checkout endpoints, so clicking
        Check In here when already auto-checked-in today is a harmless no-op (first-checkin
        wins) and Check Out always safely updates to "latest wins", same as Logout's. -->
-  <div class="panel" style="margin-bottom:24px" id="my-attendance-panel">
+  <div class="panel" style="margin-bottom:24px;display:none" id="my-attendance-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div>
         <h2 style="margin-bottom:4px"> My Attendance</h2>
@@ -406,7 +407,6 @@
         <button id="my-add-outloc-btn" onclick="openLocModal('set-checkout')" title="Your check-out was recorded without a location. Add it now." style="display:none;background:none;border:1px solid var(--border);color:var(--text);padding:9px 14px;border-radius:8px;font-size:.8rem;cursor:pointer">Add check-out location</button>
       </div>
     </div>
-    <div id="my-att-msg" style="font-size:.75rem;color:var(--muted);margin-top:8px;display:none"></div>
   </div>
 
   <!-- Check-in/out location popup -- shown on every Check In / Check Out
@@ -436,7 +436,7 @@
   <div class="panel" style="margin-bottom:24px" id="admin-attendance-panel">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <div>
-        <h2 style="margin-bottom:4px"> Live Attendance</h2>
+        <h2 style="margin-bottom:4px"> Team Attendance</h2>
         <div style="color:var(--muted);font-size:.8rem" id="att-date">Loading...</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
@@ -448,6 +448,7 @@
     <div id="attendance-wrap">
       <div class="empty-state">Checking access...</div>
     </div>
+    <div id="my-att-msg" style="font-size:.8rem;color:var(--muted);margin-top:8px;text-align:center;display:none"></div>
   </div>
 
   <!-- AI Daily Report Panel -->
@@ -607,38 +608,33 @@ async function loadAttendance() {
       return `${h}h ${m}m`;
     };
 
-    wrap.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px">${
-      visibleRows.map(emp => {
-        const checkin = emp.checkin_time ? `${emp.checkin_time} IST` : "Not in yet";
-        // "Still working" only makes sense when viewing today -- for a past
-        // date, a null checkout just means nobody ever recorded one for
-        // that day (they closed the tab and it predates the heartbeat
-        // sweep, or a very stale/still-open session), not that they're
-        // literally still working right now.
-        const checkout = !emp.checkin_time
-          ? "—"
-          : (emp.checkout_time ? `${emp.checkout_time} IST` : (isViewingToday ? "Still working" : "Not checked out"));
-        const inSec = toSeconds(emp.checkin_time);
-        const outSec = toSeconds(emp.checkout_time);
-        const total = (inSec != null && outSec != null && outSec >= inSec) ? formatDuration(outSec - inSec) : "—";
-        const isWorking = isViewingToday && Boolean(emp.checkin_time) && !emp.checkout_time;
-        const statusDot = isWorking
-          ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#22d3a0;margin-right:6px"></span>'
-          : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:6px"></span>';
-
-        const mapsLink = (lat, lng) => (lat != null && lng != null)
-          ? ` <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" rel="noopener" style="color:var(--acc,#f5a623);text-decoration:underline;font-size:.72rem" title="View location on Google Maps">(map)</a>`
-          : "";
-
-        return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-weight:700;font-size:.95rem">${statusDot}${emp.name}${emp.mood ? ` <span class="mood-chip" style="cursor:pointer" title="Mood today: ${emp.mood} (click to see why)" data-name="${attrEsc(emp.name)}" data-mood="${attrEsc(emp.mood)}" data-reason="${attrEsc(emp.mood_reason || '')}" onclick="showMoodReason(this, event)">${{awesome:"🤩",happy:"😊",mid:"😐",sad:"😞",stressed:"😫"}[emp.mood] || ""}</span>` : ""}</div>
-          <div style="color:var(--muted);font-size:.75rem">${emp.role}</div>
-          <div style="font-size:.78rem;color:var(--text)"> In: <span style="color:var(--muted)">${checkin}</span>${mapsLink(emp.checkin_lat, emp.checkin_lng)}</div>
-          <div style="font-size:.78rem;color:var(--text)"> Out: <span style="color:var(--muted)">${checkout}</span>${mapsLink(emp.checkout_lat, emp.checkout_lng)}</div>
-          <div style="font-size:.78rem;color:var(--text)">⏱ Total: <span style="color:var(--muted)">${total}</span></div>
-        </div>`;
-      }).join("")
-    }</div>`;
+    const mapUrl = (lat, lng) => (lat != null && lng != null) ? `https://www.google.com/maps?q=${lat},${lng}` : "";
+    const people = visibleRows.map(emp => {
+      const inSec = toSeconds(emp.checkin_time);
+      const outSec = toSeconds(emp.checkout_time);
+      return {
+        id: emp.emp_id, name: emp.name, role: emp.role,
+        inTime: emp.checkin_time, outTime: emp.checkout_time,
+        inMap: mapUrl(emp.checkin_lat, emp.checkin_lng), outMap: mapUrl(emp.checkout_lat, emp.checkout_lng),
+        inMapMissing: !!emp.checkin_time && (emp.checkin_lat == null || emp.checkin_lng == null),
+        outMapMissing: !!emp.checkout_time && (emp.checkout_lat == null || emp.checkout_lng == null),
+        total: (inSec != null && outSec != null && outSec >= inSec) ? formatDuration(outSec - inSec) : "",
+        working: isViewingToday && Boolean(emp.checkin_time) && !emp.checkout_time,
+        mood: emp.mood, moodReason: emp.mood_reason || ""
+      };
+    });
+    // Team as ID badges on a rail: tap a badge to flip it; your own badge has the
+    // Check In / Check Out buttons on its back (same location popup as before).
+    window.LanyardRail.render(wrap, people, {
+      me: user.user_id,
+      today: isViewingToday,
+      onAction: (kind) => {
+        if (kind === "checkin") myCheckIn();
+        else if (kind === "checkout") myCheckOut();
+        else if (kind === "undo") myUndoCheckout();
+        else if (kind === "set-checkin" || kind === "set-checkout") openLocModal(kind);
+      }
+    });
 
   } catch(e) {
     wrap.innerHTML = `<div class="empty-state">⚠ Could not load attendance: ${e.message}</div>`;
