@@ -192,7 +192,7 @@
     // 4 badges fit on screen (2 on a phone); the rest scroll sideways.
     const visible = Math.min(n, width < 640 ? 2 : 4);
     const pitch = (width - 2) / visible;
-    const W = Math.round(Math.max(120, Math.min(240, pitch / 1.2)) * 4) / 4;
+    const W = Math.round(Math.max(104, Math.min(168, pitch / 1.4)) * 4) / 4;
     const innerW = Math.max(width - 2, pitch * n);
     const g = geometry(W, people.length);
     const start = innerW / 2 - (pitch * (people.length - 1)) / 2;
