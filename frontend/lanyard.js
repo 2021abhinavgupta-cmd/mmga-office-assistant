@@ -122,11 +122,11 @@
 
   function geometry(W, n) {
     const u = W / 124, H = W * RATIO;
-    const railR = Math.max(3, 4.2 * u), railY = 14 + 16 * u + railR, ring = 9 * u, pivotY = railY + ring * 0.8;
+    const railR = Math.max(3, 4.2 * u), railY = 30 + 14 * u + railR, ring = 9 * u, pivotY = railY + ring * 0.8;
     const strapW = Math.max(8, 11 * u), crimp = 6 * u, reel = 21 * u, cordRest = 12 * u, clipH = 13 * u, clipW = 30 * u;
     const items = [];
     for (let i = 0; i < n; i++) {
-      const strap = (56 + DROPS[i % DROPS.length]) * u;
+      const strap = (30 + DROPS[i % DROPS.length] * 0.6) * u;
       const reelTop = pivotY + strap + crimp * 0.6;
       const clipTop = reelTop + reel * 0.82 + cordRest;
       const cardTop = clipTop + clipH * 0.62;
@@ -191,9 +191,10 @@
     const width = Math.max(300, container.clientWidth || 900);
     // 4 badges fit on screen (2 on a phone); the rest scroll sideways.
     const visible = Math.min(n, width < 640 ? 2 : 4);
-    const pitch = (width - 2) / visible;
-    const W = Math.round(Math.max(104, Math.min(168, pitch / 1.4)) * 4) / 4;
-    const innerW = Math.max(width - 2, pitch * n);
+    const slot = (width - 2) / visible;
+    const W = Math.round(Math.max(104, Math.min(150, slot / 1.3)) * 4) / 4;
+    const pitch = Math.min(slot, W * 1.3);
+    const innerW = Math.max(width - 2, pitch * n + 20);
     const g = geometry(W, people.length);
     const start = innerW / 2 - (pitch * (people.length - 1)) / 2;
     const base = W / 11.2;
