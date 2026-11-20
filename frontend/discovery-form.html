@@ -418,8 +418,10 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .q-head .mm-logo{position:static;width:30px;height:30px;border-radius:8px;padding:2px;box-shadow:none;flex:none}
 
 .kln-panel{justify-content:center}
-.kln-copy{max-width:min(560px,100%)}
+.kln-copy{max-width:100%;container-type:inline-size}
+@media (min-width:900px){.kln-copy{max-width:50%}}
 @media (min-width:1024px){.kln-copy{display:block}}
+.kln-title{font-size:clamp(1.9rem,min(calc(100cqw / var(--title-em)),17dvh),11rem)}
 .bc{position:absolute;top:-10%;bottom:-10%;right:2%;width:min(46%,640px);display:none;gap:16px;transform:rotate(8deg);transform-origin:50% 50%;z-index:0;pointer-events:none;
   -webkit-mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent)}
 @media (min-width:900px){.bc{display:flex}}
@@ -458,7 +460,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     <div class="kln-copy" id="copy">
       <div>
         <h1 class="kln-title" id="kln-title"></h1>
-        <p class="kln-sub">A few questions about your brand, your current setup and your goals, so MMGA can plan the right work for you.</p>
+        <p class="kln-sub">A questionnaire about your brand, your current setup, your goals and the challenges you are facing, so MMGA can plan the right work and solution for you.</p>
         <a href="#questionnaire" class="lq-btn kln-start" id="start-btn"><span class="lq-ring" aria-hidden="true"></span><span class="lq-glass" aria-hidden="true"></span><span class="lq-txt">Start <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
       </div>
     </div>
@@ -827,10 +829,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
   // ===================== Nav: info window + controls =====================
   // Work shown in the welcome carousel: cards from the three MMGA verticals (brand building, digital marketing, websites).
-  const BRANDS = [11,12,13,14,15,16,21,22,23,24,25,26,31,32,33,34,35,36].map((n) => ({ name: 'MMGA work', logo: `brands/b${n}.jpg` }));
+  // Omotec (b31) and Spellink (b36) already appear under another vertical, so they are left out: no card shows twice.
+  const BRANDS = [11,12,13,14,15,16,21,22,23,24,25,26,32,33,34,35].map((n) => ({ name: 'MMGA work', logo: `brands/b${n}.jpg` }));
   function buildBrandCarousel() {
     const host = $('bc'); if (!host) return;
-    const cols = [[0, 3, 6, 9, 12, 15], [1, 4, 7, 10, 13, 16], [2, 5, 8, 11, 14, 17]];
+    const cols = [[0, 3, 6, 9, 12], [1, 4, 7, 10, 13], [2, 5, 8, 11, 14, 15]];
     host.innerHTML = cols.map((ids, c) => {
       const set = ids.map((i) => `<div class="bc-card"><img src="${esc(BRANDS[i].logo)}" alt="" loading="lazy" decoding="async"></div>`).join('');
       return `<div class="bc-col"><div class="bc-track" style="--d:${44 + c * 10}s">${set}${set}</div></div>`;
