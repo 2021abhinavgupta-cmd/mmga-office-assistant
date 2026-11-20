@@ -262,7 +262,6 @@
     return `<div class="st-cb${g.main ? ' main' : ''}">
       <span class="st-n">${n}</span>
       <div class="st-hd"><p class="st-tl">${escape(g.title)}</p></div>
-      <span class="st-ic">${ICONS[i] || ''}</span>
       ${g.count ? `<span class="st-ct"><b>${g.count}</b>${g.count === 1 ? 'Q' : 'Qs'}</span>` : ''}</div>`;
   }
 
@@ -439,9 +438,7 @@
     cardEls.forEach((c, i) => {
       c.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { hovering = true; light(i); want(); } });
       c.addEventListener('pointerleave', () => light(held ? 0 : null));
-      c.addEventListener('click', () => { if (open && opts.onPick) opts.onPick(i); });
     });
-    host.querySelectorAll('.st-list .st-card').forEach((c, i) => c.addEventListener('click', () => opts.onPick && opts.onPick(i)));
 
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(([en]) => { onScreen = en.isIntersecting; pauseBeads(); if (onScreen) kick(); }, { rootMargin: '40px' }).observe(vis);
