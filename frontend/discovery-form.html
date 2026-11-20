@@ -28,8 +28,12 @@
 @media (min-width:640px){:root{--frame-x:16px;--inset-x:24px}}
 @media (min-width:1024px){:root{--frame-x:20px;--inset-x:32px;--card-w:320px;--card-gap:32px}}
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--page);color:var(--ink);font-family:var(--f-sans);-webkit-font-smoothing:antialiased;min-height:100dvh}
+html,body{height:100%;overflow:hidden}
+body{background:var(--page);color:var(--ink);font-family:var(--f-sans);-webkit-font-smoothing:antialiased}
+.app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
+.stage{position:relative;min-height:0}
+.scene{position:absolute;inset:0;padding-bottom:4px;transition:opacity .5s var(--ease),transform .6s var(--ease),filter .5s var(--ease)}
+.app[data-scene=intro] #scene-form,.app[data-scene=form] #scene-intro{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(16px) scale(.99);filter:blur(6px);transition:opacity .35s,transform .35s,filter .35s,visibility 0s .35s}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:0}
 :focus-visible{outline:2px solid var(--heat-1);outline-offset:2px}
@@ -39,7 +43,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .hot-dot{flex:none;width:7px;height:7px;background:var(--heat-3)}
 
 /* ---------- Nav ---------- */
-.kln-header{position:sticky;top:0;z-index:40;padding-block:10px;border-bottom:1px solid transparent;transition:background-color .25s,border-color .25s}
+.kln-header{position:relative;z-index:40;padding-block:10px;border-bottom:1px solid transparent;transition:background-color .25s,border-color .25s}
 .kln-header[data-scrolled=true]{background:rgb(255 255 255/.78);border-bottom-color:var(--line);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 .kln-nav{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .kln-slot{position:relative;height:38px;min-width:0}
@@ -87,8 +91,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* ---------- Hero panel ---------- */
 .kln-panel{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:flex-end;
-  min-height:calc(100dvh - var(--nav-space) - var(--bar-space));overflow:hidden;
-  padding:clamp(180px,34dvh,420px) var(--inset-x) clamp(24px,4.5dvh,44px);
+  height:100%;overflow:hidden;
+  padding:clamp(16px,3dvh,40px) var(--inset-x) clamp(20px,4dvh,44px);
   border:1px solid var(--line-box);border-radius:18px;background:var(--page)}
 .grid-bg::before{content:'';position:absolute;inset:0;z-index:-1;
   background-image:linear-gradient(to right,transparent calc(var(--cell) - var(--seam)),var(--grid) 0),linear-gradient(to bottom,transparent calc(var(--cell) - var(--seam)),var(--grid) 0);
@@ -126,7 +130,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .kln-services-head .mono{color:var(--muted)}
 .kln-status-ok{display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:500}
 .kln-status-ok i{width:6px;height:6px;border-radius:999px;background:#3fb27f;box-shadow:0 0 0 3px rgb(63 178 127/.18)}
-.kln-svc-list{position:relative;max-height:min(46dvh,420px);overflow-y:auto;scrollbar-width:thin}
+.kln-svc-list{position:relative;max-height:min(40dvh,380px);overflow:hidden}
 .kln-svc{position:relative;display:block;overflow:hidden;padding:9px 12px;border-radius:16px;cursor:pointer;transition:background-color .3s}
 .kln-svc.on{background:#f5f5f4}
 .kln-svc-row{display:flex;align-items:center;gap:12px}
@@ -143,48 +147,58 @@ button{font:inherit;color:inherit;background:none;border:0}
 
 /* ---------- Bottom bar: one tab per section ---------- */
 .kln-bar{display:flex;align-items:center;justify-content:center;gap:12px;padding-block:8px}
-.kln-bar-label{display:none;color:var(--muted);font-size:.75rem;font-weight:600;letter-spacing:-.02em;text-transform:uppercase;white-space:nowrap}
+.kln-bar-label{display:none;cursor:default;color:var(--muted);font-size:.75rem;font-weight:600;letter-spacing:-.02em;text-transform:uppercase;white-space:nowrap}
+button.kln-bar-label{cursor:pointer;transition:color .2s}
+button.kln-bar-label:hover{color:var(--ink)}
 @media (min-width:1024px){.kln-bar{justify-content:space-between}.kln-bar-label{display:block}}
-.kln-tabs{position:relative;max-width:100%;overflow-x:auto;scrollbar-width:none;padding:3px;border-radius:999px;background:var(--chrome)}
+.kln-tabs{position:relative;max-width:100%;overflow:hidden;padding:3px;border-radius:999px;background:var(--chrome)}
 .kln-tabs::-webkit-scrollbar{display:none}
 .kln-tabs ul{position:relative;display:flex;gap:2px;list-style:none}
-.kln-tab{position:relative;z-index:1;display:grid;place-items:center;height:32px;padding-inline:14px;border-radius:999px;color:var(--muted);font-size:.75rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:color .2s}
+.kln-tab{position:relative;z-index:1;display:flex;align-items:center;gap:7px;justify-content:center;height:32px;padding-inline:14px;border-radius:999px;color:var(--muted);font-size:.75rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:color .2s}
+.kln-tab .n{font-family:var(--f-mono);font-size:.68rem;opacity:.7}
 .kln-tab:hover{color:var(--ink)}
+@media (max-width:759px){.kln-tab{padding-inline:11px}.kln-tab:not(.on) .t{display:none}}
 .kln-tab.on,.kln-tab.on:hover{color:#fff}
 .kln-tab.done::after{content:'';position:absolute;top:7px;right:7px;width:5px;height:5px;background:var(--heat-3)}
 .kln-marker{position:absolute;top:0;left:0;height:32px;width:0;border-radius:999px;background:var(--ink);transition:transform .45s cubic-bezier(.34,1.3,.5,1),width .45s cubic-bezier(.34,1.3,.5,1)}
 
 /* ---------- Questionnaire section ---------- */
-.q-wrap{padding-bottom:40px}
+.q-panel{display:flex;flex-direction:column;height:100%;min-height:0}
+#wrap{flex:1;min-height:0}
 .q-panel{position:relative;isolation:isolate;border:1px solid var(--line-box);border-radius:18px;background:var(--page);
-  padding:clamp(22px,4vw,44px) var(--inset-x) clamp(28px,4vw,48px);scroll-margin-top:calc(var(--nav-space) + 8px)}
-.q-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+  padding:clamp(14px,2.6dvh,28px) var(--inset-x) clamp(12px,2dvh,22px)}
+.q-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:clamp(8px,1.6dvh,16px)}
 .q-head .mono{color:var(--muted)}
-.q-head h2{margin-top:8px;font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(2.2rem,1.4rem + 3.4vw,4.6rem);letter-spacing:-.01em}
+.q-head h2{margin-top:4px;font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(1.5rem,1rem + 1.6vw,2.5rem);letter-spacing:-.01em}
+.q-panel:has(.q-form[data-mode=journal]) .q-head h2{display:none}
+.q-panel:has(.q-form[data-mode=journal]) .q-progress b{font-size:1.1rem}
 .q-progress{flex:none;text-align:right}
-.q-progress b{display:block;font-family:var(--f-dot);font-size:1.6rem;font-weight:600;color:var(--ink)}
-.q-bar{height:6px;margin-bottom:26px;border-radius:99px;background:var(--chrome);overflow:hidden}
+.q-progress b{display:block;font-family:var(--f-dot);font-size:1.4rem;font-weight:600;color:var(--ink)}
+.q-bar{flex:none;height:6px;margin-bottom:clamp(10px,2dvh,20px);border-radius:99px;background:var(--chrome);overflow:hidden}
 .q-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--heat-0),var(--heat-1),var(--heat-2),var(--heat-3),var(--heat-4));transition:width .5s var(--ease)}
 /* Two views share one form: "details" (form card + stack) and "journal" (the sections as spreads) */
 .q-panel{overflow-x:clip}
-.q-form{position:relative}
-.q-form[data-mode=details]{display:grid;gap:clamp(20px,3vw,40px);align-items:center}
+.q-form{position:relative;display:grid;height:100%;min-height:0}
+.q-form[data-mode=details]{grid-template-rows:minmax(0,1fr);gap:clamp(16px,3vw,40px)}
+.q-form[data-mode=journal]{grid-template-rows:minmax(0,1fr) auto}
 @media (min-width:1024px){.q-form[data-mode=details]{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}}
+@media (max-width:1023px){.q-form[data-mode=details] .st{display:none}}
 .q-form[data-mode=details] .jr,.q-form[data-mode=journal] .q-left,.q-form[data-mode=journal] .st{display:none}
 .q-form>*{transition:opacity .42s var(--ease),transform .55s var(--ease),filter .42s var(--ease)}
 .q-form.swap-out>*,.q-form.swap-in>*{opacity:0;transform:translateY(14px) scale(.985);filter:blur(6px)}
 .q-form.swap-in>*{transition:none}
-.q-left{display:flex;flex-direction:column;gap:10px;min-width:0}
-.q-card{padding:clamp(20px,2.6vw,32px);border:1px solid var(--line-box);border-radius:22px;background:var(--card);box-shadow:0 1px 0 rgb(0 0 0/.02),0 18px 40px -24px rgb(20 20 20/.28)}
-.q-card-head{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+.q-left{display:flex;flex-direction:column;justify-content:center;gap:10px;min-width:0;min-height:0}
+.q-card{padding:clamp(16px,2.6dvh,32px) clamp(18px,2.4vw,32px);border:1px solid var(--line-box);border-radius:22px;background:var(--card);box-shadow:0 1px 0 rgb(0 0 0/.02),0 18px 40px -24px rgb(20 20 20/.28)}
+.q-card-head{display:flex;flex-direction:column;gap:8px;margin-bottom:clamp(12px,2.2dvh,22px);padding-bottom:clamp(10px,1.8dvh,18px);border-bottom:1px solid var(--line)}
 .q-card-head .mono{color:var(--muted)}
-.q-card-head h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.92;font-size:clamp(2rem,1.4rem + 1.8vw,3rem)}
+.q-card-head h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.92;font-size:clamp(1.8rem,1.2rem + 1.6vw,2.7rem)}
 .q-card-head h3 em{font-family:var(--f-serif);font-style:italic;font-weight:400;font-stretch:normal;text-transform:none;letter-spacing:0}
 .q-card-head p.lede{color:var(--body);font-size:.95rem;line-height:1.5;max-width:42ch}
 .q-ok{display:inline-flex;align-items:center;gap:8px;margin-top:4px;color:var(--muted);font-size:.8rem}
 .q-ok i{width:8px;height:8px;background:var(--line-box);transition:background-color .3s}
 .q-ok.on i{background:#3fb27f;box-shadow:0 0 0 3px rgb(63 178 127/.18)}
-.q-group{margin-bottom:18px}
+.q-group{margin-bottom:clamp(10px,2dvh,18px)}
+@media (max-height:760px){.q-card-head p.lede{display:none}}
 .q-group label{display:flex;gap:8px;align-items:baseline;margin-bottom:8px;color:var(--ink);font-size:.95rem;font-weight:500;line-height:1.35;letter-spacing:-.01em}
 .q-group label a{color:var(--heat-1);font-size:.8rem;text-decoration:underline}
 .required{color:var(--heat-3)}
@@ -193,13 +207,14 @@ button{font:inherit;color:inherit;background:none;border:0}
 .q-input:hover{border-color:#c9c9c9}
 .q-input:focus{border-color:var(--heat-1);box-shadow:0 0 0 4px rgb(169 138 230/.18)}
 textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
-.q-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px}
-.q-form[data-mode=journal] .q-nav{max-width:760px;margin:6px auto 0}
+.q-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:clamp(8px,1.6dvh,14px)}
+.q-form[data-mode=journal] .q-nav{width:100%;max-width:760px;margin:0 auto}
+@media (max-height:720px){.lq-btn{height:48px!important}.mt-btn{height:38px!important}}
 .q-count{color:var(--muted)}
 
 /* ---------- The stack (beside "Your details") ---------- */
-.st{position:relative;min-width:0;container-type:inline-size}
-.st-vis{position:relative;width:100%;max-width:760px;aspect-ratio:1;margin-inline:auto;container-type:inline-size;user-select:none;-webkit-user-select:none}
+.st{position:relative;min-width:0;min-height:0;container-type:size;display:grid;place-items:center}
+.st-vis{position:relative;width:min(100cqw,100cqh,760px);aspect-ratio:1;container-type:inline-size;user-select:none;-webkit-user-select:none}
 .st-vis>*{position:absolute;inset:0;pointer-events:none}
 .st-vis svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .st-floor{inset:-8%;opacity:.55;-webkit-mask-image:radial-gradient(ellipse 52% 42% at 50% 64%,#000 25%,transparent 100%);mask-image:radial-gradient(ellipse 52% 42% at 50% 64%,#000 25%,transparent 100%)}
@@ -247,13 +262,12 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .st-hit:focus-visible{outline:2px solid var(--heat-2);outline-offset:4px}
 .st-list{display:none;list-style:none;gap:8px;margin-top:-6%;position:relative;font-size:13px}
 .st-list .st-card{opacity:1;cursor:pointer;background:var(--card)}
-@container (max-width:560px){.st-cards,.st-cons{display:none}.st-list{display:grid}.st-hint{top:88%}}
-@container (min-width:420px) and (max-width:560px){.st-list{grid-template-columns:1fr 1fr}}
+@container (max-width:340px){.st-cards,.st-cons{display:none}.st-list{display:grid}.st-hint{top:88%}}
 
 /* ---------- The journal (sections as open spreads) ---------- */
-.jr{position:relative;outline:none;--jw:800px;--jh:600px}
+.jr{position:relative;outline:none;--jw:800px;--jh:600px;display:grid;grid-template-rows:minmax(0,1fr);min-height:0}
 .jr:focus-visible .jr-stage{outline:2px solid var(--heat-1);outline-offset:6px;border-radius:24px}
-.jr-stage{position:relative;height:clamp(560px,78dvh,800px);touch-action:pan-y;cursor:grab}
+.jr-stage{position:relative;min-height:0;touch-action:pan-y;cursor:grab}
 .jr-stage[data-drag]{cursor:grabbing}
 .jr-floor{position:absolute;left:50%;top:50%;width:calc(var(--jw)*1.5);height:calc(var(--jh)*.5);pointer-events:none;
   transform:translate(-50%,calc(var(--jh)*.32));background:radial-gradient(closest-side,rgb(60 45 90/.22),rgb(60 45 90/.06) 60%,transparent);filter:blur(14px)}
@@ -284,6 +298,14 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-title{margin-top:calc(var(--jh)*.03);font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
   font-size:calc(var(--jw)*.05);color:var(--ink);overflow-wrap:anywhere}
 .jr-meta{margin-top:12px;color:var(--body);font-size:calc(var(--jw)*.0145);line-height:1.5}
+.jr-qlist{list-style:none;flex:1;min-height:0;overflow:hidden;margin-top:calc(var(--jh)*.028);padding-bottom:6px;-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
+.jr-qlist button{display:flex;gap:9px;width:100%;padding:3px 0;color:var(--muted);text-align:left;font-size:calc(var(--jw)*.0128);line-height:1.35;cursor:pointer;transition:color .2s}
+.jr-qlist button:hover{color:var(--ink)}
+.jr-qlist button .n{flex:none;padding-top:.12em;font-family:var(--f-mono);font-size:.8em}
+.jr-qlist button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jr-qlist button.has .n{color:#3fb27f}
+.jr-qlist button.on{color:var(--ink);font-weight:600}
+.jr-qlist button.on .n{color:#e07d78}
 .jr-toc{list-style:none;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);columns:2;column-gap:18px;font-size:calc(var(--jw)*.0118)}
 .jr-toc li{break-inside:avoid}
 .jr-toc button{display:flex;gap:8px;width:100%;padding:3px 0;color:var(--muted);text-align:left;cursor:pointer;transition:color .2s}
@@ -299,16 +321,25 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr.single .jr-mhead{display:block}
 .jr-mhead .jr-num{font-size:44px}
 .jr-mhead .jr-title{font-size:30px;margin-top:6px}
-.jr-qs{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#ddd transparent;
-  padding:calc(var(--jw)*.04) calc(var(--jw)*.038) 16px}
-.jr.single .jr-qs{padding:18px 22px}
-.jr-qs .q-group{margin-bottom:20px}
-.jr-qs .q-group label{font-size:.93rem}
-.jr-qs .q-group .qn{flex:none;color:#e07d78;font-family:var(--f-mono);font-size:.68rem;padding-top:.2em}
-.jr-qs .q-input{background:#fff}
-.jr-folio{display:flex;justify-content:space-between;padding:10px calc(var(--jw)*.038) 16px;color:#a3a3a3}
-.jr.single .jr-folio{padding:10px 22px 16px}
-@media (max-width:759px){.jr-stage{height:min(80dvh,720px)}}
+/* one question at a time, so nothing on the page ever has to scroll */
+.jr-qs{flex:1;min-height:0;display:flex;flex-direction:column;padding:calc(var(--jw)*.045) calc(var(--jw)*.04) 8px}
+.jr.single .jr-qs{padding:16px 22px 8px}
+.jr-qs .q-group{display:none;flex:1;min-height:0;flex-direction:column;margin:0}
+.jr-qs .q-group.on{display:flex;animation:jr-q-f .5s var(--ease) both}
+.jr-qs[data-dir=b] .q-group.on{animation-name:jr-q-b}
+@keyframes jr-q-f{from{opacity:0;transform:translateX(22px)}}
+@keyframes jr-q-b{from{opacity:0;transform:translateX(-22px)}}
+.jr-qs .q-group label{display:flex;flex-direction:column;gap:7px;margin-bottom:calc(var(--jw)*.022);color:var(--ink);font-size:clamp(15px,calc(var(--jw)*.0245),26px);font-weight:500;line-height:1.28;letter-spacing:-.018em}
+.jr-qs .q-group .qn{color:#e07d78;font-family:var(--f-mono);font-size:.62rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.jr-qs .q-input{background:#fff;font-size:clamp(14px,calc(var(--jw)*.0165),17px)}
+.jr-qs textarea.q-input{flex:1;min-height:0;resize:none}
+.jr-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px calc(var(--jw)*.04) calc(var(--jw)*.03);color:var(--muted)}
+.jr.single .jr-pager{padding:6px 22px 16px}
+.jr-dots{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
+.jr-dot{position:relative;flex:none;width:9px;height:9px;border-radius:99px;background:#e4e1ec;cursor:pointer;transition:width .3s var(--ease),background-color .3s}
+.jr-dot::after{content:'';position:absolute;inset:-9px -4px}
+.jr-dot.has{background:var(--heat-3)}
+.jr-dot.on{width:24px;background:var(--heat-1)}
 .q-loading{padding:40px 0;color:var(--muted);text-align:center}
 .q-done{display:none;padding:clamp(24px,4vw,48px);border:1px solid var(--line-box);border-radius:22px;background:var(--card)}
 .q-done h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(2.4rem,1.6rem + 3vw,4.4rem)}
@@ -353,8 +384,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   .kln-title-line{animation:none;clip-path:none}
   .kln-services{animation:none;opacity:1;transform:none}
   .q-form>*{transition:none}
+  .scene{transition:none}
+  .jr-qs .q-group.on{animation:none}
   .st-float,.st-pulse{animation:none}
-  html{scroll-behavior:auto}
 }
   </style>
 </head>
@@ -372,6 +404,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   </defs>
 </svg>
 
+<div class="app" id="app" data-scene="intro">
 <!-- Nav: info window at the left, the field's controls and the start pill at the right -->
 <header class="kln-header frame" id="header">
   <nav class="kln-nav" aria-label="Primary">
@@ -412,8 +445,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   </nav>
 </header>
 
+<main class="stage">
 <!-- Hero -->
-<div class="frame">
+<div class="frame scene" id="scene-intro">
   <section id="home" class="kln-panel grid-bg" aria-labelledby="kln-title">
     <canvas class="kln-field" id="field" aria-hidden="true"></canvas>
     <div class="kln-copy" id="copy">
@@ -436,15 +470,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   </section>
 </div>
 
-<!-- Bottom bar: the sections as tabs; hovering one spells it in the field -->
-<div class="kln-bar frame" id="bar">
-  <span class="kln-bar-label">MMGA · Discovery</span>
-  <nav class="kln-tabs" aria-label="Sections"><ul id="tabs"><span class="kln-marker" id="marker" aria-hidden="true"></span></ul></nav>
-  <span class="kln-bar-label" id="bar-count"></span>
-</div>
-
 <!-- The questionnaire -->
-<div class="frame q-wrap">
+<div class="frame scene" id="scene-form" inert>
   <section id="questionnaire" class="q-panel grid-bg" aria-labelledby="q-title">
     <div class="q-head">
       <div>
@@ -509,6 +536,15 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     </div>
   </section>
 </div>
+</main>
+
+<!-- Bottom bar: the sections as tabs; hovering one spells it in the field -->
+<div class="kln-bar frame" id="bar">
+  <button type="button" class="kln-bar-label" id="home-btn">&larr; Welcome</button>
+  <nav class="kln-tabs" aria-label="Sections"><ul id="tabs"><span class="kln-marker" id="marker" aria-hidden="true"></span></ul></nav>
+  <span class="kln-bar-label" id="bar-count"></span>
+</div>
+</div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
@@ -535,6 +571,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   const TITLE = [[{ text: 'Tell us about' }], [{ text: 'your ' }, { text: 'brand', pixel: true }, { text: '.' }]];
 
   const live = { playing: !reduce, intensity: INTENSITY.start, text: MARQUEE.text };
+  let scene = 'intro'; // the page is one screen: 'intro' (welcome) or 'form' (questions)
 
   // ===================== Heat field =====================
   const hash2 = (x, y, seed) => { const n = Math.sin(x * 127.1 + y * 311.7 + seed * 74.7) * 43758.5453; return n - Math.floor(n); };
@@ -713,7 +750,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     };
     const start = () => { if (running) return; running = true; last = performance.now(); raf = requestAnimationFrame(frame); };
     const stop = () => { running = false; cancelAnimationFrame(raf); };
-    const sync = () => { if (onScreen && !document.hidden && (!reduce || live.playing)) start(); else stop(); };
+    const sync = () => { if (scene === 'intro' && onScreen && !document.hidden && (!reduce || live.playing)) start(); else stop(); };
     const draw = () => { if (running) return; Object.assign(level, INTENSITY.levels[live.intensity]); render(); };
     const respell = () => { spell(); const period = maskW + MARQUEE.gap; shift = (period - ((cols + Math.floor(crawlPos)) % period)) % period; draw(); };
 
@@ -814,14 +851,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     document.documentElement.style.setProperty('--nav-space', header.offsetHeight + 'px');
   };
   bar.addEventListener('click', () => { infoChoice = !win.classList.contains('open'); layoutInfo(); });
-  const onScroll = () => {
-    const now = scrollY > 12;
-    if (now === scrolled) return;
-    scrolled = now; header.dataset.scrolled = String(now);
-    if (now) infoChoice = null;
-    layoutInfo();
-  };
-  addEventListener('scroll', onScroll, { passive: true });
   addEventListener('resize', layoutInfo);
   if (document.fonts) document.fonts.ready.then(layoutInfo);
 
@@ -842,7 +871,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
   // ===================== Questionnaire =====================
   // Step 0 is "Your details" (form + stack). Steps 1..n are the sections, shown as journal spreads.
-  let questions = [], sections = [], steps = [], cur = 0, mode = 'details', svcTimer = 0, svcHeld = false, swapT = 0;
+  let questions = [], sections = [], steps = [], cur = 0, mode = 'details', svcTimer = 0, svcHeld = false, swapT = 0, qpos = [];
   let stack = null, journal = null;
   const pad = (n) => String(n).padStart(2, '0');
   const stepWord = (t) => (String(t).split(/\s+/)[0] || '').replace(/[^A-Za-z0-9&]/g, '').slice(0, 9) || 'MMGA';
@@ -857,6 +886,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     const by = {};
     questions.forEach(q => { const s = q.section || 'General'; (by[s] = by[s] || []).push(q); });
     sections = Object.entries(by).map(([title, qs]) => ({ title, qs }));
+    qpos = sections.map(() => 0);
     steps = [{ title: 'Your Details', count: 2 }].concat(sections.map(s => ({ title: s.title, count: s.qs.length })));
     const total = steps.length;
     const band = HEAT.palette.concat(HEAT.palette.slice().reverse()).map(c => `<i style="--c:${c}"></i>`).join('');
@@ -868,7 +898,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         const input = q.type === 'textarea'
           ? `<textarea id="${id}" class="q-input" placeholder="Type your answer here..."></textarea>`
           : `<input type="text" id="${id}" class="q-input" placeholder="Type your answer here...">`;
-        return `<div class="q-group"><label for="${id}"><span class="qn">${pad(j + 1)}</span><span>${esc(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}</div>`;
+        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)}</span><span>${esc(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}</div>`;
       }).join('');
       return `<div class="jr-item" data-i="${k}" role="group" aria-roledescription="spread" aria-label="${esc(s.title)}, section ${k + 2} of ${total}">
         <div class="jr-page" data-side="l"><div class="jr-pg jr-left">
@@ -877,13 +907,14 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
           <p class="jr-num" aria-hidden="true">${nn}</p>
           <h3 class="jr-title">${esc(s.title)}</h3>
           <p class="jr-meta">${count} question${count === 1 ? '' : 's'}. Answer what you can, nothing here is required.</p>
+          <ol class="jr-qlist" aria-label="Questions in this section">${s.qs.map((q, j) => `<li><button type="button" data-qj="${j}"${j === 0 ? ' class="on"' : ''}><span class="n">${pad(j + 1)}</span><span>${esc(q.label)}</span></button></li>`).join('')}</ol>
           <ol class="jr-toc">${toc(k)}</ol>
           <p class="jr-for">Prepared for <em data-company>your brand</em></p>
         </div><div class="jr-gutter"></div><div class="jr-shade"></div></div>
         <div class="jr-page" data-side="r"><div class="jr-pg jr-right">
           <div class="jr-mhead"><p class="mono jr-kick">Section ${nn} of ${pad(total)}</p><h3 class="jr-title">${esc(s.title)}</h3></div>
-          <div class="jr-qs">${qs}</div>
-          <p class="jr-folio mono"><span>${esc(s.title)}</span><span>p. ${k * 2 + 3}</span></p>
+          <div class="jr-qs" data-dir="f">${qs}</div>
+          <div class="jr-pager"><span class="jr-dots" role="group" aria-label="Questions in this section">${s.qs.map((_, j) => `<button type="button" class="jr-dot${j === 0 ? ' on' : ''}" data-q="${j}" aria-label="Question ${j + 1}"></button>`).join('')}</span><span class="mono jr-pos">1 / ${count}</span></div>
         </div><div class="jr-gutter"></div><div class="jr-shade"></div></div>
       </div>`;
     }).join('');
@@ -936,7 +967,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     $('bar-count').textContent = `${total} sections`;
 
     // bottom bar: each tab spells its section in the field while hovered
-    $('tabs').insertAdjacentHTML('beforeend', steps.map((s, i) => `<li><a class="kln-tab" data-i="${i}" href="#questionnaire">${esc(s.title)}</a></li>`).join(''));
+    $('tabs').insertAdjacentHTML('beforeend', steps.map((s, i) => `<li><a class="kln-tab" data-i="${i}" href="#questionnaire" title="${esc(s.title)}"><span class="n">${pad(i + 1)}</span><span class="t">${esc(s.title)}</span></a></li>`).join(''));
     const tabs = Array.from(document.querySelectorAll('.kln-tab'));
     tabs.forEach((t, i) => {
       const on = () => { moveMarker(i); spellWord(stepWord(steps[i].title)); };
@@ -951,7 +982,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     if (window.MMGAStack) stack = MMGAStack.create($('stack'), { groups, onPick: (g) => jump(groups[g].step) });
 
     // the journal: sections as spreads
-    if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), { onIndex: (k) => { cur = k + 1; updateChrome(cur); } });
+    if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), { onIndex: (k) => { cur = k + 1; updateChrome(); } });
     $('jr-scene').addEventListener('click', (e) => {
       const b = e.target.closest('[data-step]');
       if (b && b.closest('.jr-item.on')) { e.preventDefault(); jump(Number(b.dataset.step)); }
@@ -962,9 +993,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   function moveMarker(i) {
     const tabs = document.querySelectorAll('.kln-tab'), t = tabs[i], m = $('marker');
     if (!t) return;
+    tabs.forEach((x, k) => x.classList.toggle('on', k === i));
     m.style.width = t.offsetWidth + 'px';
     m.style.transform = `translateX(${t.offsetLeft}px)`;
-    tabs.forEach((x, k) => x.classList.toggle('on', k === i));
   }
 
   // ----- your details: live into the stack's first card -----
@@ -990,7 +1021,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     const bad = Array.from($('details-card').querySelectorAll('input[required]')).find(el => !el.checkValidity());
     if (bad && report) {
       showToast('Please fill in your company name and email first.', true);
-      if (mode === 'details') bad.reportValidity();
+      if (mode === 'details' && scene === 'form') bad.reportValidity();
       else { show(0, true); setTimeout(() => bad.reportValidity(), 1000); }
     }
     return !bad;
@@ -1018,16 +1049,53 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     }, 340);
   }
 
-  function updateChrome(i) {
-    const n = steps.length;
-    document.querySelectorAll('.kln-tab').forEach((t, k) => t.classList.toggle('done', k < i));
+  // ----- one question at a time inside a section -----
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const itemEl = (k) => $('jr-scene').children[k];
+  function paintDots(k) {
+    const item = itemEl(k); if (!item) return;
+    const groups = item.querySelectorAll('.q-group');
+    item.querySelectorAll('.jr-dot').forEach((d, j) => {
+      const g = groups[j], el = g && g.querySelector('.q-input');
+      d.classList.toggle('on', j === qpos[k]);
+      d.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
+    });
+    item.querySelectorAll('.jr-qlist button').forEach((b, j) => {
+      const el = groups[j] && groups[j].querySelector('.q-input');
+      b.classList.toggle('on', j === qpos[k]);
+      b.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
+    });
+    item.querySelector('.jr-pos').textContent = `${qpos[k] + 1} / ${groups.length}`;
+  }
+  function setQ(k, j, dir, focus) {
+    const item = itemEl(k); if (!item) return;
+    const groups = item.querySelectorAll('.q-group');
+    j = Math.max(0, Math.min(groups.length - 1, j));
+    item.querySelector('.jr-qs').dataset.dir = dir < 0 ? 'b' : 'f';
+    groups.forEach((g, x) => g.classList.toggle('on', x === j));
+    qpos[k] = j;
+    paintDots(k);
+    if (focus && fine) { const el = groups[j].querySelector('.q-input'); if (el) el.focus({ preventScroll: true }); }
+  }
+  $('jr-scene').addEventListener('input', (e) => { const it = e.target.closest('.jr-item'); if (it) paintDots(Number(it.dataset.i)); });
+  $('jr-scene').addEventListener('click', (e) => {
+    const d = e.target.closest('.jr-dot, .jr-qlist button'), it = d && d.closest('.jr-item');
+    if (d && it && it.classList.contains('on')) { const k = Number(it.dataset.i), j = Number(d.dataset.q || d.dataset.qj); setQ(k, j, j < qpos[k] ? -1 : 1, true); updateChrome(); }
+  });
+
+  function updateChrome() {
+    const i = cur, n = steps.length, k = i - 1;
+    document.querySelectorAll('.kln-tab').forEach((t, x) => t.classList.toggle('done', x < i));
     document.querySelectorAll('.jr-toc [data-step]').forEach(b => b.classList.toggle('done', Number(b.dataset.step) < i));
     moveMarker(i);
+    const qLast = i > 0 && qpos[k] === sections[k].qs.length - 1;
     $('backWrap').style.visibility = i === 0 ? 'hidden' : 'visible';
-    $('nextTxt').innerHTML = i === n - 1 ? 'Submit answers' : (i === 0 ? 'Open the questions ' : 'Next ') + NEXT_ARROW;
-    $('count').textContent = `Step ${i + 1} of ${n}`;
+    $('nextTxt').innerHTML = i === n - 1 && qLast ? 'Submit answers' : (i === 0 ? 'Open the questions ' : 'Next ') + NEXT_ARROW;
+    $('count').textContent = i === 0 ? `Step 1 of ${n}` : `Section ${i + 1} of ${n} · Question ${qpos[k] + 1} of ${sections[k].qs.length}`;
     $('q-title').textContent = steps[i].title;
-    const pct = Math.round((i / n) * 100);
+    const total = questions.length + 2;
+    const done = i === 0 ? 0 : 2 + sections.slice(0, k).reduce((a, s) => a + s.qs.length, 0) + qpos[k];
+    const pct = Math.round((done / total) * 100);
     $('q-pct').textContent = pct + '%';
     $('q-fill').style.width = pct + '%';
   }
@@ -1036,13 +1104,36 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   function go(d) {
     const last = steps.length - 1;
     if (d > 0 && cur === 0 && !detailsValid(true)) return;
+    if (cur > 0) {                       // questions first, sections after
+      const k = cur - 1, m = sections[k].qs.length;
+      if (d > 0 && qpos[k] < m - 1) { setQ(k, qpos[k] + 1, 1, true); updateChrome(); return; }
+      if (d < 0 && qpos[k] > 0) { setQ(k, qpos[k] - 1, -1, true); updateChrome(); return; }
+    }
     if (d > 0 && cur === last) { submitForm(); return; }
-    show(Math.max(0, Math.min(last, cur + d)), true);
+    const to = Math.max(0, Math.min(last, cur + d));
+    if (to > 0) setQ(to - 1, d < 0 ? sections[to - 1].qs.length - 1 : 0, d);
+    show(to, true);
   }
 
-  function show(i, scroll) {
+  // ----- the page is one screen: welcome, or the questions -----
+  function setScene(next) {
+    if (scene === next) return;
+    scene = next;
+    $('app').dataset.scene = next;
+    $('scene-intro').inert = next !== 'intro';
+    $('scene-form').inert = next !== 'form';
+    scrolled = next === 'form';
+    header.dataset.scrolled = String(scrolled);
+    if (scrolled) infoChoice = null;
+    layoutInfo();
+    field && field.sync();
+    if (next === 'form') { moveMarker(cur); journal && journal.measure(); }
+  }
+
+  function show(i, reveal) {
     cur = i;
-    updateChrome(i);
+    updateChrome();
+    if (reveal) setScene('form');
     if (i === 0) {
       if (mode === 'journal' && journal) journal.exit(() => setMode('details'));
       else setMode('details');
@@ -1051,11 +1142,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     } else if (mode === 'journal') {
       journal.go(i - 1);
     } else {
-      setMode('journal', () => journal.enter(i - 1));
-    }
-    if (scroll) {
-      const top = $('questionnaire').getBoundingClientRect().top;
-      if (top < 0 || top > innerHeight * 0.4) $('questionnaire').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      setMode('journal', () => { journal.enter(i - 1); setTimeout(() => setQ(i - 1, qpos[i - 1], 1, true), reduce ? 0 : 1100); });
     }
   }
 
@@ -1079,7 +1166,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         $('q-pct').textContent = '100%'; $('q-fill').style.width = '100%';
         document.querySelectorAll('.kln-tab').forEach(t => t.classList.add('done'));
         MARQUEE.text = 'THANKS'; spellWord(null);
-        scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
       } else {
         showToast(data.error || 'Failed to submit form.', true);
         btn.disabled = false; $('nextTxt').textContent = 'Submit answers';
@@ -1102,6 +1188,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         $('wrap').style.display = '';
         buildNav();
         show(0, false);
+        if (location.hash === '#questionnaire') setScene('form');
       } else loading.textContent = 'No questionnaire has been configured yet.';
     } catch (e) {
       loading.textContent = 'Could not reach the server. Please refresh and try again.';
@@ -1115,6 +1202,13 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); go(1); }
   });
   addEventListener('resize', () => moveMarker(cur));
+  $('home-btn').addEventListener('click', () => setScene('intro'));
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href="#questionnaire"]');
+    if (!a) return;
+    e.preventDefault();
+    if (scene === 'intro' && !a.matches('.kln-svc,.kln-tab')) setScene('form');
+  });
 
   buildTitle();
   paintKeys();

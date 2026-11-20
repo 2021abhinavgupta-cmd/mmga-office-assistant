@@ -29,7 +29,7 @@
       return { single: true, w, h: Math.round(Math.min(sh * 0.94, w * 1.55)) };
     }
     const ar = 1.36;
-    const w = Math.round(Math.min(sw * 0.62, sh * 0.9 * ar, 1060));
+    const w = Math.round(Math.min(sw * 0.62, sh * 0.96 * ar, 1060));
     return { single: false, w, h: Math.round(w / ar) };
   }
 
