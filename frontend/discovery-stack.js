@@ -18,8 +18,8 @@
   const MID = { half: 151, radius: 36, top: BASE.top - SEAM_GAP - 28, depth: 28 };
   const CAP = { half: 101, radius: 28, top: MID.top - 14, depth: 14 };
 
-  const HEAT = ['#8593ea', '#a98ae6', '#e88bb3', '#f5a07a', '#f6d08a'];
-  const ACC = '#ec8470';
+  const HEAT = ['#d96f08', '#fe8e1c', '#ffa63d', '#ffd466', '#fff0b8'];
+  const ACC = '#fe8e1c';
 
   const round = (n) => Math.round(n * 100) / 100;
   const f2 = (n) => n.toFixed(2);
@@ -122,12 +122,12 @@
     const plane = (lift) => `translate(${x} ${y - lift}) matrix(${FM.top} 0 0) scale(1.42)`;
     return `<g><g transform="${plane(0)} translate(2.4 2.4)" opacity=".22" filter="url(#st-blur-sm)">${leaves('#5e5870')}</g>` +
       LOGO_SIDE.map((c, k) => `<g transform="${plane(k)}">${leaves(c)}</g>`).join('') +
-      `<g transform="${plane(LOGO_SIDE.length)}"><rect x="-27" y="-27" width="54" height="54" fill="url(#st-logo-top)" clip-path="url(#st-mark-clip)"/>${leaves('none', '#ffe1ee')}</g></g>`;
+      `<g transform="${plane(LOGO_SIDE.length)}"><rect x="-27" y="-27" width="54" height="54" fill="url(#st-logo-top)" clip-path="url(#st-mark-clip)"/>${leaves('none', '#fff0d0')}</g></g>`;
   }
   function plateNumber(slab, n, main) {
     const k = slab.half * 0.56, [x, y] = project(k, k, CX, slab.top);
     const plane = `matrix(${FM.top} 0 0) rotate(-45)`, label = String(n).padStart(2, '0');
-    const t = `text-anchor="middle" dominant-baseline="central" font-size="26" font-weight="700" letter-spacing="2.5" font-family="Martian Mono, ui-monospace, monospace"`;
+    const t = `text-anchor="middle" dominant-baseline="central" font-size="26" font-weight="700" letter-spacing="2.5" font-family="General Sans, sans-serif"`;
     return `<g transform="translate(${f2(x)} ${f2(y)})"><text ${t} transform="translate(0 .9) ${plane}" fill="#fff" opacity=".95">${label}</text>` +
       `<text ${t} transform="${plane}" fill="${main ? ACC : '#7d7a8c'}">${label}</text></g>`;
   }
@@ -222,11 +222,11 @@
   function beadsSvg(half, animate) {
     const id = 'st-clip-' + half;
     const defs = half === 'back' ? `
-      <linearGradient id="st-crystal-body" x1=".15" y1=".1" x2=".85" y2=".95"><stop offset="0" stop-color="#fdeaf3" stop-opacity=".92"/><stop offset=".5" stop-color="${HEAT[2]}" stop-opacity=".9"/><stop offset="1" stop-color="#c662a8" stop-opacity=".95"/></linearGradient>
-      <radialGradient id="st-crystal-refract" cx=".6" cy=".78" r=".45"><stop offset="0" stop-color="#fff4f8" stop-opacity=".85"/><stop offset="1" stop-color="#fff4f8" stop-opacity="0"/></radialGradient>
-      <linearGradient id="st-crystal-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#9c3f86" stop-opacity=".55"/></linearGradient>
+      <linearGradient id="st-crystal-body" x1=".15" y1=".1" x2=".85" y2=".95"><stop offset="0" stop-color="#fff3df" stop-opacity=".92"/><stop offset=".5" stop-color="${HEAT[2]}" stop-opacity=".9"/><stop offset="1" stop-color="#d96f08" stop-opacity=".95"/></linearGradient>
+      <radialGradient id="st-crystal-refract" cx=".6" cy=".78" r=".45"><stop offset="0" stop-color="#fffaf0" stop-opacity=".85"/><stop offset="1" stop-color="#fffaf0" stop-opacity="0"/></radialGradient>
+      <linearGradient id="st-crystal-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#a84f00" stop-opacity=".55"/></linearGradient>
       <radialGradient id="st-crystal-halo" cx=".5" cy=".5" r=".5"><stop offset=".5" stop-color="${HEAT[2]}" stop-opacity=".14"/><stop offset="1" stop-color="${HEAT[2]}" stop-opacity="0"/></radialGradient>
-      <filter id="st-crystal-shadow" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#7a3d72" flood-opacity=".25"/></filter>` : '';
+      <filter id="st-crystal-shadow" x="-80%" y="-80%" width="260%" height="260%"><feDropShadow dx="0" dy="2.5" stdDeviation="2.5" flood-color="#8a4a10" flood-opacity=".25"/></filter>` : '';
     const clip = half === 'back' ? `<rect x="-200" y="-200" width="1400" height="${CY + 200}"/>` : `<rect x="-200" y="${CY}" width="1400" height="700"/>`;
     const nodes = BEADS.map(([ring, angle, size]) => {
       const rx = RING_RX[ring], [x, y] = ringPoint(rx, angle), dur = ORBIT_S[ring], rev = ring === 1;

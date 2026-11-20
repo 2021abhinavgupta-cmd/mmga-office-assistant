@@ -6,18 +6,17 @@
   <title>Discovery Questionnaire | MMGA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75,800&family=Host+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-  <style>
+  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+    <style>
 /* Pixel-heat theme (ported from the "kiln" hero). Classes are prefixed kln- / q- */
 :root{
-  --page:#ffffff; --grid:#f1f1f1; --chrome:#f1f1f1; --chrome-hi:#e6e6e6; --card:#ffffff;
+  --page:#fffcef; --grid:#f1ecd9; --chrome:#f1f1f1; --chrome-hi:#e6e6e6; --card:#ffffff;
   --ink:#141414; --body:#5e5e5e; --muted:#767676; --line:#e8e8e8; --line-box:#dcdcdc;
-  --heat-0:#8593ea; --heat-1:#a98ae6; --heat-2:#e88bb3; --heat-3:#f5a07a; --heat-4:#f6d08a;
+  --heat-0:#d96f08; --heat-1:#fe8e1c; --heat-2:#ffa63d; --heat-3:#ffd466; --heat-4:#fff0b8;
   --cell:10px; --seam:1px;
-  --f-sans:'Host Grotesk',ui-sans-serif,system-ui,sans-serif;
-  --f-mono:'Martian Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
-  --f-display:'Archivo',var(--f-sans);
+  --f-sans:'Satoshi',ui-sans-serif,system-ui,sans-serif;
+  --f-mono:'General Sans',ui-sans-serif,system-ui,sans-serif;
+  --f-display:'General Sans',var(--f-sans);
   --f-serif:var(--f-sans);
   --f-pixel:var(--f-display);
   --f-dot:var(--f-mono);
@@ -103,9 +102,9 @@ button{font:inherit;color:inherit;background:none;border:0}
 .kln-field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .kln-copy{position:relative;z-index:1;width:100%}
 @media (min-width:1024px){.kln-copy{display:grid;grid-template-columns:minmax(0,1fr) var(--card-w);align-items:end;column-gap:var(--card-gap)}}
-.kln-title{--title-em:7.3;--lx:-9999px;--ly:0px;--lr:0px;position:relative;color:var(--ink);font-family:var(--f-display);
+.kln-title{--title-em:9.6;--lx:-9999px;--ly:0px;--lr:0px;position:relative;color:var(--ink);font-family:var(--f-display);
   font-size:clamp(1.9rem,min((100vw - 2*var(--frame-x) - 2*var(--inset-x) - var(--card-w) - var(--card-gap))/var(--title-em),17dvh),11rem);
-  font-stretch:75%;font-weight:800;line-height:.9;letter-spacing:-.01em;text-transform:uppercase}
+  font-weight:800;line-height:.9;letter-spacing:-.01em;text-transform:uppercase}
 .kln-title-line{position:relative;display:block;height:.9em;white-space:nowrap;clip-path:inset(-12% 100% -12% 0%);animation:kln-wipe .9s .25s var(--ease) forwards}
 .kln-title-line:nth-child(3){animation-delay:.39s}
 .kln-title-line:has(.px){height:.968em}
@@ -120,8 +119,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 .hc{display:inline-grid;align-items:baseline;justify-items:center}
 .hc>*{grid-area:1/1}
 .hc-size{visibility:hidden}
-.hc-face{font-family:var(--f-display);font-size:1em;font-stretch:75%;font-style:normal;font-weight:800;letter-spacing:0}
-.px{font-family:var(--f-pixel);font-size:1em;font-stretch:75%;font-weight:800;line-height:.84;letter-spacing:.02em}
+.hc-face{font-family:var(--f-display);font-size:1em;font-style:normal;font-weight:800;letter-spacing:0}
+.px{font-family:var(--f-pixel);font-size:1em;font-weight:800;line-height:.84;letter-spacing:.02em}
 .kln-start{margin-top:26px}
 .kln-sub{margin-top:18px;max-width:46ch;color:var(--body);font-size:clamp(1rem,.95rem + .3vw,1.2rem);line-height:1.45;letter-spacing:-.01em}
 
@@ -139,7 +138,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .kln-svc.on{background:#f5f5f4}
 .kln-svc-row{display:flex;align-items:center;gap:12px}
 .kln-svc-index{color:var(--muted);transition:color .3s}
-.kln-svc-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--f-display);font-size:1.35rem;font-stretch:75%;font-weight:800;line-height:1;text-transform:uppercase;transition:color .3s}
+.kln-svc-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-family:var(--f-display);font-size:1.35rem;font-weight:800;line-height:1;text-transform:uppercase;transition:color .3s}
 .kln-svc.on .kln-svc-name,.kln-svc.on .kln-svc-index{color:var(--ink)}
 .kln-svc-arrow{width:16px;height:16px;flex:none;opacity:0;translate:-6px 6px;transition:opacity .3s,translate .35s var(--ease)}
 .kln-svc.on .kln-svc-arrow{opacity:1;translate:0 0}
@@ -195,8 +194,8 @@ button.kln-bar-label:hover{color:var(--ink)}
 .q-card{padding:clamp(16px,2.6dvh,32px) clamp(18px,2.4vw,32px);border:1px solid var(--line-box);border-radius:22px;background:var(--card);box-shadow:0 1px 0 rgb(0 0 0/.02),0 18px 40px -24px rgb(20 20 20/.28)}
 .q-card-head{display:flex;flex-direction:column;gap:8px;margin-bottom:clamp(12px,2.2dvh,22px);padding-bottom:clamp(10px,1.8dvh,18px);border-bottom:1px solid var(--line)}
 .q-card-head .mono{color:var(--muted)}
-.q-card-head h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.92;font-size:clamp(1.8rem,1.2rem + 1.6vw,2.7rem)}
-.q-card-head h3 em{font-family:var(--f-display);font-style:normal;font-weight:800;font-stretch:75%;text-transform:uppercase;letter-spacing:0}
+.q-card-head h3{font-family:var(--f-display);font-weight:800;text-transform:uppercase;line-height:.92;font-size:clamp(1.8rem,1.2rem + 1.6vw,2.7rem)}
+.q-card-head h3 em{font-family:var(--f-display);font-style:normal;font-weight:800;text-transform:uppercase;letter-spacing:0}
 .q-card-head p.lede{color:var(--body);font-size:.95rem;line-height:1.5;max-width:42ch}
 .q-ok{display:inline-flex;align-items:center;gap:8px;margin-top:4px;color:var(--muted);font-size:.8rem}
 .q-ok i{width:8px;height:8px;background:var(--line-box);transition:background-color .3s}
@@ -209,7 +208,7 @@ button.kln-bar-label:hover{color:var(--ink)}
 .q-input{width:100%;padding:13px 15px;border:1px solid var(--line-box);border-radius:14px;background:#fff;color:var(--ink);font:inherit;font-size:.98rem;outline:none;transition:border-color .2s,box-shadow .2s}
 .q-input::placeholder{color:#a3a3a3}
 .q-input:hover{border-color:#c9c9c9}
-.q-input:focus{border-color:var(--heat-1);box-shadow:0 0 0 4px rgb(169 138 230/.18)}
+.q-input:focus{border-color:var(--heat-1);box-shadow:0 0 0 4px rgb(254 142 28/.2)}
 textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .q-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:clamp(8px,1.6dvh,14px)}
 .q-form[data-mode=journal] .q-nav{width:100%;max-width:760px;margin:0 auto}
@@ -245,9 +244,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .st-n{grid-column:1;grid-row:1;display:flex;align-items:center;height:1.64em;color:var(--ink);font-family:var(--f-mono);font-size:.78em}
 .st-hd{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.1em .6em;min-width:0}
 .st-cb.main .st-hd{grid-column:2/4}
-.st-tl{color:var(--ink);font-family:var(--f-display);font-stretch:75%;font-weight:800;font-size:1.22em;line-height:1.1;text-transform:uppercase;letter-spacing:.005em;max-width:100%;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.st-tl{color:var(--ink);font-family:var(--f-display);font-weight:800;font-size:1.22em;line-height:1.1;text-transform:uppercase;letter-spacing:.005em;max-width:100%;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .st-tag{flex:none;background:linear-gradient(90deg,var(--heat-1),var(--heat-2),var(--heat-3));-webkit-background-clip:text;background-clip:text;color:transparent;font-family:var(--f-mono);font-size:.62em;letter-spacing:.12em;text-transform:uppercase}
-.st-ic{grid-column:1;grid-row:2;display:flex;align-items:center;height:1.3em;margin-top:.35em;color:#e07d78}
+.st-ic{grid-column:1;grid-row:2;display:flex;align-items:center;height:1.3em;margin-top:.35em;color:#e87a0c}
 .st-ic svg{width:1.2em;height:1.2em}
 .st-bd{grid-column:2;grid-row:2;margin-top:.35em;min-width:0}
 .st-cb.main .st-bd{grid-column:2/4}
@@ -259,7 +258,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .st-live span.ph{color:#a3a3ad;background:repeating-linear-gradient(-45deg,#f6f5f8 0 6px,#efeef3 6px 12px)}
 .st-cb.main.ok .st-live span:not(.ph){background:rgb(63 178 127/.12);color:#1d6b49}
 .st-hint{inset:auto;top:85%;left:50%;translate:-50% 0;display:flex;align-items:center;gap:6px;margin:0;color:var(--muted);font-size:12.5px;white-space:nowrap}
-.st-hint svg{position:static;width:14px;height:14px;color:#e07d78}
+.st-hint svg{position:static;width:14px;height:14px;color:#e87a0c}
 .st-hint-t{display:none}
 @media (hover:none){.st-hint-m{display:none}.st-hint-t{display:inline}}
 .st-hit{pointer-events:auto;inset:auto;top:30%;left:22%;width:56%;height:44%;border-radius:3rem;cursor:default}
@@ -303,7 +302,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-qof{margin-top:6px;color:var(--muted)}
 .jr-num{margin-top:calc(var(--jh)*.012);font-family:var(--f-dot);font-weight:600;font-size:calc(var(--jw)*.19);line-height:.82;letter-spacing:-.02em;
   background:linear-gradient(120deg,var(--heat-0),var(--heat-1) 30%,var(--heat-2) 60%,var(--heat-3));-webkit-background-clip:text;background-clip:text;color:transparent}
-.jr-title{margin-top:calc(var(--jh)*.02);font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
+.jr-title{margin-top:calc(var(--jh)*.02);font-family:var(--f-display);font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
   font-size:calc(var(--jw)*.04);color:var(--ink);overflow-wrap:normal;word-break:normal;hyphens:none}
 .jr-meta{margin-top:10px;color:var(--body);font-size:max(12.5px,calc(var(--jw)*.0145));line-height:1.45}
 .jr-qlist{list-style:none;flex:1;min-height:0;overflow:hidden;margin-top:calc(var(--jh)*.028);padding-bottom:6px;-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
@@ -313,7 +312,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-qlist button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .jr-qlist button.has .n{color:#3fb27f}
 .jr-qlist button.on{color:var(--ink);font-weight:600}
-.jr-qlist button.on .n{color:#e07d78}
+.jr-qlist button.on .n{color:#e87a0c}
 .jr-toc{list-style:none;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);columns:2;column-gap:18px;font-size:max(12px,calc(var(--jw)*.0125))}
 .jr-toc li{break-inside:avoid}
 .jr-toc button{display:flex;gap:8px;width:100%;padding:3px 0;color:var(--muted);text-align:left;cursor:pointer;transition:color .2s}
@@ -321,7 +320,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-toc button .n{font-family:var(--f-mono);font-size:.82em;flex:none;padding-top:.15em}
 .jr-toc button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .jr-toc button.on{color:var(--ink);font-weight:600}
-.jr-toc button.done .n{color:#e07d78}
+.jr-toc button.done .n{color:#e87a0c}
 .jr-for{margin-top:auto;padding-top:12px;color:var(--muted);font-size:max(12.5px,calc(var(--jw)*.0135))}
 .jr-for em{color:var(--ink);font-family:var(--f-sans);font-size:1.1em;font-style:normal;font-weight:600}
 /* right page: the questions */
@@ -343,7 +342,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 @keyframes jr-q-f{from{opacity:0;transform:translateX(22px)}}
 @keyframes jr-q-b{from{opacity:0;transform:translateX(-22px)}}
 .jr-qs .q-group label{display:flex;flex-direction:column;gap:7px;margin-bottom:calc(var(--jw)*.022);color:var(--ink);font-size:clamp(15px,calc(var(--jw)*.0245),26px);font-weight:500;line-height:1.28;letter-spacing:-.018em}
-.jr-qs .q-group .qn{color:#e07d78;font-family:var(--f-mono);font-size:.62rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
+.jr-qs .q-group .qn{color:#e87a0c;font-family:var(--f-mono);font-size:.62rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
 .jr-qs .q-input{background:#fff;font-size:clamp(14px,calc(var(--jw)*.0165),18px)}
 .jr.single .jr-qs .q-input{font-size:16px}
 .jr.single .jr-qs .q-group label{font-size:17px}
@@ -358,7 +357,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-dot.on{width:24px;background:var(--heat-1)}
 .q-loading{padding:40px 0;color:var(--muted);text-align:center}
 .q-done{display:none;padding:clamp(24px,4vw,48px);border:1px solid var(--line-box);border-radius:22px;background:var(--card)}
-.q-done h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(2.4rem,1.6rem + 3vw,4.4rem)}
+.q-done h3{font-family:var(--f-display);font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(2.4rem,1.6rem + 3vw,4.4rem)}
 .q-done p{margin-top:14px;max-width:52ch;color:var(--body);font-size:1.05rem;line-height:1.5}
 
 /* ---------- Liquid glass button (Next / Submit) ---------- */
@@ -415,7 +414,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   .jr-fl{display:none}
   .st-float,.st-pulse{animation:none}
 }
-  .st-card,.st-list .st-card,.st-cb{cursor:default!important}
+  .mm-logo{position:absolute;left:18px;top:18px;z-index:5;width:46px;height:46px;border-radius:12px;background:#fff;box-shadow:0 1px 0 rgb(0 0 0/.04),0 8px 20px -10px rgb(20 20 20/.35);object-fit:contain;padding:4px}
+.q-head .mm-logo{position:static;width:30px;height:30px;border-radius:8px;padding:2px;box-shadow:none;flex:none}
+.st-card,.st-list .st-card,.st-cb{cursor:default!important}
 .st-ic{display:none!important}
 </style>
 </head>
@@ -436,7 +437,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 <div class="app" id="app" data-scene="intro">
 <main class="stage">
 <!-- Hero -->
-<div class="frame scene" id="scene-intro">
+<div class="frame scene" id="scene-intro"><img class="mm-logo" src="mmga-logo.png" alt="MMGA" />
   <section id="home" class="kln-panel grid-bg" aria-labelledby="kln-title">
     <canvas class="kln-field" id="field" aria-hidden="true"></canvas>
     <div class="kln-copy" id="copy">
@@ -452,7 +453,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 <!-- The questionnaire -->
 <div class="frame scene" id="scene-form" inert>
   <section id="questionnaire" class="q-panel grid-bg" aria-labelledby="q-title">
-    <div class="q-head">
+    <div class="q-head"><img class="mm-logo" src="mmga-logo.png" alt="MMGA" />
       <p class="mono">Discovery questionnaire</p>
       <div class="q-bar"><i id="q-fill"></i></div>
       <div class="q-progress"><b id="q-pct">0%</b></div>
@@ -537,7 +538,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
   // ===================== Config =====================
   const MARQUEE = { text: 'MMGA', speed: 8, gap: 18, height: 0.62, across: 2.4, heat: 0.84, outline: 0.16 };
-  const HEAT = { palette: ['#8593ea', '#a98ae6', '#e88bb3', '#f5a07a', '#f6d08a'], thresholds: [0.3, 0.44, 0.6, 0.76, 0.9] };
+  const HEAT = { palette: ['#d96f08', '#fe8e1c', '#ffa63d', '#ffd466', '#fff0b8'], thresholds: [0.3, 0.44, 0.6, 0.76, 0.9] };
   const INTENSITY = { levels: [{ heat: -0.08, speed: 0.6, touch: 0.7 }, { heat: 0, speed: 1, touch: 1 }, { heat: 0.09, speed: 1.7, touch: 1.45 }], start: 1, ease: 0.6 };
   const FIELD = { cell: 10, gap: 1, fps: 30, speed: 1, blob: 300, warmth: 0.42, contrast: 0.9, cloudCap: 0.72, body: 0.1, grain: 0.05, flicker: 1.2, reveal: 1.4 };
   const EDGE = { gapAboveCopy: 32, drip: 160, dripPhone: 100, dripWidth: 4, dripSpeed: 1 };
@@ -584,7 +585,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
       const text = live.text;
       if (!stencilCtx || bandRows < 5) { maskW = 0; return; }
       const size = Math.round(bandRows / 0.72);
-      const font = `600 ${size}px "Host Grotesk", ui-sans-serif, system-ui, sans-serif`;
+      const font = `600 ${size}px "Satoshi", ui-sans-serif, system-ui, sans-serif`;
       stencilCtx.font = font;
       maskW = Math.ceil(stencilCtx.measureText(text).width) + 2;
       stencil.width = maskW; stencil.height = bandRows;
