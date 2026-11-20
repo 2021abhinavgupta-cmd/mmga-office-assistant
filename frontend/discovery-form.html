@@ -1128,7 +1128,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   $('nextBtn').addEventListener('click', () => go(1));
   $('discovery-form').addEventListener('submit', (e) => { e.preventDefault(); go(1); });
   $('discovery-form').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); go(1); }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) { e.preventDefault(); go(1); }
   });
   addEventListener('resize', () => moveMarker(cur));
   $('home-btn').addEventListener('click', () => setScene('intro'));
