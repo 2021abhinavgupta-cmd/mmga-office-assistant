@@ -252,16 +252,34 @@
         };
         const shell = (z) => { const c = rp.cloneNode(false); c.removeAttribute('data-side'); c.classList.add('jr-fl', 'jr-fl-shell'); c.style.transform = base + ' translateZ(' + z + 'px)'; return c; };
         item.classList.add('flipping');
+        const lp = single ? null : pages[target][0], lbase = lp ? (lp.style.transform || '') : '';
+        const leftClone = () => {
+          const c = lp.cloneNode(true);
+          c.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+          c.classList.add('jr-fl'); c.setAttribute('aria-hidden', 'true'); c.inert = true;
+          return c;
+        };
+        let leftOld = null, flapPg = null;
+        if (lp) {
+          const lc = leftClone();
+          if (dir > 0) { leftOld = lc; leftOld.style.transform = lbase + ' translateZ(0.5px)'; item.appendChild(leftOld); }
+          else flapPg = lc; // the old left page is what unfolds back
+        }
         const old = fresh(); old.style.transform = base + ' translateZ(1px)';
         let under = null;
         if (dir < 0) { under = old; item.appendChild(under); }
         mid();
+        if (lp && dir > 0) flapPg = leftClone(); // the new left page lands on the spine
         const cover = dir < 0 ? fresh() : old;
         cover.style.transform = base + ' translateZ(2px)';
         const shade = shell(3), flapW = shell(18), flapIn = document.createElement('div'), fsh = document.createElement('div');
         flapIn.className = 'jr-fl-back';
         flapIn.style.cssText = 'position:absolute;left:0;top:0;width:' + W + 'px;height:' + H + 'px;transform-origin:0 0';
         fsh.style.cssText = 'position:absolute;top:0;height:100%;left:' + (-W) + 'px;width:' + 2 * W + 'px;pointer-events:none';
+        if (flapPg) {
+          flapIn.style.overflow = 'hidden'; flapIn.style.background = '#f2ecdf';
+          Array.from(flapPg.children).forEach((c) => { if (!c.classList.contains('jr-shade')) { c.style.removeProperty('transform'); flapIn.appendChild(c); } });
+        }
         flapW.appendChild(flapIn); flapW.appendChild(fsh);
         item.appendChild(cover); item.appendChild(shade); item.appendChild(flapW);
         const t0 = performance.now(), dur = 720, from = dir > 0 ? W : -W, to = dir > 0 ? -W : W;
@@ -270,7 +288,7 @@
         const finish = () => {
           if (ended) return;
           ended = true;
-          [under, cover, shade, flapW].forEach((n) => n && n.remove());
+          [under, leftOld, cover, shade, flapW].forEach((n) => n && n.remove());
           clearTimeout(guard); item.classList.remove('flipping'); flipping = false;
           if (done) done();
         };

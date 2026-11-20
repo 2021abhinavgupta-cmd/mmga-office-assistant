@@ -295,10 +295,12 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-band{display:flex;gap:2px;height:8px;margin-bottom:calc(var(--jh)*.04)}
 .jr-band i{flex:1;background:var(--c)}
 .jr-kick{color:var(--muted)}
-.jr-num{margin-top:calc(var(--jh)*.02);font-family:var(--f-dot);font-weight:600;font-size:calc(var(--jw)*.095);line-height:.82;letter-spacing:-.02em;
+.jr-qlab{margin-top:calc(var(--jh)*.05);color:var(--muted)}
+.jr-qof{margin-top:6px;color:var(--muted)}
+.jr-num{margin-top:calc(var(--jh)*.012);font-family:var(--f-dot);font-weight:600;font-size:calc(var(--jw)*.19);line-height:.82;letter-spacing:-.02em;
   background:linear-gradient(120deg,var(--heat-0),var(--heat-1) 30%,var(--heat-2) 60%,var(--heat-3));-webkit-background-clip:text;background-clip:text;color:transparent}
-.jr-title{margin-top:calc(var(--jh)*.03);font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
-  font-size:calc(var(--jw)*.046);color:var(--ink);overflow-wrap:anywhere}
+.jr-title{margin-top:calc(var(--jh)*.02);font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
+  font-size:calc(var(--jw)*.052);color:var(--ink);overflow-wrap:anywhere}
 .jr-meta{margin-top:10px;color:var(--body);font-size:max(12.5px,calc(var(--jw)*.0145));line-height:1.45}
 .jr-qlist{list-style:none;flex:1;min-height:0;overflow:hidden;margin-top:calc(var(--jh)*.028);padding-bottom:6px;-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
 .jr-qlist button{display:flex;gap:9px;width:100%;padding:3px 0;color:var(--muted);text-align:left;font-size:max(12.5px,calc(var(--jw)*.0135));line-height:1.35;cursor:pointer;transition:color .2s}
@@ -316,7 +318,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-toc button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .jr-toc button.on{color:var(--ink);font-weight:600}
 .jr-toc button.done .n{color:#e07d78}
-.jr-for{margin-top:12px;color:var(--muted);font-size:max(12.5px,calc(var(--jw)*.0135))}
+.jr-for{margin-top:auto;padding-top:12px;color:var(--muted);font-size:max(12.5px,calc(var(--jw)*.0135))}
 .jr-for em{color:var(--ink);font-family:var(--f-serif);font-size:1.5em;font-style:italic}
 /* right page: the questions */
 .jr-mhead{display:none;padding:22px 22px 0}
@@ -879,7 +881,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     steps = [{ title: 'Your Details', count: 2 }].concat(sections.map(s => ({ title: s.title, count: s.qs.length })));
     const total = steps.length;
     const band = HEAT.palette.concat(HEAT.palette.slice().reverse()).map(c => `<i style="--c:${c}"></i>`).join('');
-    const toc = (k) => steps.map((s, i) => `<li><button type="button" data-step="${i}"${i === k + 1 ? ' class="on" aria-current="step"' : ''}><span class="n">${pad(i + 1)}</span><span>${esc(s.title)}</span></button></li>`).join('');
     $('jr-scene').innerHTML = sections.map((s, k) => {
       const nn = pad(k + 2), count = s.qs.length;
       const qs = s.qs.map((q, j) => {
@@ -893,11 +894,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         <div class="jr-page" data-side="l"><div class="jr-pg jr-left">
           <div class="jr-band" aria-hidden="true">${band}</div>
           <p class="mono jr-kick">Section ${nn} of ${pad(total)}</p>
-          <p class="jr-num" aria-hidden="true">${nn}</p>
           <h3 class="jr-title">${esc(s.title)}</h3>
-          <p class="jr-meta">${count} question${count === 1 ? '' : 's'}. Answer what you can, nothing here is required.</p>
-          <ol class="jr-qlist" aria-label="Questions in this section">${s.qs.map((q, j) => `<li><button type="button" data-qj="${j}"${j === 0 ? ' class="on"' : ''}><span class="n">${pad(j + 1)}</span><span>${esc(q.label)}</span></button></li>`).join('')}</ol>
-          <ol class="jr-toc">${toc(k)}</ol>
+          <p class="mono jr-qlab">Question</p>
+          <p class="jr-num jr-qnum" aria-hidden="true">01</p>
+          <p class="mono jr-qof">of ${pad(count)}</p>
+          <p class="jr-meta">Answer what you can, nothing here is required.</p>
           <p class="jr-for">Prepared for <em data-company>your brand</em></p>
         </div><div class="jr-gutter"></div><div class="jr-shade"></div></div>
         <div class="jr-page" data-side="r"><div class="jr-pg jr-right">
@@ -1054,6 +1055,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
       b.classList.toggle('on', j === qpos[k]);
       b.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
     });
+    item.querySelectorAll('.jr-page:not(.jr-fl) .jr-qnum').forEach(n => { n.textContent = pad(qpos[k] + 1); });
     item.querySelector('.jr-page:not(.jr-fl) .jr-pos').textContent = `${qpos[k] + 1} / ${groups.length}`;
   }
   function setQ(k, j, dir, focus) {
