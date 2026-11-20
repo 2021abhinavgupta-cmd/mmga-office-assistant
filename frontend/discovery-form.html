@@ -889,7 +889,17 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     if (window.MMGAStack) stack = MMGAStack.create($('stack'), { groups, onPick: (g) => jump(groups[g].step) });
 
     // the journal: sections as spreads
-    if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), { onIndex: (k) => { cur = k + 1; updateChrome(); } });
+    if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), {
+      onIndex: (k) => { cur = k + 1; updateChrome(); },
+      // a drag on the open spread turns the page; null at the end of a section so the drag slides on to the next one
+      turnStep: (dir) => {
+        if (mode !== 'journal' || scene !== 'form' || cur < 1 || reduce) return null;
+        const k = cur - 1, item = itemEl(k); if (!item) return null;
+        const len = item.querySelectorAll('.jr-page:not(.jr-fl) .q-group').length, j = qpos[k], nj = j + dir;
+        if (nj < 0 || nj >= len) return null;
+        return { mid: () => setQ(k, nj, dir, false), revert: () => { setQ(k, j, -dir, false); updateChrome(); }, done: () => updateChrome() };
+      }
+    });
     $('jr-scene').addEventListener('click', (e) => {
       const b = e.target.closest('[data-step]');
       if (b && b.closest('.jr-item.on')) { e.preventDefault(); jump(Number(b.dataset.step)); }

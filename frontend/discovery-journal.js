@@ -173,28 +173,40 @@
     if ('ResizeObserver' in window) new ResizeObserver(measure).observe(stage);
 
     // ---- drag / swipe ----
-    const NO_DRAG = 'input,textarea,select,button,a,label,.jr-qs,.jr-toc';
+    const NO_DRAG = 'input,textarea,select,button,a,label,.jr-toc,.jr-dots,.jr-qlist';
     stage.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || n < 1) return;
       const hitItem = e.target.closest('.jr-item');
       if (hitItem && hitItem.classList.contains('on') && e.target.closest(NO_DRAG)) return;
-      drag = { id: e.pointerId, x: e.clientX, from: pos, lastX: e.clientX, lastT: e.timeStamp, v: 0, moved: false };
+      drag = { id: e.pointerId, x: e.clientX, from: pos, lastX: e.clientX, lastT: e.timeStamp, v: 0, moved: false, peel: null, mode: '', onOpen: !!(hitItem && hitItem.classList.contains('on')) };
     });
     stage.addEventListener('pointermove', (e) => {
       const d = drag;
       if (!d || d.id !== e.pointerId || !w) return;
       const dx = e.clientX - d.x;
-      if (!d.moved && Math.abs(dx) > 6) {
+      if (!d.moved && Math.abs(dx) > 8) {
         d.moved = true; tween = null; after = null;
+        // on the open spread a sideways drag turns the page; at the end of a section it slides on to the next one
+        const dir = dx < 0 ? 1 : -1, st = d.onOpen && opts.turnStep ? opts.turnStep(dir) : null;
+        const c = st ? startFlip(dir, st.mid, st.done) : null;
+        if (c) { d.mode = 'peel'; d.peel = c; d.dir = dir; d.st = st; } else d.mode = 'slide';
         stage.setAttribute('data-drag', '');
         try { stage.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
       }
       if (!d.moved) return;
-      const span = w * (single ? 0.8 : 0.42);
       const dt = Math.max(1, e.timeStamp - d.lastT);
+      if (d.mode === 'peel') {
+        const span = d.peel.W * 1.1;
+        d.v = d.v * 0.6 + ((e.clientX - d.lastX) * -d.dir / span / (dt / 1000)) * 0.4;
+        d.lastX = e.clientX; d.lastT = e.timeStamp;
+        d.t = clamp((e.clientX - d.x) * -d.dir / span, 0, 1);
+        d.peel.set(d.t);
+        return;
+      }
+      const span = w * (single ? 0.8 : 0.42);
       d.v = d.v * 0.6 + (-(e.clientX - d.lastX) / span / (dt / 1000)) * 0.4;
       d.lastX = e.clientX; d.lastT = e.timeStamp;
-      pos = clamp(d.from - dx / span, -0.3, n - 0.7);
+      pos = clamp(d.from - (e.clientX - d.x) / span, -0.3, n - 0.7);
       kick();
     });
     const up = (e) => {
@@ -202,6 +214,17 @@
       if (!d || d.id !== e.pointerId) return;
       drag = null;
       stage.removeAttribute('data-drag');
+      if (d.mode === 'peel') {
+        const c = d.peel, go1 = (d.t || 0) > 0.3 || d.v > 1.1, t0 = performance.now(), from = d.t || 0, goal = go1 ? 1 : 0, dur = 360 * Math.abs(goal - from) + 80;
+        const step = (now) => {
+          if (!c.alive()) return;
+          const k = clamp((now - t0) / dur, 0, 1), t = from + (goal - from) * (1 - Math.pow(1 - k, 3));
+          c.set(t);
+          if (k < 1) requestAnimationFrame(step); else if (go1) c.complete(); else c.cancel(d.st.revert);
+        };
+        requestAnimationFrame(step);
+        return;
+      }
       if (d.moved) { go(settle(pos, d.v, n), easeOut); return; }
       const hit = e.target.closest('.jr-item');
       if (hit && !hit.classList.contains('on')) go(Number(hit.dataset.i));
@@ -231,14 +254,9 @@
 
     setCurrent(0);
 
-    return {
-      go,
-      index: () => target,
-      measure,
-      /** Turn the open spread's right page like a sheet of paper. dir 1 = forward. `mid` swaps the content, `done` runs at the end. */
-      flip(dir, mid, done) {
+    function startFlip(dir, mid, done) {
         const item = items[target], rp = pages[target] && pages[target][1];
-        if (!item || !rp || !w || tween || drag || flipping || reduce) { mid(); if (done) done(); return; }
+        if (!item || !rp || !w || tween || flipping || reduce) return null;
         flipping = true;
         const W = rp.offsetWidth, H = rp.offsetHeight, base = rp.style.transform || '';
         const fresh = () => {
@@ -282,26 +300,45 @@
         }
         flapW.appendChild(flapIn); flapW.appendChild(fsh);
         item.appendChild(cover); item.appendChild(shade); item.appendChild(flapW);
-        const t0 = performance.now(), dur = 720, from = dir > 0 ? W : -W, to = dir > 0 ? -W : W;
-        const e2 = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+        const from = dir > 0 ? W : -W, to = dir > 0 ? -W : W;
         let ended = false;
-        const finish = () => {
-          if (ended) return;
+        const cleanup = () => {
+          if (ended) return false;
           ended = true;
           [under, leftOld, cover, shade, flapW].forEach((n) => n && n.remove());
-          clearTimeout(guard); item.classList.remove('flipping'); flipping = false;
-          if (done) done();
+          item.classList.remove('flipping'); flipping = false;
+          return true;
         };
-        const step = (now) => {
+        const set = (t) => {
           if (ended) return;
-          const t = clamp((now - t0) / dur, 0, 1), x = from + (to - from) * e2(t), y = t >= 1 ? H : H * (1 - 0.3 * Math.sin(Math.PI * t));
+          t = clamp(t, 0, 1);
+          const x = from + (to - from) * t, y = t >= 1 ? H : H * (1 - 0.3 * Math.sin(Math.PI * t));
           const f = computeFold(x, y, W, H);
           cover.style.clipPath = f.cover; flapW.style.clipPath = f.flap; flapIn.style.transform = f.mat;
           shade.style.backgroundImage = f.under; fsh.style.backgroundImage = f.fshade;
-          if (t < 1) requestAnimationFrame(step); else finish();
+        };
+        set(0);
+        return { W, set, complete() { if (cleanup() && done) done(); }, cancel(revert) { if (cleanup() && revert) revert(); }, alive: () => !ended };
+    }
+
+    return {
+      go,
+      index: () => target,
+      measure,
+      /** Turn the open spread's right page like a sheet of paper. dir 1 = forward. `mid` swaps the content, `done` runs at the end. */
+      flip(dir, mid, done) {
+        const c = startFlip(dir, mid, done);
+        if (!c) { mid(); if (done) done(); return; }
+        const t0 = performance.now(), dur = 720;
+        const e2 = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+        const step = (now) => {
+          if (!c.alive()) return;
+          const t = clamp((now - t0) / dur, 0, 1);
+          c.set(e2(t));
+          if (t < 1) requestAnimationFrame(step); else c.complete();
         };
         step(t0);
-        const guard = setTimeout(finish, dur + 500); // frames are throttled in a background tab
+        setTimeout(() => c.complete(), dur + 500); // frames are throttled in a background tab
       },
       /** Riffle in from the right-hand stack and open on spread i. */
       enter(i) {
