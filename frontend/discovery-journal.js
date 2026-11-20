@@ -226,8 +226,6 @@
         return;
       }
       if (d.moved) { go(settle(pos, d.v, n), easeOut); return; }
-      const hit = e.target.closest('.jr-item');
-      if (hit && !hit.classList.contains('on')) go(Number(hit.dataset.i));
     };
     stage.addEventListener('pointerup', up);
     stage.addEventListener('pointercancel', up);
