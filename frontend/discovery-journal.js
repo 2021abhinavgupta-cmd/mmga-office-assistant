@@ -309,9 +309,14 @@
           item.classList.remove('flipping'); flipping = false;
           return true;
         };
+        // the turning leaf must follow the book's V: right-page plane at the start, left-page plane once it has crossed the spine
+        const rot = (el) => { const m = el && /rotateY\((-?[\d.]+)deg\)/.exec(el.style.transform || ''); return m ? parseFloat(m[1]) : 0; };
+        const angR = rot(rp), angL = lp ? rot(lp) : angR;
         const set = (t) => {
           if (ended) return;
           t = clamp(t, 0, 1);
+          const left = dir > 0 ? t : 1 - t;
+          flapW.style.transform = 'rotateY(' + (angR + (angL - angR) * left).toFixed(3) + 'deg) translateZ(18px)';
           const x = from + (to - from) * t, y = t >= 1 ? H : H * (1 - 0.3 * Math.sin(Math.PI * t));
           const f = computeFold(x, y, W, H);
           cover.style.clipPath = f.cover; flapW.style.clipPath = f.flap; flapIn.style.transform = f.mat;
