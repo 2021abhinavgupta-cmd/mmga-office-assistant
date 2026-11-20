@@ -178,12 +178,14 @@
       if (e.button !== 0 || n < 1) return;
       const hitItem = e.target.closest('.jr-item');
       if (hitItem && hitItem.classList.contains('on') && e.target.closest(NO_DRAG)) return;
-      drag = { id: e.pointerId, x: e.clientX, from: pos, lastX: e.clientX, lastT: e.timeStamp, v: 0, moved: false, peel: null, mode: '', onOpen: !!(hitItem && hitItem.classList.contains('on')) };
+      drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: pos, lastX: e.clientX, lastT: e.timeStamp, v: 0, moved: false, peel: null, mode: '', onOpen: !!(hitItem && hitItem.classList.contains('on')) };
     });
     stage.addEventListener('pointermove', (e) => {
       const d = drag;
       if (!d || d.id !== e.pointerId || !w) return;
-      const dx = e.clientX - d.x;
+      const dx = e.clientX - d.x, dy = e.clientY - d.y;
+      // a mostly-vertical gesture is the page scrolling, never a swipe to the next section
+      if (!d.moved && Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx) * 0.6) { drag = null; return; }
       if (!d.moved && Math.abs(dx) > 8) {
         d.moved = true; tween = null; after = null;
         // on the open spread a sideways drag turns the page; at the end of a section it slides on to the next one
