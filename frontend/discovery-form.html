@@ -32,7 +32,7 @@ h1,h2,h3,.jr-title,.q-group label,.st-tl,.kln-svc-line,.kln-info{text-wrap:balan
 p,.jr-meta,.lede,.kln-sub,.st-it,.q-done p{text-wrap:pretty}
 html,body{height:100%;overflow:hidden}
 body{background:var(--page);color:var(--ink);font-family:var(--f-sans);-webkit-font-smoothing:antialiased}
-.app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
+.app{display:grid;grid-template-rows:minmax(0,1fr) auto;height:100dvh;padding-top:8px}
 .stage{position:relative;min-height:0}
 .scene{position:absolute;inset:0;padding-bottom:4px;transition:opacity .5s var(--ease),transform .6s var(--ease),filter .5s var(--ease)}
 .app[data-scene=intro] #scene-form,.app[data-scene=form] #scene-intro{opacity:0;visibility:hidden;pointer-events:none;transform:translateY(16px) scale(.99);filter:blur(6px);transition:opacity .35s,transform .35s,filter .35s,visibility 0s .35s}
@@ -122,6 +122,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .hc-size{visibility:hidden}
 .hc-face{font-family:var(--f-serif);font-size:1.12em;font-stretch:normal;font-style:italic;font-weight:400;letter-spacing:0}
 .px{font-family:var(--f-pixel);font-size:1.14em;font-stretch:normal;font-weight:600;line-height:.84;letter-spacing:.02em}
+.kln-start{margin-top:26px;background:rgb(255 255 255/.7)}
 .kln-sub{margin-top:18px;max-width:46ch;color:var(--body);font-size:clamp(1rem,.95rem + .3vw,1.2rem);line-height:1.45;letter-spacing:-.01em}
 
 /* Sections card (the "services" card of the hero) */
@@ -149,6 +150,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .kln-services-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px;padding:10px 6px 4px 12px;border-top:1px solid var(--line);color:var(--muted);font-size:.8125rem;white-space:nowrap}
 
 /* ---------- Bottom bar: one tab per section ---------- */
+.app[data-scene=intro] .kln-bar{display:none}
 .kln-bar{display:flex;align-items:center;justify-content:center;gap:12px;padding-block:8px}
 .kln-bar-label{display:none;cursor:default;color:var(--muted);font-size:.75rem;font-weight:600;letter-spacing:-.02em;text-transform:uppercase;white-space:nowrap}
 button.kln-bar-label{cursor:pointer;transition:color .2s}
@@ -419,38 +421,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 </svg>
 
 <div class="app" id="app" data-scene="intro">
-<!-- Nav: info window at the left, the field's controls and the start pill at the right -->
-<header class="kln-header frame" id="header">
-  <nav class="kln-nav" aria-label="Primary">
-    <div class="kln-slot">
-      <div class="kln-window" id="info-win">
-        <button type="button" class="kln-window-bar" id="info-bar" aria-expanded="false" aria-controls="info-body">
-          <span class="lbl" id="info-lbl">
-            <svg viewBox="0 0 5 5" width="12" height="12" shape-rendering="crispEdges" aria-hidden="true" style="color:var(--ink)">
-              <path fill="currentColor" d="M0 0h1v5H0zM4 0h1v5H4zM1 1h1v1H1zM3 1h1v1H3z"/>
-              <path fill="var(--heat-3)" d="M2 2h1v1H2z"/>
-            </svg>
-            <span>MMGA.exe</span>
-          </span>
-          <span class="eye" aria-hidden="true">
-            <svg class="o" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg>
-            <svg class="c" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-.722-3.25M2 8a10.645 10.645 0 0 0 20 0M20 15l-1.726-2.05M4 15l1.726-2.05M9 18l.722-3.25"/></svg>
-          </span>
-        </button>
-        <div class="kln-window-body" id="info-body">
-          <div><div class="kln-window-card" id="info-card">
-            <p class="kln-info"><b>MMGA</b> is a creative and growth studio. This questionnaire helps us understand your brand, where it is today and where you want it to go, before we start.</p>
-          </div></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="kln-right" id="nav-right">
-      <a href="#questionnaire" class="kln-pill" data-scramble><i class="hot-dot" aria-hidden="true"></i><span class="scr"><span class="ghost">Start</span><span class="show" aria-hidden="true">Start</span></span></a>
-    </div>
-  </nav>
-</header>
-
 <main class="stage">
 <!-- Hero -->
 <div class="frame scene" id="scene-intro">
@@ -460,18 +430,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
       <div>
         <h1 class="kln-title" id="kln-title"></h1>
         <p class="kln-sub">A few questions about your brand, your current setup and your goals, so MMGA can plan the right work for you.</p>
+        <a href="#questionnaire" class="lq-btn kln-start" id="start-btn"><span class="lq-ring" aria-hidden="true"></span><span class="lq-glass" aria-hidden="true"></span><span class="lq-txt">Start <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></span></a>
       </div>
-      <aside class="kln-services" id="sections-card" aria-labelledby="sections-title">
-        <div class="kln-services-head">
-          <p class="mono" id="sections-title">What we'll ask</p>
-          <p class="kln-status-ok"><i aria-hidden="true"></i><span id="sections-status">Open</span></p>
-        </div>
-        <ul class="kln-svc-list" id="svc-list" style="list-style:none"></ul>
-        <div class="kln-services-foot">
-          <span id="sections-note">About 10 minutes</span>
-          <a href="#questionnaire" class="kln-pill" data-scramble><i class="hot-dot" aria-hidden="true"></i><span class="scr"><span class="ghost">Begin</span><span class="show" aria-hidden="true">Begin</span></span></a>
-        </div>
-      </aside>
     </div>
   </section>
 </div>
@@ -565,7 +525,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
 
   // ===================== Config =====================
-  const MARQUEE = { text: 'MMGA', speed: 8, gap: 18, height: 0.5, across: 4, heat: 0.84, outline: 0.16 };
+  const MARQUEE = { text: 'MMGA', speed: 8, gap: 18, height: 0.62, across: 2.4, heat: 0.84, outline: 0.16 };
   const HEAT = { palette: ['#8593ea', '#a98ae6', '#e88bb3', '#f5a07a', '#f6d08a'], thresholds: [0.3, 0.44, 0.6, 0.76, 0.9] };
   const INTENSITY = { levels: [{ heat: -0.08, speed: 0.6, touch: 0.7 }, { heat: 0, speed: 1, touch: 1 }, { heat: 0.09, speed: 1.7, touch: 1.45 }], start: 1, ease: 0.6 };
   const FIELD = { cell: 10, gap: 1, fps: 30, speed: 1, blob: 300, warmth: 0.42, contrast: 0.9, cloudCap: 0.72, body: 0.1, grain: 0.05, flicker: 1.2, reveal: 1.4 };
@@ -650,7 +610,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
       floorPx = Math.max(cell * 6, copyTop - EDGE.gapAboveCopy);
       dripPx = Math.min(width < 640 ? EDGE.dripPhone : EDGE.drip, floorPx * 0.4);
       const laneRows = Math.floor((floorPx - dripPx) / cell) - 2;
-      const fitRows = Math.floor(width / cell / (0.86 * MARQUEE.across));
+      const fitRows = Math.floor(width / cell / (0.86 * (width < 700 ? 3.6 : MARQUEE.across)));
       bandRows = Math.min(Math.floor(laneRows * MARQUEE.height), fitRows);
       bandTop = 1 + Math.floor((laneRows - bandRows) / 2);
       spell();
@@ -699,8 +659,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
           h += body + heat[i] + level.heat + (hash2(col, row, seed + speckleBeat) - 0.5) * FIELD.grain * 2;
           if (stencilRow >= 0) {
             const u = (col + crawl + shift) % period, mark = u < maskW ? mask[stencilRow + u] : 0;
-            if (mark === 2) h = Math.min(Math.max(h + 0.1, MARQUEE.heat), th[4] - 0.01);
-            else if (mark === 1) h = Math.min(h - MARQUEE.outline, th[2] - 0.02);
+            if (mark === 2) { pixels[i] = 0; continue; }          // the letters are cut out, so the word reads on any colour
+            if (mark === 1) h = th[0] + 0.01;                      // a blue edge round each letter
           }
           if (inZone) {
             const group = Math.floor(col / EDGE.dripWidth);
@@ -838,26 +798,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   document.querySelectorAll('[data-scramble]').forEach(scrambleOn);
 
   // ===================== Nav: info window + controls =====================
-  const header = $('header'), win = $('info-win'), bar = $('info-bar');
-  let infoChoice = null, scrolled = false;
-  const frameFor = (w) => (w >= 1024 ? 20 : w >= 640 ? 16 : 12);
-  const layoutInfo = () => {
-    const wide = innerWidth >= 1024;
-    const open = infoChoice ?? (wide && !scrolled);
-    const openW = Math.min(420, innerWidth - 2 * frameFor(innerWidth));
-    const folded = Math.ceil($('info-lbl').getBoundingClientRect().width) + 60;
-    win.classList.toggle('open', open);
-    win.style.width = (open ? openW : folded) + 'px';
-    $('info-card').style.width = (openW - 8) + 'px';
-    bar.setAttribute('aria-expanded', String(open));
-    bar.setAttribute('aria-label', open ? 'Hide MMGA.exe' : 'Show MMGA.exe');
-    $('nav-right').classList.toggle('crowded', open && innerWidth < 900);
-    document.documentElement.style.setProperty('--nav-space', header.offsetHeight + 'px');
-  };
-  bar.addEventListener('click', () => { infoChoice = !win.classList.contains('open'); layoutInfo(); });
-  addEventListener('resize', layoutInfo);
-  if (document.fonts) document.fonts.ready.then(layoutInfo);
-
   let field = null;
   const setCrawl = () => {};
   const spellWord = (w) => { live.text = (w || MARQUEE.text).toUpperCase(); field && field.respell(); };
@@ -929,34 +869,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
   function buildNav() {
     const total = steps.length;
-    // hero card: the sections, one open at a time, stepping on by itself
-    $('svc-list').innerHTML = steps.map((s, i) => `<li><a class="kln-svc" data-i="${i}" href="#questionnaire">
-      <span class="kln-svc-row"><span class="mono kln-svc-index">${pad(i + 1)}</span><span class="kln-svc-name">${esc(s.title)}</span>${ARROW}</span>
-      <span class="kln-svc-more"><span class="kln-svc-line">${s.count} question${s.count === 1 ? '' : 's'}${i === 0 ? ', so we know who to reply to' : ''}</span></span></a></li>`).join('');
-    const svc = Array.from(document.querySelectorAll('.kln-svc'));
-    let active = 0;
-    const open = (i) => {
-      active = i;
-      svc.forEach((a, k) => a.classList.toggle('on', k === i));
-      const list = $('svc-list'), el = svc[i];
-      if (el && (el.offsetTop < list.scrollTop || el.offsetTop + el.offsetHeight > list.scrollTop + list.clientHeight)) list.scrollTop = el.offsetTop - 8;
-      clearTimeout(svcTimer);
-      if (!svcHeld && !reduce) svcTimer = setTimeout(() => open((active + 1) % svc.length), 3600);
-    };
-    svc.forEach((a, i) => {
-      a.addEventListener('pointerenter', () => open(i));
-      a.addEventListener('focus', () => open(i));
-      a.addEventListener('click', () => jump(i));
-    });
-    const card = $('sections-card');
-    card.addEventListener('pointerenter', () => { svcHeld = true; clearTimeout(svcTimer); });
-    card.addEventListener('pointerleave', () => { svcHeld = false; open(active); });
-    open(0);
-
-    const totalQ = questions.length + 2, mins = Math.max(5, Math.round(totalQ * 0.4));
-    $('sections-note').textContent = `About ${mins} minutes`;
-    $('sections-status').textContent = `${total} sections`;
-    setCrawl(`${totalQ} questions · about ${mins} minutes · goes straight to the MMGA team`);
     $('bar-count').textContent = `${total} sections`;
 
     // bottom bar: each tab spells its section in the field while hovered
@@ -1124,10 +1036,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     $('app').dataset.scene = next;
     $('scene-intro').inert = next !== 'intro';
     $('scene-form').inert = next !== 'form';
-    scrolled = next === 'form';
-    header.dataset.scrolled = String(scrolled);
-    if (scrolled) infoChoice = null;
-    layoutInfo();
     field && field.sync();
     if (next === 'form') { moveMarker(cur); journal && journal.measure(); }
   }
@@ -1214,7 +1122,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
   buildTitle();
   setCrawl('MMGA discovery questionnaire · about 10 minutes');
-  layoutInfo();
   field = heatField($('field'), $('home'), $('copy'));
   loadForm();
 })();
