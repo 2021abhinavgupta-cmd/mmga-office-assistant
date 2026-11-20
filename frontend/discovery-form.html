@@ -28,6 +28,8 @@
 @media (min-width:640px){:root{--frame-x:16px;--inset-x:24px}}
 @media (min-width:1024px){:root{--frame-x:20px;--inset-x:32px;--card-w:320px;--card-gap:32px}}
 *{box-sizing:border-box;margin:0;padding:0}
+h1,h2,h3,.jr-title,.q-group label,.st-tl,.kln-svc-line,.kln-info{text-wrap:balance}
+p,.jr-meta,.lede,.kln-sub,.st-it,.q-done p{text-wrap:pretty}
 html,body{height:100%;overflow:hidden}
 body{background:var(--page);color:var(--ink);font-family:var(--f-sans);-webkit-font-smoothing:antialiased}
 .app{display:grid;grid-template-rows:auto minmax(0,1fr) auto;height:100dvh}
@@ -865,6 +867,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   let questions = [], sections = [], steps = [], cur = 0, mode = 'details', svcTimer = 0, svcHeld = false, swapT = 0, qpos = [];
   let stack = null, journal = null;
   const pad = (n) => String(n).padStart(2, '0');
+  const noWidow = (t) => esc(String(t == null ? '' : t).trim().replace(/\s+(\S+)$/, '\u00a0$1'));
   const stepWord = (t) => (String(t).split(/\s+/)[0] || '').replace(/[^A-Za-z0-9&]/g, '').slice(0, 9) || 'MMGA';
   const NEXT_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
 
@@ -888,13 +891,13 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         const input = q.type === 'textarea'
           ? `<textarea id="${id}" class="q-input" placeholder="Type your answer here..."></textarea>`
           : `<input type="text" id="${id}" class="q-input" placeholder="Type your answer here...">`;
-        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)}</span><span>${esc(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}</div>`;
+        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)}</span><span>${noWidow(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}</div>`;
       }).join('');
       return `<div class="jr-item" data-i="${k}" role="group" aria-roledescription="spread" aria-label="${esc(s.title)}, section ${k + 2} of ${total}">
         <div class="jr-page" data-side="l"><div class="jr-pg jr-left">
           <div class="jr-band" aria-hidden="true">${band}</div>
           <p class="mono jr-kick">Section ${nn} of ${pad(total)}</p>
-          <h3 class="jr-title">${esc(s.title)}</h3>
+          <h3 class="jr-title">${noWidow(s.title)}</h3>
           <p class="mono jr-qlab">Question</p>
           <p class="jr-num jr-qnum" aria-hidden="true">01</p>
           <p class="mono jr-qof">of ${pad(count)}</p>
