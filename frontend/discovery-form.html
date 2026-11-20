@@ -70,6 +70,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 @media (max-width:399px){.kln-window-bar .lbl span{display:none}}
 .kln-right{display:flex;flex:none;align-items:center;gap:6px}
 .kln-right.crowded{display:none}
+.app[data-scene=form] .kln-right{display:none}
 .kln-pill{display:inline-flex;align-items:center;gap:7px;height:38px;padding-inline:16px;border-radius:999px;background:var(--chrome);box-shadow:var(--lift);
   color:#252525;font-size:.8rem;font-weight:600;letter-spacing:-.02em;text-transform:uppercase;white-space:nowrap;transition:background-color .2s,color .2s}
 .kln-pill:hover{background:var(--ink);color:#fff}
@@ -166,15 +167,14 @@ button.kln-bar-label:hover{color:var(--ink)}
 .q-panel{display:flex;flex-direction:column;height:100%;min-height:0}
 #wrap{flex:1;min-height:0}
 .q-panel{position:relative;isolation:isolate;border:1px solid var(--line-box);border-radius:18px;background:var(--page);
-  padding:clamp(14px,2.6dvh,28px) var(--inset-x) clamp(12px,2dvh,22px)}
-.q-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:clamp(8px,1.6dvh,16px)}
-.q-head .mono{color:var(--muted)}
-.q-head h2{margin-top:4px;font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(1.5rem,1rem + 1.6vw,2.5rem);letter-spacing:-.01em}
-.q-panel:has(.q-form[data-mode=journal]) .q-head h2{display:none}
-.q-panel:has(.q-form[data-mode=journal]) .q-progress b{font-size:1.1rem}
-.q-progress{flex:none;text-align:right}
-.q-progress b{display:block;font-family:var(--f-dot);font-size:1.4rem;font-weight:600;color:var(--ink)}
-.q-bar{flex:none;height:6px;margin-bottom:clamp(10px,2dvh,20px);border-radius:99px;background:var(--chrome);overflow:hidden}
+  padding:clamp(8px,1.4dvh,16px) var(--inset-x) clamp(8px,1.2dvh,14px)}
+@media (max-width:639px){.q-panel{padding-inline:10px}}
+.q-head{display:flex;align-items:center;gap:14px;margin-bottom:clamp(6px,1.2dvh,12px)}
+.q-head .mono{flex:none;color:var(--muted)}
+.q-progress{flex:none}
+.q-progress b{font-family:var(--f-dot);font-size:1.05rem;font-weight:600;color:var(--ink)}
+.q-bar{flex:1;height:5px;border-radius:99px;background:var(--chrome);overflow:hidden}
+@media (max-width:519px){.q-head .mono{display:none}}
 .q-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--heat-0),var(--heat-1),var(--heat-2),var(--heat-3),var(--heat-4));transition:width .5s var(--ease)}
 /* Two views share one form: "details" (form card + stack) and "journal" (the sections as spreads) */
 .q-panel{overflow-x:clip}
@@ -275,7 +275,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-scene{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}
 .jr-item{position:absolute;left:0;top:0;transform-style:preserve-3d;visibility:hidden}
 .jr-page{position:absolute;top:calc(var(--jh)*-.5);width:calc(var(--jw)*.5);height:var(--jh);overflow:hidden;
-  backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fffefb;box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgb(30 20 50/.05)}
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fbf7ee;box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgb(30 20 50/.1)}
+.jr-item.on .jr-page:not(.jr-fl-shell){box-shadow:inset 0 1px 0 #fff,0 0 0 2px #2b2340,0 26px 50px -22px rgb(43 35 64/.55)}
+.jr-item.on .jr-page[data-side=l]{background:#f2ecdf}
 .jr-page[data-side=l]{left:calc(var(--jw)*-.5);transform-origin:100% 50%;border-radius:22px 0 0 22px}
 .jr-page[data-side=r]{left:0;transform-origin:0 50%;border-radius:0 22px 22px 0}
 .jr.single .jr-page[data-side=l]{display:none}
@@ -293,20 +295,20 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-band{display:flex;gap:2px;height:8px;margin-bottom:calc(var(--jh)*.04)}
 .jr-band i{flex:1;background:var(--c)}
 .jr-kick{color:var(--muted)}
-.jr-num{margin-top:calc(var(--jh)*.02);font-family:var(--f-dot);font-weight:600;font-size:calc(var(--jw)*.115);line-height:.82;letter-spacing:-.02em;
+.jr-num{margin-top:calc(var(--jh)*.02);font-family:var(--f-dot);font-weight:600;font-size:calc(var(--jw)*.095);line-height:.82;letter-spacing:-.02em;
   background:linear-gradient(120deg,var(--heat-0),var(--heat-1) 30%,var(--heat-2) 60%,var(--heat-3));-webkit-background-clip:text;background-clip:text;color:transparent}
 .jr-title{margin-top:calc(var(--jh)*.03);font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
-  font-size:calc(var(--jw)*.05);color:var(--ink);overflow-wrap:anywhere}
-.jr-meta{margin-top:12px;color:var(--body);font-size:calc(var(--jw)*.0145);line-height:1.5}
+  font-size:calc(var(--jw)*.046);color:var(--ink);overflow-wrap:anywhere}
+.jr-meta{margin-top:10px;color:var(--body);font-size:max(12.5px,calc(var(--jw)*.0145));line-height:1.45}
 .jr-qlist{list-style:none;flex:1;min-height:0;overflow:hidden;margin-top:calc(var(--jh)*.028);padding-bottom:6px;-webkit-mask-image:linear-gradient(#000 82%,transparent);mask-image:linear-gradient(#000 82%,transparent)}
-.jr-qlist button{display:flex;gap:9px;width:100%;padding:3px 0;color:var(--muted);text-align:left;font-size:calc(var(--jw)*.0128);line-height:1.35;cursor:pointer;transition:color .2s}
+.jr-qlist button{display:flex;gap:9px;width:100%;padding:3px 0;color:var(--muted);text-align:left;font-size:max(12.5px,calc(var(--jw)*.0135));line-height:1.35;cursor:pointer;transition:color .2s}
 .jr-qlist button:hover{color:var(--ink)}
 .jr-qlist button .n{flex:none;padding-top:.12em;font-family:var(--f-mono);font-size:.8em}
 .jr-qlist button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .jr-qlist button.has .n{color:#3fb27f}
 .jr-qlist button.on{color:var(--ink);font-weight:600}
 .jr-qlist button.on .n{color:#e07d78}
-.jr-toc{list-style:none;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);columns:2;column-gap:18px;font-size:calc(var(--jw)*.0118)}
+.jr-toc{list-style:none;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);columns:2;column-gap:18px;font-size:max(12px,calc(var(--jw)*.0125))}
 .jr-toc li{break-inside:avoid}
 .jr-toc button{display:flex;gap:8px;width:100%;padding:3px 0;color:var(--muted);text-align:left;cursor:pointer;transition:color .2s}
 .jr-toc button:hover{color:var(--ink)}
@@ -314,13 +316,18 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-toc button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .jr-toc button.on{color:var(--ink);font-weight:600}
 .jr-toc button.done .n{color:#e07d78}
-.jr-for{margin-top:14px;color:var(--muted);font-size:calc(var(--jw)*.0135)}
+.jr-for{margin-top:12px;color:var(--muted);font-size:max(12.5px,calc(var(--jw)*.0135))}
 .jr-for em{color:var(--ink);font-family:var(--f-serif);font-size:1.5em;font-style:italic}
 /* right page: the questions */
 .jr-mhead{display:none;padding:22px 22px 0}
 .jr.single .jr-mhead{display:block}
 .jr-mhead .jr-num{font-size:44px}
 .jr-mhead .jr-title{font-size:30px;margin-top:6px}
+.jr-fl{pointer-events:none}
+.jr-fl-shell{background:transparent!important;box-shadow:none!important;overflow:visible!important}
+.jr-fl .jr-shade{display:none}
+.jr-fl .q-group.on,.jr-item.flipping .q-group.on{animation:none}
+.jr-fl-back{border-radius:22px 0 0 22px;background-color:#e9e1d1;background-image:linear-gradient(to right,transparent 13px,rgb(30 20 50/.05) 0),linear-gradient(to bottom,transparent 13px,rgb(30 20 50/.05) 0);background-size:14px 14px}
 /* one question at a time, so nothing on the page ever has to scroll */
 .jr-qs{flex:1;min-height:0;display:flex;flex-direction:column;padding:calc(var(--jw)*.045) calc(var(--jw)*.04) 8px}
 .jr.single .jr-qs{padding:16px 22px 8px}
@@ -331,7 +338,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 @keyframes jr-q-b{from{opacity:0;transform:translateX(-22px)}}
 .jr-qs .q-group label{display:flex;flex-direction:column;gap:7px;margin-bottom:calc(var(--jw)*.022);color:var(--ink);font-size:clamp(15px,calc(var(--jw)*.0245),26px);font-weight:500;line-height:1.28;letter-spacing:-.018em}
 .jr-qs .q-group .qn{color:#e07d78;font-family:var(--f-mono);font-size:.62rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
-.jr-qs .q-input{background:#fff;font-size:clamp(14px,calc(var(--jw)*.0165),17px)}
+.jr-qs .q-input{background:#fff;font-size:clamp(14px,calc(var(--jw)*.0165),18px)}
+.jr.single .jr-qs .q-input{font-size:16px}
+.jr.single .jr-qs .q-group label{font-size:17px}
 .jr-qs textarea.q-input{flex:1;min-height:0;resize:none}
 .jr-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px calc(var(--jw)*.04) calc(var(--jw)*.03);color:var(--muted)}
 .jr.single .jr-pager{padding:6px 22px 16px}
@@ -386,6 +395,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   .q-form>*{transition:none}
   .scene{transition:none}
   .jr-qs .q-group.on{animation:none}
+  .jr-fl{display:none}
   .st-float,.st-pulse{animation:none}
 }
   </style>
@@ -432,14 +442,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     </div>
 
     <div class="kln-right" id="nav-right">
-      <div class="kln-status">
-        <div class="kln-keys">
-          <button type="button" class="kln-key" id="key-cool" aria-label="Calm the background"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
-          <button type="button" class="kln-key" id="key-play" aria-label="Stop the word"></button>
-          <button type="button" class="kln-key" id="key-hot" aria-label="Intensify the background"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5v14"/></svg></button>
-        </div>
-        <p class="kln-readout"><span class="sr" id="readout-sr"></span><span class="kln-crawl" aria-hidden="true" id="crawl"><span></span><span></span></span></p>
-      </div>
       <a href="#questionnaire" class="kln-pill" data-scramble><i class="hot-dot" aria-hidden="true"></i><span class="scr"><span class="ghost">Start</span><span class="show" aria-hidden="true">Start</span></span></a>
     </div>
   </nav>
@@ -474,13 +476,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 <div class="frame scene" id="scene-form" inert>
   <section id="questionnaire" class="q-panel grid-bg" aria-labelledby="q-title">
     <div class="q-head">
-      <div>
-        <p class="mono">Discovery questionnaire</p>
-        <h2 id="q-title">Your answers</h2>
-      </div>
-      <div class="q-progress"><b id="q-pct">0%</b><span class="mono" style="color:var(--muted)">complete</span></div>
+      <p class="mono">Discovery questionnaire</p>
+      <div class="q-bar"><i id="q-fill"></i></div>
+      <div class="q-progress"><b id="q-pct">0%</b></div>
     </div>
-    <div class="q-bar"><i id="q-fill"></i></div>
+    <h2 id="q-title" class="sr">Your answers</h2>
 
     <div id="loading" class="q-loading">Loading questionnaire...</div>
 
@@ -854,19 +854,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   addEventListener('resize', layoutInfo);
   if (document.fonts) document.fonts.ready.then(layoutInfo);
 
-  const PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:10px;height:10px;translate:1px 0"><path d="M6 4l14 8-14 8z"/></svg>';
-  const PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:10px;height:10px"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
   let field = null;
-  const paintKeys = () => {
-    $('key-play').innerHTML = live.playing ? PAUSE : PLAY;
-    $('key-play').setAttribute('aria-label', live.playing ? 'Stop the word' : 'Start the word');
-    $('key-cool').disabled = live.intensity === 0;
-    $('key-hot').disabled = live.intensity === INTENSITY.levels.length - 1;
-  };
-  $('key-play').addEventListener('click', () => { live.playing = !live.playing; paintKeys(); field && field.sync(); });
-  $('key-cool').addEventListener('click', () => { live.intensity = Math.max(0, live.intensity - 1); paintKeys(); field && field.draw(); });
-  $('key-hot').addEventListener('click', () => { live.intensity = Math.min(INTENSITY.levels.length - 1, live.intensity + 1); paintKeys(); field && field.draw(); });
-  const setCrawl = (line) => { $('readout-sr').textContent = line; $('crawl').querySelectorAll('span').forEach(s => s.textContent = line); };
+  const setCrawl = () => {};
   const spellWord = (w) => { live.text = (w || MARQUEE.text).toUpperCase(); field && field.respell(); };
 
   // ===================== Questionnaire =====================
@@ -1054,33 +1043,41 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   const itemEl = (k) => $('jr-scene').children[k];
   function paintDots(k) {
     const item = itemEl(k); if (!item) return;
-    const groups = item.querySelectorAll('.q-group');
-    item.querySelectorAll('.jr-dot').forEach((d, j) => {
+    const groups = item.querySelectorAll('.jr-page:not(.jr-fl) .q-group');
+    item.querySelectorAll('.jr-page:not(.jr-fl) .jr-dot').forEach((d, j) => {
       const g = groups[j], el = g && g.querySelector('.q-input');
       d.classList.toggle('on', j === qpos[k]);
       d.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
     });
-    item.querySelectorAll('.jr-qlist button').forEach((b, j) => {
+    item.querySelectorAll('.jr-page:not(.jr-fl) .jr-qlist button').forEach((b, j) => {
       const el = groups[j] && groups[j].querySelector('.q-input');
       b.classList.toggle('on', j === qpos[k]);
       b.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
     });
-    item.querySelector('.jr-pos').textContent = `${qpos[k] + 1} / ${groups.length}`;
+    item.querySelector('.jr-page:not(.jr-fl) .jr-pos').textContent = `${qpos[k] + 1} / ${groups.length}`;
   }
   function setQ(k, j, dir, focus) {
     const item = itemEl(k); if (!item) return;
-    const groups = item.querySelectorAll('.q-group');
+    const groups = item.querySelectorAll('.jr-page:not(.jr-fl) .q-group');
     j = Math.max(0, Math.min(groups.length - 1, j));
-    item.querySelector('.jr-qs').dataset.dir = dir < 0 ? 'b' : 'f';
+    item.querySelector('.jr-page:not(.jr-fl) .jr-qs').dataset.dir = dir < 0 ? 'b' : 'f';
     groups.forEach((g, x) => g.classList.toggle('on', x === j));
     qpos[k] = j;
     paintDots(k);
     if (focus && fine) { const el = groups[j].querySelector('.q-input'); if (el) el.focus({ preventScroll: true }); }
   }
+  // a question change is a page turn when the book is open and at rest
+  function turnQ(k, j, dir, focus) {
+    const item = itemEl(k), groups = item ? item.querySelectorAll('.jr-page:not(.jr-fl) .q-group') : [];
+    j = Math.max(0, Math.min(groups.length - 1, j));
+    if (mode === 'journal' && scene === 'form' && journal && j !== qpos[k] && k === cur - 1 && !reduce) {
+      journal.flip(dir, () => setQ(k, j, dir, false), () => { if (focus && fine) { const el = groups[j].querySelector('.q-input'); if (el) el.focus({ preventScroll: true }); } }, { ringNew: focus && fine });
+    } else setQ(k, j, dir, focus);
+  }
   $('jr-scene').addEventListener('input', (e) => { const it = e.target.closest('.jr-item'); if (it) paintDots(Number(it.dataset.i)); });
   $('jr-scene').addEventListener('click', (e) => {
     const d = e.target.closest('.jr-dot, .jr-qlist button'), it = d && d.closest('.jr-item');
-    if (d && it && it.classList.contains('on')) { const k = Number(it.dataset.i), j = Number(d.dataset.q || d.dataset.qj); setQ(k, j, j < qpos[k] ? -1 : 1, true); updateChrome(); }
+    if (d && it && it.classList.contains('on')) { const k = Number(it.dataset.i), j = Number(d.dataset.q || d.dataset.qj); turnQ(k, j, j < qpos[k] ? -1 : 1, true); updateChrome(); }
   });
 
   function updateChrome() {
@@ -1106,8 +1103,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     if (d > 0 && cur === 0 && !detailsValid(true)) return;
     if (cur > 0) {                       // questions first, sections after
       const k = cur - 1, m = sections[k].qs.length;
-      if (d > 0 && qpos[k] < m - 1) { setQ(k, qpos[k] + 1, 1, true); updateChrome(); return; }
-      if (d < 0 && qpos[k] > 0) { setQ(k, qpos[k] - 1, -1, true); updateChrome(); return; }
+      if (d > 0 && qpos[k] < m - 1) { turnQ(k, qpos[k] + 1, 1, true); updateChrome(); return; }
+      if (d < 0 && qpos[k] > 0) { turnQ(k, qpos[k] - 1, -1, true); updateChrome(); return; }
     }
     if (d > 0 && cur === last) { submitForm(); return; }
     const to = Math.max(0, Math.min(last, cur + d));
@@ -1211,7 +1208,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   });
 
   buildTitle();
-  paintKeys();
   setCrawl('MMGA discovery questionnaire · about 10 minutes');
   layoutInfo();
   field = heatField($('field'), $('home'), $('copy'));

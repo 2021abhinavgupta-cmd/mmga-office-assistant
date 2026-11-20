@@ -55,6 +55,45 @@
     };
   }
 
+
+  // ---- corner-peel page turn (ported from the BookCard fold: reflect the folded corner over the crease) ----
+  function constrain(rx, ry, W, H) {
+    let x = rx, y = Math.min(ry, H), d = Math.hypot(x, y - H);
+    if (d > W) { x = (x / d) * W; y = H + ((y - H) / d) * W; }
+    const diag = Math.hypot(W, H); d = Math.hypot(x, y);
+    if (d > diag) { x = (x / d) * diag; y = (y / d) * diag; }
+    return [x, y];
+  }
+  function clipHalf(poly, nx, ny, k, keepCorner) {
+    const side = (p) => p[0] * nx + p[1] * ny - k, inside = (v) => (keepCorner ? v > 0 : v <= 0), out = [];
+    poly.forEach((a, i) => {
+      const b = poly[(i + 1) % poly.length], sa = side(a), sb = side(b);
+      if (inside(sa)) out.push(a);
+      if (inside(sa) !== inside(sb)) { const t = sa / (sa - sb); out.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]); }
+    });
+    return out;
+  }
+  const HIDDEN = 'polygon(0px 0px, 0px 0px, 0px 0px)';
+  const toPoly = (pts) => (pts.length < 3 ? HIDDEN : 'polygon(' + pts.map((p) => p[0].toFixed(2) + 'px ' + p[1].toFixed(2) + 'px').join(', ') + ')');
+  function computeFold(rx, ry, W, H) {
+    const [x, y] = constrain(rx, ry, W, H), vx = W - x, vy = H - y, dist = Math.hypot(vx, vy);
+    if (dist < 0.5) return { cover: 'none', flap: HIDDEN, mat: 'none', under: 'none', fshade: 'none' };
+    const nx = vx / dist, ny = vy / dist, k = ((W + x) / 2) * nx + ((H + y) / 2) * ny;
+    const page = [[0, 0], [W, 0], [W, H], [0, H]];
+    const cover = clipHalf(page, nx, ny, k, false);
+    const flap = clipHalf(page, nx, ny, k, true).map((p) => { const t = p[0] * nx + p[1] * ny - k; return [p[0] - 2 * t * nx, p[1] - 2 * t * ny]; });
+    const a = 2 * nx * nx - 1, b = 2 * nx * ny, c = -2 * nx * ny, d = 1 - 2 * ny * ny;
+    const e = W * (1 - 2 * nx * nx) + 2 * k * nx, f = -2 * nx * ny * W + 2 * k * ny;
+    const angle = (Math.atan2(nx, -ny) * 180) / Math.PI, depth = Math.min(1, dist / 80);
+    const underStop = k - ((W / 2) * nx + (H / 2) * ny) + (W * Math.abs(nx) + H * Math.abs(ny)) / 2;
+    const flapStop = -(k - (H / 2) * ny) + (2 * W * Math.abs(nx) + H * Math.abs(ny)) / 2;
+    return {
+      cover: toPoly(cover), flap: toPoly(flap), mat: 'matrix(' + [a, b, c, d, e, f].join(', ') + ')',
+      under: 'linear-gradient(' + angle + 'deg, rgba(0,0,0,' + 0.3 * depth + ') ' + underStop + 'px, rgba(0,0,0,0) ' + (underStop + 36) + 'px)',
+      fshade: 'linear-gradient(' + (angle + 180) + 'deg, rgba(0,0,0,' + 0.35 * depth + ') ' + flapStop + 'px, rgba(0,0,0,0) ' + (flapStop + 72) + 'px)',
+    };
+  }
+
   function create(root, opts) {
     opts = opts || {};
     const stage = root.querySelector('.jr-stage');
@@ -62,7 +101,7 @@
     const pages = items.map((it) => [it.querySelector('.jr-page[data-side=l]'), it.querySelector('.jr-page[data-side=r]')]);
     const n = items.length;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let w = 0, single = false, pos = 0, target = 0, tween = null, raf = 0, drag = null, after = null, exitId = 0;
+    let w = 0, single = false, pos = 0, target = 0, tween = null, raf = 0, drag = null, after = null, exitId = 0, flipping = false;
 
     function setCurrent(i) {
       items.forEach((it, k) => {
@@ -196,6 +235,56 @@
       go,
       index: () => target,
       measure,
+      /** Turn the open spread's right page like a sheet of paper. dir 1 = forward. `mid` swaps the content, `done` runs at the end. */
+      flip(dir, mid, done) {
+        const item = items[target], rp = pages[target] && pages[target][1];
+        if (!item || !rp || !w || tween || drag || flipping || reduce) { mid(); if (done) done(); return; }
+        flipping = true;
+        const W = rp.offsetWidth, H = rp.offsetHeight, base = rp.style.transform || '';
+        const fresh = () => {
+          const c = rp.cloneNode(true);
+          c.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+          c.querySelectorAll('[for]').forEach((n) => n.removeAttribute('for'));
+          const a = rp.querySelectorAll('textarea,input'), b = c.querySelectorAll('textarea,input');
+          a.forEach((n, i) => { if (b[i]) { b[i].value = n.value; b[i].tabIndex = -1; } });
+          c.classList.add('jr-fl'); c.setAttribute('aria-hidden', 'true'); c.inert = true;
+          return c;
+        };
+        const shell = (z) => { const c = rp.cloneNode(false); c.removeAttribute('data-side'); c.classList.add('jr-fl', 'jr-fl-shell'); c.style.transform = base + ' translateZ(' + z + 'px)'; return c; };
+        item.classList.add('flipping');
+        const old = fresh(); old.style.transform = base + ' translateZ(1px)';
+        let under = null;
+        if (dir < 0) { under = old; item.appendChild(under); }
+        mid();
+        const cover = dir < 0 ? fresh() : old;
+        cover.style.transform = base + ' translateZ(2px)';
+        const shade = shell(3), flapW = shell(18), flapIn = document.createElement('div'), fsh = document.createElement('div');
+        flapIn.className = 'jr-fl-back';
+        flapIn.style.cssText = 'position:absolute;left:0;top:0;width:' + W + 'px;height:' + H + 'px;transform-origin:0 0';
+        fsh.style.cssText = 'position:absolute;top:0;height:100%;left:' + (-W) + 'px;width:' + 2 * W + 'px;pointer-events:none';
+        flapW.appendChild(flapIn); flapW.appendChild(fsh);
+        item.appendChild(cover); item.appendChild(shade); item.appendChild(flapW);
+        const t0 = performance.now(), dur = 720, from = dir > 0 ? W : -W, to = dir > 0 ? -W : W;
+        const e2 = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+        let ended = false;
+        const finish = () => {
+          if (ended) return;
+          ended = true;
+          [under, cover, shade, flapW].forEach((n) => n && n.remove());
+          clearTimeout(guard); item.classList.remove('flipping'); flipping = false;
+          if (done) done();
+        };
+        const step = (now) => {
+          if (ended) return;
+          const t = clamp((now - t0) / dur, 0, 1), x = from + (to - from) * e2(t), y = t >= 1 ? H : H * (1 - 0.3 * Math.sin(Math.PI * t));
+          const f = computeFold(x, y, W, H);
+          cover.style.clipPath = f.cover; flapW.style.clipPath = f.flap; flapIn.style.transform = f.mat;
+          shade.style.backgroundImage = f.under; fsh.style.backgroundImage = f.fshade;
+          if (t < 1) requestAnimationFrame(step); else finish();
+        };
+        step(t0);
+        const guard = setTimeout(finish, dur + 500); // frames are throttled in a background tab
+      },
       /** Riffle in from the right-hand stack and open on spread i. */
       enter(i) {
         measure();
