@@ -416,6 +416,21 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 }
   .mm-logo{position:absolute;left:18px;top:18px;z-index:5;width:46px;height:46px;border-radius:12px;background:#fff;box-shadow:0 1px 0 rgb(0 0 0/.04),0 8px 20px -10px rgb(20 20 20/.35);object-fit:contain;padding:4px}
 .q-head .mm-logo{position:static;width:30px;height:30px;border-radius:8px;padding:2px;box-shadow:none;flex:none}
+
+.kln-panel{justify-content:center}
+.kln-copy{max-width:min(560px,100%)}
+@media (min-width:1024px){.kln-copy{display:block}}
+.bc{position:absolute;top:-10%;bottom:-10%;right:2%;width:min(46%,640px);display:none;gap:16px;transform:rotate(8deg);transform-origin:50% 50%;z-index:0;pointer-events:none;
+  -webkit-mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent)}
+@media (min-width:900px){.bc{display:flex}}
+.bc-col{flex:1;min-width:0;overflow:hidden}
+.bc-track{display:flex;flex-direction:column;gap:16px;animation:bc-up var(--d,40s) linear infinite}
+.bc-col:nth-child(2) .bc-track{animation-direction:reverse}
+.bc-card{flex:none;aspect-ratio:4/5;border-radius:22px;display:grid;place-items:center;padding:14px;background:var(--bg,#fff);color:var(--fg,var(--ink));box-shadow:0 14px 34px -18px rgb(20 20 20/.35),inset 0 0 0 1px rgb(20 20 20/.06);text-align:center}
+.bc-card img{max-width:78%;max-height:60%;object-fit:contain}
+.bc-card b{font-family:var(--f-display);font-weight:700;font-size:clamp(1rem,1.6vw,1.5rem);letter-spacing:-.01em;line-height:1.05}
+@keyframes bc-up{from{transform:translateY(0)}to{transform:translateY(-50%)}}
+@media (prefers-reduced-motion:reduce){.bc-track{animation:none}}
 .st-card,.st-list .st-card,.st-cb{cursor:default!important}
 .st-ic{display:none!important}
 </style>
@@ -439,7 +454,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 <!-- Hero -->
 <div class="frame scene" id="scene-intro"><img class="mm-logo" src="mmga-logo.png" alt="MMGA" />
   <section id="home" class="kln-panel grid-bg" aria-labelledby="kln-title">
-    <canvas class="kln-field" id="field" aria-hidden="true"></canvas>
+    <div class="bc" id="bc" aria-hidden="true"></div>
     <div class="kln-copy" id="copy">
       <div>
         <h1 class="kln-title" id="kln-title"></h1>
@@ -811,6 +826,20 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   document.querySelectorAll('[data-scramble]').forEach(scrambleOn);
 
   // ===================== Nav: info window + controls =====================
+  // Brands shown in the welcome carousel. Add { name, logo: 'file.png' } entries; without a logo the name is shown as text.
+  const BRANDS = [
+    { name: 'Brand one' }, { name: 'Brand two' }, { name: 'Brand three' }, { name: 'Brand four' }, { name: 'Brand five' }, { name: 'Brand six' },
+  ];
+  function buildBrandCarousel() {
+    const host = $('bc'); if (!host) return;
+    const tints = [['#141414', '#fffcef'], ['#fe8e1c', '#141414'], ['#ffd466', '#141414'], ['#fff', '#141414']];
+    const card = (b, k) => { const [bg, fg] = tints[k % tints.length]; return `<div class="bc-card" style="--bg:${bg};--fg:${fg}">${b.logo ? `<img src="${esc(b.logo)}" alt="${esc(b.name)}">` : `<b>${esc(b.name)}</b>`}</div>`; };
+    host.innerHTML = [0, 1, 2].map((c) => {
+      const set = BRANDS.map((_, i) => BRANDS[(i + c * 2) % BRANDS.length]).map((b, i) => card(b, i + c));
+      return `<div class="bc-col"><div class="bc-track" style="--d:${36 + c * 9}s">${set.join('')}${set.join('')}</div></div>`;
+    }).join('');
+  }
+
   let field = null;
   const setCrawl = () => {};
   const spellWord = (w) => { live.text = (w || MARQUEE.text).toUpperCase(); field && field.respell(); };
@@ -1143,7 +1172,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
   buildTitle();
   setCrawl('MMGA discovery questionnaire · about 10 minutes');
-  field = heatField($('field'), $('home'), $('copy'));
+  buildBrandCarousel();
   loadForm();
 })();
 </script>
