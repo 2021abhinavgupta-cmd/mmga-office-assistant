@@ -770,6 +770,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   }
 
   // ===================== Thermal headline =====================
+  let retitle = () => {};
   function buildTitle() {
     const h1 = $('kln-title');
     const spoken = TITLE.map(l => l.map(s => s.text).join('')).join(' ');
@@ -778,6 +779,14 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
       `<span class="hc"><span class="${s.pixel ? 'hc-size px' : 'hc-size'}">${esc(ch)}</span><span class="hc-face">${esc(ch)}</span></span>`).join('')).join('');
     h1.innerHTML = `<span class="sr">${esc(spoken)}</span>` + TITLE.map(line =>
       `<span class="kln-title-line" aria-hidden="true" data-line><span class="kln-ink">${ink(line)}</span><span class="kln-heat">${hot(line)}</span></span>`).join('');
+    // swap the words in place (keeps the heat-lens wiring below), used for the thank-you screen
+    retitle = (T) => {
+      h1.querySelector('.sr').textContent = T.map(l => l.map(s => s.text).join('')).join(' ');
+      h1.querySelectorAll('[data-line]').forEach((el, i) => {
+        el.querySelector('.kln-ink').innerHTML = ink(T[i] || []);
+        el.querySelector('.kln-heat').innerHTML = hot(T[i] || []);
+      });
+    };
     if (reduce) return;
     const lines = Array.from(h1.querySelectorAll('[data-line]'));
     const lens = { x: -9999, y: 0, r: 0 };
@@ -1125,7 +1134,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         $('q-title').textContent = 'All done';
         $('q-pct').textContent = '100%'; $('q-fill').style.width = '100%';
         document.querySelectorAll('.kln-tab').forEach(t => t.classList.add('done'));
-        MARQUEE.text = 'THANKS'; spellWord(null);
+        // the welcome screen comes back, now saying thank you instead of the invitation to start
+        retitle([[{ text: 'Thank' }], [{ text: 'you' }, { text: '.' }]]);
+        $('copy').querySelector('.kln-sub').textContent = "Your questionnaire has reached the MMGA team. We'll go through your answers and get back to you soon.";
+        $('start-btn').style.display = 'none';
+        setScene('intro');
       } else {
         showToast(data.error || 'Failed to submit form.', true);
         btn.disabled = false; $('nextTxt').textContent = 'Submit answers';
