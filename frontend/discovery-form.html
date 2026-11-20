@@ -165,14 +165,25 @@ button{font:inherit;color:inherit;background:none;border:0}
 .q-progress b{display:block;font-family:var(--f-dot);font-size:1.6rem;font-weight:600;color:var(--ink)}
 .q-bar{height:6px;margin-bottom:26px;border-radius:99px;background:var(--chrome);overflow:hidden}
 .q-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--heat-0),var(--heat-1),var(--heat-2),var(--heat-3),var(--heat-4));transition:width .5s var(--ease)}
-.q-grid{display:grid;gap:24px;align-items:start}
-@media (min-width:1024px){.q-grid{grid-template-columns:minmax(0,1fr) minmax(280px,380px);gap:32px}}
-.q-card{display:none;padding:clamp(18px,2.4vw,30px);border:1px solid var(--line-box);border-radius:22px;background:var(--card);box-shadow:0 1px 0 rgb(0 0 0/.02),0 18px 40px -24px rgb(20 20 20/.28)}
-.q-card.on{display:block;animation:q-in .45s var(--ease)}
-@keyframes q-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.q-card-head{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+/* Two views share one form: "details" (form card + stack) and "journal" (the sections as spreads) */
+.q-panel{overflow-x:clip}
+.q-form{position:relative}
+.q-form[data-mode=details]{display:grid;gap:clamp(20px,3vw,40px);align-items:center}
+@media (min-width:1024px){.q-form[data-mode=details]{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}}
+.q-form[data-mode=details] .jr,.q-form[data-mode=journal] .q-left,.q-form[data-mode=journal] .st{display:none}
+.q-form>*{transition:opacity .42s var(--ease),transform .55s var(--ease),filter .42s var(--ease)}
+.q-form.swap-out>*,.q-form.swap-in>*{opacity:0;transform:translateY(14px) scale(.985);filter:blur(6px)}
+.q-form.swap-in>*{transition:none}
+.q-left{display:flex;flex-direction:column;gap:10px;min-width:0}
+.q-card{padding:clamp(20px,2.6vw,32px);border:1px solid var(--line-box);border-radius:22px;background:var(--card);box-shadow:0 1px 0 rgb(0 0 0/.02),0 18px 40px -24px rgb(20 20 20/.28)}
+.q-card-head{display:flex;flex-direction:column;gap:10px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid var(--line)}
 .q-card-head .mono{color:var(--muted)}
-.q-card-head h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:1;font-size:clamp(1.6rem,1.2rem + 1.4vw,2.4rem)}
+.q-card-head h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.92;font-size:clamp(2rem,1.4rem + 1.8vw,3rem)}
+.q-card-head h3 em{font-family:var(--f-serif);font-style:italic;font-weight:400;font-stretch:normal;text-transform:none;letter-spacing:0}
+.q-card-head p.lede{color:var(--body);font-size:.95rem;line-height:1.5;max-width:42ch}
+.q-ok{display:inline-flex;align-items:center;gap:8px;margin-top:4px;color:var(--muted);font-size:.8rem}
+.q-ok i{width:8px;height:8px;background:var(--line-box);transition:background-color .3s}
+.q-ok.on i{background:#3fb27f;box-shadow:0 0 0 3px rgb(63 178 127/.18)}
 .q-group{margin-bottom:18px}
 .q-group label{display:flex;gap:8px;align-items:baseline;margin-bottom:8px;color:var(--ink);font-size:.95rem;font-weight:500;line-height:1.35;letter-spacing:-.01em}
 .q-group label a{color:var(--heat-1);font-size:.8rem;text-decoration:underline}
@@ -182,19 +193,122 @@ button{font:inherit;color:inherit;background:none;border:0}
 .q-input:hover{border-color:#c9c9c9}
 .q-input:focus{border-color:var(--heat-1);box-shadow:0 0 0 4px rgb(169 138 230/.18)}
 textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
-.q-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;padding-top:20px}
+.q-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px}
+.q-form[data-mode=journal] .q-nav{max-width:760px;margin:6px auto 0}
 .q-count{color:var(--muted)}
-.q-side{position:relative;min-height:200px}
-@media (min-width:1024px){.q-side{position:sticky;top:calc(var(--nav-space) + 16px)}}
-.q-steps{list-style:none;padding:6px;border:1px solid var(--line-box);border-radius:22px;background:var(--card)}
-.q-steps li{display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:14px;cursor:pointer;color:var(--muted);transition:background-color .25s,color .25s}
-.q-steps li:hover{color:var(--ink)}
-.q-steps li.on{background:#f5f5f4;color:var(--ink)}
-.q-steps li .n{font-family:var(--f-mono);font-size:.68rem}
-.q-steps li .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;font-size:1.05rem}
-.q-steps li .ok{width:8px;height:8px;background:var(--line)}
-.q-steps li.done .ok{background:var(--heat-3)}
-@media (max-width:1023px){.q-side{min-height:0}.q-steps{display:none}}
+
+/* ---------- The stack (beside "Your details") ---------- */
+.st{position:relative;min-width:0;container-type:inline-size}
+.st-vis{position:relative;width:100%;max-width:760px;aspect-ratio:1;margin-inline:auto;container-type:inline-size;user-select:none;-webkit-user-select:none}
+.st-vis>*{position:absolute;inset:0;pointer-events:none}
+.st-vis svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.st-floor{inset:-8%;opacity:.55;-webkit-mask-image:radial-gradient(ellipse 52% 42% at 50% 64%,#000 25%,transparent 100%);mask-image:radial-gradient(ellipse 52% 42% at 50% 64%,#000 25%,transparent 100%)}
+.st-halo{inset:8%;border-radius:999px;background:radial-gradient(closest-side,rgb(232 139 179/.16),rgb(169 138 230/.07) 55%,transparent)}
+.st-fade{-webkit-mask-image:linear-gradient(to right,transparent,#000 14%);mask-image:linear-gradient(to right,transparent,#000 14%)}
+.st-par{will-change:transform}
+.st-tilt{perspective:1400px}
+.st-tilt-in,.st-float{position:absolute;inset:0}
+.st-float{animation:st-float 6.5s ease-in-out infinite alternate}
+@keyframes st-float{to{transform:translateY(-10px)}}
+.st-pulse{animation:st-pulse 4.8s ease-in-out infinite alternate}
+@keyframes st-pulse{from{opacity:.78}to{opacity:1}}
+.st-cons .st-lit{opacity:0;transition:opacity .25s}
+.st-cons .st-lit.on{opacity:.9}
+.st-halo-node{opacity:.12}.st-halo-node.main{opacity:.24}
+.st-cards{list-style:none;position:absolute;inset:0;font-size:clamp(10px,1.85cqw,14px)}
+.st-li{position:absolute;translate:0 -50%}
+.st-card{padding:.85em .9em;border:1px solid rgb(20 20 20/.07);border-radius:1.25em;background:rgb(255 255 255/.86);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);opacity:0;
+  box-shadow:0 1px 2px rgb(40 30 60/.05),0 14px 34px -18px rgb(60 50 90/.32),inset 0 1px 0 rgb(255 255 255/.9);transition:border-color .3s,box-shadow .3s}
+.st-vis.open .st-card{pointer-events:auto;cursor:pointer}
+.st-card.lit{border-color:rgb(236 132 112/.42);box-shadow:0 1px 2px rgb(40 30 60/.05),0 18px 38px -18px rgb(236 132 112/.45),inset 0 1px 0 rgb(255 255 255/.9)}
+.st-cb{display:grid;grid-template-columns:1.4em minmax(0,1fr) auto;column-gap:.55em;align-items:start}
+.st-n{grid-column:1;grid-row:1;display:flex;align-items:center;height:1.64em;color:var(--muted);font-family:var(--f-mono);font-size:.78em}
+.st-hd{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.1em .6em;min-width:0}
+.st-cb.main .st-hd{grid-column:2/4}
+.st-tl{color:var(--ink);font-family:var(--f-display);font-stretch:75%;font-weight:800;font-size:1.22em;line-height:1.1;text-transform:uppercase;letter-spacing:.005em;max-width:100%;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.st-tag{flex:none;background:linear-gradient(90deg,var(--heat-1),var(--heat-2),var(--heat-3));-webkit-background-clip:text;background-clip:text;color:transparent;font-family:var(--f-mono);font-size:.62em;letter-spacing:.12em;text-transform:uppercase}
+.st-ic{grid-column:1;grid-row:2;display:flex;align-items:center;height:1.3em;margin-top:.35em;color:#e07d78}
+.st-ic svg{width:1.2em;height:1.2em}
+.st-bd{grid-column:2;grid-row:2;margin-top:.35em;min-width:0}
+.st-cb.main .st-bd{grid-column:2/4}
+.st-it{color:var(--body);font-size:.86em;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.st-ct{grid-column:3;grid-row:1/3;align-self:center;display:grid;place-items:center;min-width:2.6em;padding:.35em .45em;border:1px solid var(--line-box);border-radius:.7em;background:#fff;color:var(--muted);font-family:var(--f-mono);font-size:.62em;text-transform:uppercase;line-height:1.15;text-align:center}
+.st-ct b{display:block;color:var(--ink);font-family:var(--f-dot);font-size:1.9em;font-weight:600}
+.st-live{display:flex;flex-wrap:wrap;gap:.35em;margin-top:.6em}
+.st-live span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:.3em .65em;border-radius:999px;background:#f4f3f6;color:var(--ink);font-size:.82em;font-weight:500;transition:background-color .3s,color .3s}
+.st-live span.ph{color:#a3a3ad;background:repeating-linear-gradient(-45deg,#f6f5f8 0 6px,#efeef3 6px 12px)}
+.st-cb.main.ok .st-live span:not(.ph){background:rgb(63 178 127/.12);color:#1d6b49}
+.st-hint{inset:auto;top:85%;left:50%;translate:-50% 0;display:flex;align-items:center;gap:6px;margin:0;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.st-hint svg{position:static;width:14px;height:14px;color:#e07d78}
+.st-hint-t{display:none}
+@media (hover:none){.st-hint-m{display:none}.st-hint-t{display:inline}}
+.st-hit{pointer-events:auto;inset:auto;top:30%;left:22%;width:56%;height:44%;border-radius:3rem;cursor:default}
+.st-hit:focus-visible{outline:2px solid var(--heat-2);outline-offset:4px}
+.st-list{display:none;list-style:none;gap:8px;margin-top:-6%;position:relative;font-size:13px}
+.st-list .st-card{opacity:1;cursor:pointer;background:var(--card)}
+@container (max-width:560px){.st-cards,.st-cons{display:none}.st-list{display:grid}.st-hint{top:88%}}
+@container (min-width:420px) and (max-width:560px){.st-list{grid-template-columns:1fr 1fr}}
+
+/* ---------- The journal (sections as open spreads) ---------- */
+.jr{position:relative;outline:none;--jw:800px;--jh:600px}
+.jr:focus-visible .jr-stage{outline:2px solid var(--heat-1);outline-offset:6px;border-radius:24px}
+.jr-stage{position:relative;height:clamp(560px,78dvh,800px);touch-action:pan-y;cursor:grab}
+.jr-stage[data-drag]{cursor:grabbing}
+.jr-floor{position:absolute;left:50%;top:50%;width:calc(var(--jw)*1.5);height:calc(var(--jh)*.5);pointer-events:none;
+  transform:translate(-50%,calc(var(--jh)*.32));background:radial-gradient(closest-side,rgb(60 45 90/.22),rgb(60 45 90/.06) 60%,transparent);filter:blur(14px)}
+.jr-view{position:absolute;inset:0;perspective:calc(var(--jw)*2.3);perspective-origin:50% 46%}
+.jr-scene{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}
+.jr-item{position:absolute;left:0;top:0;transform-style:preserve-3d;visibility:hidden}
+.jr-page{position:absolute;top:calc(var(--jh)*-.5);width:calc(var(--jw)*.5);height:var(--jh);overflow:hidden;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;background:#fffefb;box-shadow:inset 0 1px 0 #fff,0 0 0 1px rgb(30 20 50/.05)}
+.jr-page[data-side=l]{left:calc(var(--jw)*-.5);transform-origin:100% 50%;border-radius:22px 0 0 22px}
+.jr-page[data-side=r]{left:0;transform-origin:0 50%;border-radius:0 22px 22px 0}
+.jr.single .jr-page[data-side=l]{display:none}
+.jr.single .jr-page[data-side=r]{left:calc(var(--jw)*-.5);width:var(--jw);transform-origin:50% 50%;border-radius:22px}
+.jr-gutter,.jr-shade{position:absolute;inset:0;pointer-events:none}
+.jr-page[data-side=l] .jr-gutter{background:linear-gradient(90deg,transparent 84%,rgb(40 25 60/.05) 94%,rgb(40 25 60/.16))}
+.jr-page[data-side=r] .jr-gutter{background:linear-gradient(270deg,transparent 84%,rgb(40 25 60/.05) 94%,rgb(40 25 60/.16))}
+.jr.single .jr-gutter{display:none}
+.jr-shade{background:#3a3152;opacity:calc(var(--js,0)*.5)}
+.jr-item:not(.on) .jr-page{cursor:pointer}
+.jr-pg{position:absolute;inset:0;display:flex;flex-direction:column}
+/* left page: what the section is */
+.jr-left{padding:calc(var(--jw)*.042) calc(var(--jw)*.04) calc(var(--jw)*.036);user-select:none;-webkit-user-select:none;
+  background-image:linear-gradient(to right,transparent 13px,rgb(30 20 50/.035) 0),linear-gradient(to bottom,transparent 13px,rgb(30 20 50/.035) 0);background-size:14px 14px}
+.jr-band{display:flex;gap:2px;height:8px;margin-bottom:calc(var(--jh)*.04)}
+.jr-band i{flex:1;background:var(--c)}
+.jr-kick{color:var(--muted)}
+.jr-num{margin-top:calc(var(--jh)*.02);font-family:var(--f-dot);font-weight:600;font-size:calc(var(--jw)*.115);line-height:.82;letter-spacing:-.02em;
+  background:linear-gradient(120deg,var(--heat-0),var(--heat-1) 30%,var(--heat-2) 60%,var(--heat-3));-webkit-background-clip:text;background-clip:text;color:transparent}
+.jr-title{margin-top:calc(var(--jh)*.03);font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;letter-spacing:-.005em;
+  font-size:calc(var(--jw)*.05);color:var(--ink);overflow-wrap:anywhere}
+.jr-meta{margin-top:12px;color:var(--body);font-size:calc(var(--jw)*.0145);line-height:1.5}
+.jr-toc{list-style:none;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);columns:2;column-gap:18px;font-size:calc(var(--jw)*.0118)}
+.jr-toc li{break-inside:avoid}
+.jr-toc button{display:flex;gap:8px;width:100%;padding:3px 0;color:var(--muted);text-align:left;cursor:pointer;transition:color .2s}
+.jr-toc button:hover{color:var(--ink)}
+.jr-toc button .n{font-family:var(--f-mono);font-size:.82em;flex:none;padding-top:.15em}
+.jr-toc button span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jr-toc button.on{color:var(--ink);font-weight:600}
+.jr-toc button.done .n{color:#e07d78}
+.jr-for{margin-top:14px;color:var(--muted);font-size:calc(var(--jw)*.0135)}
+.jr-for em{color:var(--ink);font-family:var(--f-serif);font-size:1.5em;font-style:italic}
+/* right page: the questions */
+.jr-mhead{display:none;padding:22px 22px 0}
+.jr.single .jr-mhead{display:block}
+.jr-mhead .jr-num{font-size:44px}
+.jr-mhead .jr-title{font-size:30px;margin-top:6px}
+.jr-qs{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#ddd transparent;
+  padding:calc(var(--jw)*.04) calc(var(--jw)*.038) 16px}
+.jr.single .jr-qs{padding:18px 22px}
+.jr-qs .q-group{margin-bottom:20px}
+.jr-qs .q-group label{font-size:.93rem}
+.jr-qs .q-group .qn{flex:none;color:#e07d78;font-family:var(--f-mono);font-size:.68rem;padding-top:.2em}
+.jr-qs .q-input{background:#fff}
+.jr-folio{display:flex;justify-content:space-between;padding:10px calc(var(--jw)*.038) 16px;color:#a3a3a3}
+.jr.single .jr-folio{padding:10px 22px 16px}
+@media (max-width:759px){.jr-stage{height:min(80dvh,720px)}}
 .q-loading{padding:40px 0;color:var(--muted);text-align:center}
 .q-done{display:none;padding:clamp(24px,4vw,48px);border:1px solid var(--line-box);border-radius:22px;background:var(--card)}
 .q-done h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.9;font-size:clamp(2.4rem,1.6rem + 3vw,4.4rem)}
@@ -238,7 +352,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   .kln-crawl{animation:none}
   .kln-title-line{animation:none;clip-path:none}
   .kln-services{animation:none;opacity:1;transform:none}
-  .q-card.on{animation:none}
+  .q-form>*{transition:none}
+  .st-float,.st-pulse{animation:none}
   html{scroll-behavior:auto}
 }
   </style>
@@ -342,36 +457,49 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
     <div id="loading" class="q-loading">Loading questionnaire...</div>
 
-    <div class="q-grid" id="wrap" style="display:none">
-      <form id="discovery-form" novalidate>
-        <div class="q-card" data-title="Your Details" data-count="2">
-          <div class="q-card-head"><span class="mono">01 · 2 questions · so we know who to reply to</span></div>
-          <div class="q-group">
-            <label for="company_name">Company Name <span class="required">*</span></label>
-            <input type="text" id="company_name" class="q-input" required placeholder="e.g. Acme Corp" autocomplete="organization">
+    <div id="wrap" style="display:none">
+      <form id="discovery-form" class="q-form" data-mode="details" novalidate>
+        <!-- View 1, left: your details -->
+        <div class="q-left" id="q-left">
+          <div class="q-card" id="details-card">
+            <div class="q-card-head">
+              <span class="mono">01 · 2 questions · so we know who to reply to</span>
+              <h3>Your <em>details</em></h3>
+              <p class="lede">Start here. Once we know who you are, the rest of the questionnaire opens up section by section.</p>
+            </div>
+            <div class="q-group">
+              <label for="company_name">Company Name <span class="required">*</span></label>
+              <input type="text" id="company_name" class="q-input" required placeholder="e.g. Acme Corp" autocomplete="organization">
+            </div>
+            <div class="q-group">
+              <label for="email">Email Address <span class="required">*</span></label>
+              <input type="email" id="email" class="q-input" required placeholder="e.g. hello@acmecorp.com" autocomplete="email">
+            </div>
+            <p class="q-ok" id="details-ok"><i aria-hidden="true"></i><span>Fill in both to open the questions</span></p>
           </div>
-          <div class="q-group">
-            <label for="email">Email Address <span class="required">*</span></label>
-            <input type="email" id="email" class="q-input" required placeholder="e.g. hello@acmecorp.com" autocomplete="email">
+
+          <div class="q-nav" id="q-nav">
+            <div class="mt-wrap" id="backWrap" style="visibility:hidden">
+              <div class="mt-inner"></div>
+              <button type="button" class="mt-btn" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+            </div>
+            <span class="q-count mono" id="count"></span>
+            <button type="button" class="lq-btn" id="nextBtn"><span class="lq-ring" aria-hidden="true"></span><span class="lq-glass" aria-hidden="true"></span><span class="lq-txt" id="nextTxt">Next</span></button>
           </div>
         </div>
 
-        <div id="dynamic-fields" style="display:contents"></div>
+        <!-- View 1, right: the stack; hover it to see what each part asks -->
+        <aside class="st" id="stack" aria-label="What this questionnaire asks"></aside>
 
-        <div class="q-nav">
-          <div class="mt-wrap" id="backWrap" style="visibility:hidden">
-            <div class="mt-inner"></div>
-            <button type="button" class="mt-btn" id="backBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Back</button>
+        <!-- View 2: the sections as an open journal -->
+        <div class="jr" id="journal" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Questionnaire sections">
+          <div class="jr-stage">
+            <div class="jr-floor" aria-hidden="true"></div>
+            <div class="jr-view"><div class="jr-scene" id="jr-scene"></div></div>
           </div>
-          <span class="q-count mono" id="count"></span>
-          <button type="button" class="lq-btn" id="nextBtn"><span class="lq-ring" aria-hidden="true"></span><span class="lq-glass" aria-hidden="true"></span><span class="lq-txt" id="nextTxt">Next</span></button>
+          <p class="sr jr-live" aria-live="polite"></p>
         </div>
       </form>
-
-      <!-- Right column: kept free for the card stack; until then it lists the sections -->
-      <aside class="q-side" id="stack-slot" aria-label="Sections">
-        <ol class="q-steps" id="steps"></ol>
-      </aside>
     </div>
 
     <div class="q-done" id="success-view">
@@ -384,6 +512,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+<script src="discovery-stack.js"></script>
+<script src="discovery-journal.js"></script>
 <script>
 (() => {
   'use strict';
@@ -711,9 +841,12 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   const spellWord = (w) => { live.text = (w || MARQUEE.text).toUpperCase(); field && field.respell(); };
 
   // ===================== Questionnaire =====================
-  let questions = [], cur = 0, svcTimer = 0, svcHeld = false;
-  const cards = () => Array.from(document.querySelectorAll('#discovery-form .q-card'));
+  // Step 0 is "Your details" (form + stack). Steps 1..n are the sections, shown as journal spreads.
+  let questions = [], sections = [], steps = [], cur = 0, mode = 'details', svcTimer = 0, svcHeld = false, swapT = 0;
+  let stack = null, journal = null;
+  const pad = (n) => String(n).padStart(2, '0');
   const stepWord = (t) => (String(t).split(/\s+/)[0] || '').replace(/[^A-Za-z0-9&]/g, '').slice(0, 9) || 'MMGA';
+  const NEXT_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
 
   function showToast(msg, err) {
     const t = $('toast'); t.textContent = msg; t.classList.toggle('err', !!err); t.classList.add('show');
@@ -721,32 +854,61 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   }
 
   function renderQuestions() {
-    const sections = {};
-    questions.forEach(q => { const s = q.section || 'General'; (sections[s] = sections[s] || []).push(q); });
-    let html = '', n = 1;
-    for (const [name, qs] of Object.entries(sections)) {
-      n++;
-      html += `<div class="q-card" data-title="${esc(name)}" data-count="${qs.length}"><div class="q-card-head"><span class="mono">${String(n).padStart(2, '0')} · ${qs.length} question${qs.length === 1 ? '' : 's'}</span></div>`;
-      qs.forEach(q => {
+    const by = {};
+    questions.forEach(q => { const s = q.section || 'General'; (by[s] = by[s] || []).push(q); });
+    sections = Object.entries(by).map(([title, qs]) => ({ title, qs }));
+    steps = [{ title: 'Your Details', count: 2 }].concat(sections.map(s => ({ title: s.title, count: s.qs.length })));
+    const total = steps.length;
+    const band = HEAT.palette.concat(HEAT.palette.slice().reverse()).map(c => `<i style="--c:${c}"></i>`).join('');
+    const toc = (k) => steps.map((s, i) => `<li><button type="button" data-step="${i}"${i === k + 1 ? ' class="on" aria-current="step"' : ''}><span class="n">${pad(i + 1)}</span><span>${esc(s.title)}</span></button></li>`).join('');
+    $('jr-scene').innerHTML = sections.map((s, k) => {
+      const nn = pad(k + 2), count = s.qs.length;
+      const qs = s.qs.map((q, j) => {
+        const id = `q_${esc(q.id)}`;
         const input = q.type === 'textarea'
-          ? `<textarea id="q_${esc(q.id)}" class="q-input" placeholder="Type your answer here..."></textarea>`
-          : `<input type="text" id="q_${esc(q.id)}" class="q-input" placeholder="Type your answer here...">`;
-        html += `<div class="q-group"><label for="q_${esc(q.id)}">${esc(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</label>${input}</div>`;
-      });
-      html += `</div>`;
+          ? `<textarea id="${id}" class="q-input" placeholder="Type your answer here..."></textarea>`
+          : `<input type="text" id="${id}" class="q-input" placeholder="Type your answer here...">`;
+        return `<div class="q-group"><label for="${id}"><span class="qn">${pad(j + 1)}</span><span>${esc(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}</div>`;
+      }).join('');
+      return `<div class="jr-item" data-i="${k}" role="group" aria-roledescription="spread" aria-label="${esc(s.title)}, section ${k + 2} of ${total}">
+        <div class="jr-page" data-side="l"><div class="jr-pg jr-left">
+          <div class="jr-band" aria-hidden="true">${band}</div>
+          <p class="mono jr-kick">Section ${nn} of ${pad(total)}</p>
+          <p class="jr-num" aria-hidden="true">${nn}</p>
+          <h3 class="jr-title">${esc(s.title)}</h3>
+          <p class="jr-meta">${count} question${count === 1 ? '' : 's'}. Answer what you can, nothing here is required.</p>
+          <ol class="jr-toc">${toc(k)}</ol>
+          <p class="jr-for">Prepared for <em data-company>your brand</em></p>
+        </div><div class="jr-gutter"></div><div class="jr-shade"></div></div>
+        <div class="jr-page" data-side="r"><div class="jr-pg jr-right">
+          <div class="jr-mhead"><p class="mono jr-kick">Section ${nn} of ${pad(total)}</p><h3 class="jr-title">${esc(s.title)}</h3></div>
+          <div class="jr-qs">${qs}</div>
+          <p class="jr-folio mono"><span>${esc(s.title)}</span><span>p. ${k * 2 + 3}</span></p>
+        </div><div class="jr-gutter"></div><div class="jr-shade"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // The stack has five plates: your details at the bottom, the sections in four groups above it.
+  function stackGroups() {
+    const m = sections.length, out = [{ title: 'Your details', items: ['Company name', 'Email address'], count: 2, main: true, step: 0 }];
+    for (let g = 0; g < 4; g++) {
+      const from = m >= 4 ? Math.floor(g * m / 4) : g, to = m >= 4 ? Math.floor((g + 1) * m / 4) : Math.min(g + 1, m);
+      const part = sections.slice(from, Math.max(from, to));
+      if (!part.length) { out.push({ title: 'Review & send', items: ['Check your answers', 'Submit'], count: 0, step: steps.length - 1 }); continue; }
+      out.push({ title: part[0].title, items: part.map(s => s.title), count: part.reduce((a, s) => a + s.qs.length, 0), step: from + 1 });
     }
-    $('dynamic-fields').innerHTML = html;
+    return out;
   }
 
   const ARROW = '<svg class="kln-svc-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10M7 17 17 7"/></svg>';
 
   function buildNav() {
-    const cs = cards(), total = cs.length;
-    const qn = (c) => Number(c.dataset.count || 2);
+    const total = steps.length;
     // hero card: the sections, one open at a time, stepping on by itself
-    $('svc-list').innerHTML = cs.map((c, i) => `<li><a class="kln-svc" data-i="${i}" href="#questionnaire">
-      <span class="kln-svc-row"><span class="mono kln-svc-index">${String(i + 1).padStart(2, '0')}</span><span class="kln-svc-name">${esc(c.dataset.title)}</span>${ARROW}</span>
-      <span class="kln-svc-more"><span class="kln-svc-line">${qn(c)} question${qn(c) === 1 ? '' : 's'}${i === 0 ? ', so we know who to reply to' : ''}</span></span></a></li>`).join('');
+    $('svc-list').innerHTML = steps.map((s, i) => `<li><a class="kln-svc" data-i="${i}" href="#questionnaire">
+      <span class="kln-svc-row"><span class="mono kln-svc-index">${pad(i + 1)}</span><span class="kln-svc-name">${esc(s.title)}</span>${ARROW}</span>
+      <span class="kln-svc-more"><span class="kln-svc-line">${s.count} question${s.count === 1 ? '' : 's'}${i === 0 ? ', so we know who to reply to' : ''}</span></span></a></li>`).join('');
     const svc = Array.from(document.querySelectorAll('.kln-svc'));
     let active = 0;
     const open = (i) => {
@@ -774,19 +936,27 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     $('bar-count').textContent = `${total} sections`;
 
     // bottom bar: each tab spells its section in the field while hovered
-    $('tabs').insertAdjacentHTML('beforeend', cs.map((c, i) => `<li><a class="kln-tab" data-i="${i}" href="#questionnaire">${esc(c.dataset.title)}</a></li>`).join(''));
+    $('tabs').insertAdjacentHTML('beforeend', steps.map((s, i) => `<li><a class="kln-tab" data-i="${i}" href="#questionnaire">${esc(s.title)}</a></li>`).join(''));
     const tabs = Array.from(document.querySelectorAll('.kln-tab'));
     tabs.forEach((t, i) => {
-      const on = () => { moveMarker(i); spellWord(stepWord(cs[i].dataset.title)); };
+      const on = () => { moveMarker(i); spellWord(stepWord(steps[i].title)); };
       const off = () => { moveMarker(cur); spellWord(null); };
       t.addEventListener('pointerenter', on); t.addEventListener('focus', on);
       t.addEventListener('pointerleave', off); t.addEventListener('blur', off);
       t.addEventListener('click', () => jump(i));
     });
 
-    // side list (placeholder until the card stack goes here)
-    $('steps').innerHTML = cs.map((c, i) => `<li data-i="${i}"><span class="n">${String(i + 1).padStart(2, '0')}</span><span class="t">${esc(c.dataset.title)}</span><i class="ok"></i></li>`).join('');
-    $('steps').querySelectorAll('li').forEach((li, i) => li.addEventListener('click', () => jump(i)));
+    // the stack beside your details
+    const groups = stackGroups();
+    if (window.MMGAStack) stack = MMGAStack.create($('stack'), { groups, onPick: (g) => jump(groups[g].step) });
+
+    // the journal: sections as spreads
+    if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), { onIndex: (k) => { cur = k + 1; updateChrome(cur); } });
+    $('jr-scene').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-step]');
+      if (b && b.closest('.jr-item.on')) { e.preventDefault(); jump(Number(b.dataset.step)); }
+    });
+    syncDetails();
   }
 
   function moveMarker(i) {
@@ -797,33 +967,92 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     tabs.forEach((x, k) => x.classList.toggle('on', k === i));
   }
 
-  function stepValid(i) {
-    const bad = Array.from(cards()[i].querySelectorAll('input[required]')).find(el => !el.checkValidity());
-    if (bad) { show(i, true); bad.reportValidity(); showToast('Please fill in the required fields.', true); return false; }
-    return true;
+  // ----- your details: live into the stack's first card -----
+  function details() {
+    const company = $('company_name').value.trim(), email = $('email').value.trim();
+    return { company, email, valid: !!company && !!email && $('email').checkValidity() };
   }
-  function jump(i) { for (let k = cur; k < i; k++) if (!stepValid(k)) return; show(i, true); }
+  function syncDetails() {
+    const d = details();
+    if (stack) stack.setDetails(d);
+    const ok = $('details-ok');
+    ok.classList.toggle('on', d.valid);
+    ok.lastElementChild.textContent = d.valid ? 'All set. The questions are ready for you.' : 'Fill in both to open the questions';
+    document.querySelectorAll('[data-company]').forEach(el => { el.textContent = d.company || 'your brand'; });
+  }
+  ['company_name', 'email'].forEach(id => $(id).addEventListener('input', syncDetails));
+  $('details-card').addEventListener('focusin', () => stack && stack.hold(true));
+  $('details-card').addEventListener('focusout', () => setTimeout(() => {
+    if (stack && !$('details-card').contains(document.activeElement)) stack.hold(false);
+  }, 60));
+
+  function detailsValid(report) {
+    const bad = Array.from($('details-card').querySelectorAll('input[required]')).find(el => !el.checkValidity());
+    if (bad && report) {
+      showToast('Please fill in your company name and email first.', true);
+      if (mode === 'details') bad.reportValidity();
+      else { show(0, true); setTimeout(() => bad.reportValidity(), 1000); }
+    }
+    return !bad;
+  }
+
+  // ----- the two views -----
+  function setMode(next, after) {
+    const f = $('discovery-form');
+    if (mode === next) { if (after) after(); return; }
+    mode = next;
+    const apply = () => {
+      f.dataset.mode = next;
+      (next === 'journal' ? f : $('q-left')).appendChild($('q-nav'));
+      if (after) after();
+    };
+    clearTimeout(swapT);
+    if (reduce) { apply(); return; }
+    f.classList.add('swap-out');
+    swapT = setTimeout(() => {
+      f.classList.remove('swap-out');
+      f.classList.add('swap-in');
+      apply();
+      void f.offsetWidth;
+      requestAnimationFrame(() => requestAnimationFrame(() => f.classList.remove('swap-in')));
+    }, 340);
+  }
+
+  function updateChrome(i) {
+    const n = steps.length;
+    document.querySelectorAll('.kln-tab').forEach((t, k) => t.classList.toggle('done', k < i));
+    document.querySelectorAll('.jr-toc [data-step]').forEach(b => b.classList.toggle('done', Number(b.dataset.step) < i));
+    moveMarker(i);
+    $('backWrap').style.visibility = i === 0 ? 'hidden' : 'visible';
+    $('nextTxt').innerHTML = i === n - 1 ? 'Submit answers' : (i === 0 ? 'Open the questions ' : 'Next ') + NEXT_ARROW;
+    $('count').textContent = `Step ${i + 1} of ${n}`;
+    $('q-title').textContent = steps[i].title;
+    const pct = Math.round((i / n) * 100);
+    $('q-pct').textContent = pct + '%';
+    $('q-fill').style.width = pct + '%';
+  }
+
+  function jump(i) { if (i > 0 && !detailsValid(true)) return; show(i, true); }
   function go(d) {
-    const last = cards().length - 1;
-    if (d > 0 && !stepValid(cur)) return;
+    const last = steps.length - 1;
+    if (d > 0 && cur === 0 && !detailsValid(true)) return;
     if (d > 0 && cur === last) { submitForm(); return; }
     show(Math.max(0, Math.min(last, cur + d)), true);
   }
 
   function show(i, scroll) {
     cur = i;
-    const cs = cards(), n = cs.length;
-    cs.forEach((c, k) => c.classList.toggle('on', k === i));
-    document.querySelectorAll('.kln-tab').forEach((t, k) => t.classList.toggle('done', k < i));
-    document.querySelectorAll('#steps li').forEach((s, k) => { s.classList.toggle('on', k === i); s.classList.toggle('done', k < i); });
-    moveMarker(i);
-    $('backWrap').style.visibility = i === 0 ? 'hidden' : 'visible';
-    $('nextTxt').innerHTML = i === n - 1 ? 'Submit answers' : 'Next <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
-    $('count').textContent = `Step ${i + 1} of ${n}`;
-    $('q-title').textContent = cs[i].dataset.title;
-    const pct = Math.round((i / n) * 100);
-    $('q-pct').textContent = pct + '%';
-    $('q-fill').style.width = pct + '%';
+    updateChrome(i);
+    if (i === 0) {
+      if (mode === 'journal' && journal) journal.exit(() => setMode('details'));
+      else setMode('details');
+    } else if (!journal) {
+      return;
+    } else if (mode === 'journal') {
+      journal.go(i - 1);
+    } else {
+      setMode('journal', () => journal.enter(i - 1));
+    }
     if (scroll) {
       const top = $('questionnaire').getBoundingClientRect().top;
       if (top < 0 || top > innerHeight * 0.4) $('questionnaire').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
