@@ -122,7 +122,7 @@ button{font:inherit;color:inherit;background:none;border:0}
 .hc-size{visibility:hidden}
 .hc-face{font-family:var(--f-display);font-size:1em;font-stretch:75%;font-style:normal;font-weight:800;letter-spacing:0}
 .px{font-family:var(--f-pixel);font-size:1em;font-stretch:75%;font-weight:800;line-height:.84;letter-spacing:.02em}
-.kln-start{margin-top:26px;background:rgb(255 255 255/.7)}
+.kln-start{margin-top:26px}
 .kln-sub{margin-top:18px;max-width:46ch;color:var(--body);font-size:clamp(1rem,.95rem + .3vw,1.2rem);line-height:1.45;letter-spacing:-.01em}
 
 /* Sections card (the "services" card of the hero) */
@@ -366,7 +366,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   color:var(--ink);font-size:.95rem;font-weight:600;letter-spacing:-.01em;white-space:nowrap;cursor:pointer;transition:transform .3s}
 .lq-btn:hover:not(:disabled){transform:scale(1.05)}
 .lq-btn:disabled{opacity:.5;cursor:wait}
-.lq-btn .lq-ring{position:absolute;inset:0;z-index:0;border-radius:999px;transition:box-shadow .3s;
+.lq-btn .lq-ring,.lq-btn .lq-glass{display:none!important}
+.lq-btn .lq-ring-old{position:absolute;inset:0;z-index:0;border-radius:999px;transition:box-shadow .3s;
   box-shadow:0 0 6px rgba(0,0,0,.03),0 2px 6px rgba(0,0,0,.08),inset 3px 3px .5px -3px rgba(0,0,0,.9),inset -3px -3px .5px -3px rgba(0,0,0,.85),
     inset 1px 1px 1px -.5px rgba(0,0,0,.6),inset -1px -1px 1px -.5px rgba(0,0,0,.6),inset 0 0 6px 6px rgba(0,0,0,.12),inset 0 0 2px 2px rgba(0,0,0,.06),0 0 12px rgba(255,255,255,.15)}
 .lq-btn .lq-glass{position:absolute;inset:0;z-index:-1;overflow:hidden;border-radius:999px;
