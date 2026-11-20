@@ -6,8 +6,8 @@
   <title>Discovery Questionnaire | MMGA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75,800&family=Handjet:wght@600&family=Host+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@600&family=Instrument+Serif:ital@1&family=Martian+Mono:wght@400&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75,800&family=Host+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <style>
 /* Pixel-heat theme (ported from the "kiln" hero). Classes are prefixed kln- / q- */
 :root{
@@ -18,9 +18,9 @@
   --f-sans:'Host Grotesk',ui-sans-serif,system-ui,sans-serif;
   --f-mono:'Martian Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
   --f-display:'Archivo',var(--f-sans);
-  --f-serif:'Instrument Serif',ui-serif,Georgia,serif;
-  --f-pixel:'Handjet',var(--f-mono);
-  --f-dot:'Doto',var(--f-mono);
+  --f-serif:var(--f-sans);
+  --f-pixel:var(--f-display);
+  --f-dot:var(--f-mono);
   --ease:cubic-bezier(.22,1,.36,1); --win-ease:cubic-bezier(.32,.72,0,1);
   --lift:0 1px 0 rgb(0 0 0/.03),0 10px 28px -14px rgb(20 20 20/.3);
   --frame-x:12px; --inset-x:16px; --nav-space:58px; --bar-space:54px; --card-w:0px; --card-gap:0px;
@@ -120,8 +120,8 @@ button{font:inherit;color:inherit;background:none;border:0}
 .hc{display:inline-grid;align-items:baseline;justify-items:center}
 .hc>*{grid-area:1/1}
 .hc-size{visibility:hidden}
-.hc-face{font-family:var(--f-serif);font-size:1.12em;font-stretch:normal;font-style:italic;font-weight:400;letter-spacing:0}
-.px{font-family:var(--f-pixel);font-size:1.14em;font-stretch:normal;font-weight:600;line-height:.84;letter-spacing:.02em}
+.hc-face{font-family:var(--f-display);font-size:1.12em;font-stretch:75%;font-style:normal;font-weight:800;letter-spacing:0}
+.px{font-family:var(--f-pixel);font-size:1.14em;font-stretch:75%;font-weight:800;line-height:.84;letter-spacing:.02em}
 .kln-start{margin-top:26px;background:rgb(255 255 255/.7)}
 .kln-sub{margin-top:18px;max-width:46ch;color:var(--body);font-size:clamp(1rem,.95rem + .3vw,1.2rem);line-height:1.45;letter-spacing:-.01em}
 
@@ -196,7 +196,7 @@ button.kln-bar-label:hover{color:var(--ink)}
 .q-card-head{display:flex;flex-direction:column;gap:8px;margin-bottom:clamp(12px,2.2dvh,22px);padding-bottom:clamp(10px,1.8dvh,18px);border-bottom:1px solid var(--line)}
 .q-card-head .mono{color:var(--muted)}
 .q-card-head h3{font-family:var(--f-display);font-stretch:75%;font-weight:800;text-transform:uppercase;line-height:.92;font-size:clamp(1.8rem,1.2rem + 1.6vw,2.7rem)}
-.q-card-head h3 em{font-family:var(--f-serif);font-style:italic;font-weight:400;font-stretch:normal;text-transform:none;letter-spacing:0}
+.q-card-head h3 em{font-family:var(--f-display);font-style:normal;font-weight:800;font-stretch:75%;text-transform:none;letter-spacing:0}
 .q-card-head p.lede{color:var(--body);font-size:.95rem;line-height:1.5;max-width:42ch}
 .q-ok{display:inline-flex;align-items:center;gap:8px;margin-top:4px;color:var(--muted);font-size:.8rem}
 .q-ok i{width:8px;height:8px;background:var(--line-box);transition:background-color .3s}
@@ -242,7 +242,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .st-vis.open .st-card{pointer-events:auto;cursor:pointer}
 .st-card.lit{border-color:rgb(236 132 112/.42);box-shadow:0 1px 2px rgb(40 30 60/.05),0 18px 38px -18px rgb(236 132 112/.45),inset 0 1px 0 rgb(255 255 255/.9)}
 .st-cb{display:grid;grid-template-columns:1.4em minmax(0,1fr) auto;column-gap:.55em;align-items:start}
-.st-n{grid-column:1;grid-row:1;display:flex;align-items:center;height:1.64em;color:var(--muted);font-family:var(--f-mono);font-size:.78em}
+.st-n{grid-column:1;grid-row:1;display:flex;align-items:center;height:1.64em;color:var(--ink);font-family:var(--f-mono);font-size:.78em}
 .st-hd{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.1em .6em;min-width:0}
 .st-cb.main .st-hd{grid-column:2/4}
 .st-tl{color:var(--ink);font-family:var(--f-display);font-stretch:75%;font-weight:800;font-size:1.22em;line-height:1.1;text-transform:uppercase;letter-spacing:.005em;max-width:100%;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
@@ -323,7 +323,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-toc button.on{color:var(--ink);font-weight:600}
 .jr-toc button.done .n{color:#e07d78}
 .jr-for{margin-top:auto;padding-top:12px;color:var(--muted);font-size:max(12.5px,calc(var(--jw)*.0135))}
-.jr-for em{color:var(--ink);font-family:var(--f-serif);font-size:1.5em;font-style:italic}
+.jr-for em{color:var(--ink);font-family:var(--f-sans);font-size:1.1em;font-style:normal;font-weight:600}
 /* right page: the questions */
 .jr-mhead{display:none;padding:22px 22px 0}
 .jr.single .jr-mhead{display:block}
@@ -454,7 +454,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         <div class="q-left" id="q-left">
           <div class="q-card" id="details-card">
             <div class="q-card-head">
-              <span class="mono">01 · 2 questions · so we know who to reply to</span>
               <h3>Your <em>details</em></h3>
               <p class="lede">Start here. Once we know who you are, the rest of the questionnaire opens up section by section.</p>
             </div>
@@ -466,7 +465,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
               <label for="email">Email Address <span class="required">*</span></label>
               <input type="email" id="email" class="q-input" required placeholder="e.g. hello@acmecorp.com" autocomplete="email">
             </div>
-            <p class="q-ok" id="details-ok"><i aria-hidden="true"></i><span>Fill in both to open the questions</span></p>
           </div>
 
           <div class="q-nav" id="q-nav">
@@ -911,9 +909,6 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   function syncDetails() {
     const d = details();
     if (stack) stack.setDetails(d);
-    const ok = $('details-ok');
-    ok.classList.toggle('on', d.valid);
-    ok.lastElementChild.textContent = d.valid ? 'All set. The questions are ready for you.' : 'Fill in both to open the questions';
     document.querySelectorAll('[data-company]').forEach(el => { el.textContent = d.company || 'your brand'; });
   }
   ['company_name', 'email'].forEach(id => $(id).addEventListener('input', syncDetails));

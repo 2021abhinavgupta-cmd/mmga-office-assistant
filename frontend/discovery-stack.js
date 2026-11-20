@@ -127,9 +127,9 @@
   function plateNumber(slab, n, main) {
     const k = slab.half * 0.56, [x, y] = project(k, k, CX, slab.top);
     const plane = `matrix(${FM.top} 0 0) rotate(-45)`, label = String(n).padStart(2, '0');
-    const t = `text-anchor="middle" dominant-baseline="central" font-size="25" font-weight="500" letter-spacing="2.5" font-family="Martian Mono, ui-monospace, monospace"`;
+    const t = `text-anchor="middle" dominant-baseline="central" font-size="26" font-weight="700" letter-spacing="2.5" font-family="Martian Mono, ui-monospace, monospace"`;
     return `<g transform="translate(${f2(x)} ${f2(y)})"><text ${t} transform="translate(0 .9) ${plane}" fill="#fff" opacity=".95">${label}</text>` +
-      `<text ${t} transform="${plane}" fill="${main ? ACC : '#c6c5cf'}">${label}</text></g>`;
+      `<text ${t} transform="${plane}" fill="${main ? ACC : '#7d7a8c'}">${label}</text></g>`;
   }
 
   // ---------- the exploded layout ----------
@@ -141,7 +141,7 @@
     Object.assign({}, CAP, { top: CAP.top + 7, depth: 7 }),
     Object.assign({}, CAP, { depth: 7 }),
   ];
-  const ACTIVE = 0; // the details plate: data enters at the bottom of the stack
+  const ACTIVE = 4; // the details plate (01) is the top of the stack
   const SKIRT = [0, 4, 0, 10, 10];
   const TARGET = PLATES.map((_, i) => EXPLODE.topPlateY + (PLATES.length - 1 - i) * EXPLODE.gap - (i === ACTIVE ? EXPLODE.lift : 0));
   const TRAVEL = PLATES.map((s, i) => TARGET[i] - s.top);
@@ -150,12 +150,13 @@
   const tipOffset = (i) => { const { half, radius } = PLATES[i]; return 0.866 * (2 * half - 0.586 * radius) * EXPLODE.scales[i]; };
   const tipX = (i, side) => CX + (side === 'right' ? 1 : -1) * tipOffset(i);
   const cornerY = (i) => TARGET[i] + PLATES[i].depth / 2;
+  const plateOf = (g) => PLATES.length - 1 - g; // card 01 sits on the top plate, 05 on the bottom
 
   const CARDS = { left: { edge: -2, width: 31 }, right: { edge: 0, width: 29 }, restInset: 10, outward: 2, beadSeconds: 1.6 };
   const SIDES = ['right', 'left', 'right', 'left', 'right'];
 
   function coreSvg() {
-    const seam = { half: MID.half - 2, radius: MID.radius - 2, top: MID.top + MID.depth - 1, depth: SEAM_GAP + 1 };
+    const seam = { half: CAP.half - 2, radius: CAP.radius - 2, top: CAP.top + CAP.depth - 1, depth: 9 };
     const plate = (i, inner) => {
       const s = PLATES[i];
       return `<g data-plate="${i}">` +
@@ -169,20 +170,18 @@
       <circle r="46" fill="none" stroke="${HEAT[1]}" stroke-dasharray="3 6" opacity=".7"/>
       <circle r="10" fill="${ACC}"/></g>`;
     const slots = (slab, marks) => marks.map((m) => faceMark(slab, m[0], m[1], m[2], m[3], m[4], 'url(#st-slot)')).join('');
-    return `<svg class="st-svg" viewBox="0 0 1000 1000" aria-hidden="true">${DEFS}` +
-      plate(0, slabBody(PLATES[0]) + slabTop(PLATES[0], 10) + plateNumber(PLATES[0], 1, true) +
-        slots(BASE, [['right', .5, .62, 4.5, 4.5], ['right', .58, .62, 4.5, 4.5], ['right', .66, .62, 4.5, 4.5], ['left', .32, .62, 4.5, 4.5], ['left', .4, .62, 4.5, 4.5]]) + emph(PLATES[0])) +
-      plate(1, slabBody(PLATES[1]) + slabTop(PLATES[1], 10) + plateNumber(PLATES[1], 2) + panelLine(BASE, 'left', .3) + panelLine(BASE, 'right', .3)) +
-      plate(2, `<g class="st-pulse"><path d="${topPath(MID, 4, CX, BASE.top - MID.top)}" fill="${HEAT[2]}" opacity=".24" filter="url(#st-blur-spill)"/>` +
-        `<path d="${bodyPath(seam)}" fill="${HEAT[2]}" opacity=".6" filter="url(#st-blur-glow)"/></g>` +
-        `<path data-glow d="${bodyPath(seam)}" fill="${ACC}" filter="url(#st-blur-glow)" opacity="0"/>` +
-        `<path d="${bodyPath(seam)}" fill="url(#st-seam)"/>` + slabBody(MID) + slabTop(MID, 11) + plateNumber(MID, 3) +
+    return `<svg class="st-svg" viewBox="0 0 1000 1000" aria-hidden="true">${DEFS}<g data-emph opacity="0"></g>` +
+      plate(0, slabBody(PLATES[0]) + slabTop(PLATES[0], 10) + plateNumber(PLATES[0], 5) +
+        slots(BASE, [['right', .5, .62, 4.5, 4.5], ['right', .58, .62, 4.5, 4.5], ['right', .66, .62, 4.5, 4.5], ['left', .32, .62, 4.5, 4.5], ['left', .4, .62, 4.5, 4.5]])) +
+      plate(1, slabBody(PLATES[1]) + slabTop(PLATES[1], 10) + plateNumber(PLATES[1], 4) + panelLine(BASE, 'left', .3) + panelLine(BASE, 'right', .3)) +
+      plate(2, slabBody(MID) + slabTop(MID, 11) + plateNumber(MID, 3) +
         panelLine(MID, 'left', .78) + panelLine(MID, 'right', .78) +
         slots(MID, [['left', .62, .42, 34, 7.5], ['left', .34, .42, 5, 5], ['left', .42, .42, 5, 5], ['right', .44, .42, 5, 5], ['right', .52, .42, 5, 5], ['right', .68, .42, 22, 4.5]]) +
-        `<g class="st-pulse">${faceMark(MID, 'left', .2, .42, 7, 2.6, ACC, true)}</g>` +
         fastener(MID, 0, -MID.half + 28) + fastener(MID, -MID.half + 28, 0) + fastener(MID, MID.half - 28, 0) + fastener(MID, 0, MID.half - 28)) +
-      plate(3, slabBody(PLATES[3]) + slabTop(PLATES[3]) + inlay(PLATES[3]) + plateNumber(PLATES[3], 4)) +
-      plate(4, slabBody(PLATES[4]) + slabTop(PLATES[4]) + inlay(CAP) + coreLogo(CX, CAP.top)) +
+      plate(3, slabBody(PLATES[3]) + slabTop(PLATES[3]) + inlay(PLATES[3]) + plateNumber(PLATES[3], 2)) +
+      plate(4, `<g class="st-pulse"><path d="${bodyPath(seam)}" fill="${HEAT[2]}" opacity=".6" filter="url(#st-blur-glow)"/></g>` +
+        `<path data-glow d="${bodyPath(seam)}" fill="${ACC}" filter="url(#st-blur-glow)" opacity="0"/>` +
+        `<path d="${bodyPath(seam)}" fill="url(#st-seam)"/>` + slabBody(PLATES[4]) + slabTop(PLATES[4]) + inlay(CAP) + coreLogo(CX, CAP.top)) +
       `</svg>`;
   }
 
@@ -260,14 +259,11 @@
 
   function cardBody(g, i) {
     const n = String(i + 1).padStart(2, '0');
-    const items = (g.items || []).slice(0, 4).map(escape).join(' · ') + (g.items && g.items.length > 4 ? ` · +${g.items.length - 4}` : '');
     return `<div class="st-cb${g.main ? ' main' : ''}">
       <span class="st-n">${n}</span>
-      <div class="st-hd"><p class="st-tl">${escape(g.title)}</p>${g.main ? '<span class="st-tag">You are here</span>' : ''}</div>
+      <div class="st-hd"><p class="st-tl">${escape(g.title)}</p></div>
       <span class="st-ic">${ICONS[i] || ''}</span>
-      <div class="st-bd"><p class="st-it">${items}</p>` +
-      (g.main ? `<p class="st-live"><span data-live="company" class="ph">Company name</span><span data-live="email" class="ph">Email address</span></p>` : '') +
-      `</div>` + (g.main ? '' : `<span class="st-ct"><b>${g.count}</b>${g.count === 1 ? 'Q' : 'Qs'}</span>`) + `</div>`;
+      ${g.count ? `<span class="st-ct"><b>${g.count}</b>${g.count === 1 ? 'Q' : 'Qs'}</span>` : ''}</div>`;
   }
 
   // ---------- springs ----------
@@ -285,12 +281,12 @@
     const cards = groups.map((g, i) => {
       const side = SIDES[i], { edge, width } = CARDS[side];
       const left = side === 'left' ? edge : 100 - edge - width;
-      return `<li class="st-li" data-side="${side}" style="top:${pct(cornerY(i))};left:${left}%;width:${width}%"><div class="st-card" data-i="${i}">${cardBody(g, i)}</div></li>`;
+      return `<li class="st-li" data-side="${side}" style="top:${pct(cornerY(plateOf(i)))};left:${left}%;width:${width}%"><div class="st-card" data-i="${i}">${cardBody(g, i)}</div></li>`;
     }).join('');
     const connectors = groups.map((g, i) => {
       const side = SIDES[i], { edge, width } = CARDS[side], dir = side === 'right' ? 1 : -1;
       const cardEdge = side === 'left' ? (edge + width) * 10 : (100 - edge - width) * 10;
-      const plateX = tipX(i, side) + dir * 7, nodeX = cardEdge - dir * 10, y = cornerY(i);
+      const plateX = tipX(plateOf(i), side) + dir * 7, nodeX = cardEdge - dir * 10, y = cornerY(plateOf(i));
       return `<g data-con="${i}" data-px="${f2(plateX)}" data-nx="${f2(nodeX)}"><line x1="${f2(plateX)}" x2="${f2(nodeX)}" y1="${y}" y2="${y}" stroke="#cfcfd7"/>` +
         `<line class="st-lit" x1="${f2(plateX)}" x2="${f2(nodeX)}" y1="${y}" y2="${y}" stroke="${ACC}" stroke-width="1.3"/>` +
         `<circle cx="${f2(plateX)}" cy="${y}" r="2.6" fill="#a9a8b3"/>` +
