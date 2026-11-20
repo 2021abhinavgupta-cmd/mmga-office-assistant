@@ -426,8 +426,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .bc-col{flex:1;min-width:0;overflow:hidden}
 .bc-track{display:flex;flex-direction:column;gap:16px;animation:bc-up var(--d,40s) linear infinite}
 .bc-col:nth-child(2) .bc-track{animation-direction:reverse}
-.bc-card{flex:none;aspect-ratio:4/5;border-radius:22px;display:grid;place-items:center;padding:14px;background:var(--bg,#fff);color:var(--fg,var(--ink));box-shadow:0 14px 34px -18px rgb(20 20 20/.35),inset 0 0 0 1px rgb(20 20 20/.06);text-align:center}
-.bc-card img{max-width:78%;max-height:60%;object-fit:contain}
+.bc-card{flex:none;aspect-ratio:184/300;border-radius:22px;overflow:hidden;background:#eee;box-shadow:0 14px 34px -18px rgb(20 20 20/.4)}
+.bc-card img{display:block;width:100%;height:100%;object-fit:cover}
 .bc-card b{font-family:var(--f-display);font-weight:700;font-size:clamp(1rem,1.6vw,1.5rem);letter-spacing:-.01em;line-height:1.05}
 @keyframes bc-up{from{transform:translateY(0)}to{transform:translateY(-50%)}}
 @media (prefers-reduced-motion:reduce){.bc-track{animation:none}}
@@ -826,17 +826,14 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
   document.querySelectorAll('[data-scramble]').forEach(scrambleOn);
 
   // ===================== Nav: info window + controls =====================
-  // Brands shown in the welcome carousel. Add { name, logo: 'file.png' } entries; without a logo the name is shown as text.
-  const BRANDS = [
-    { name: 'Brand one' }, { name: 'Brand two' }, { name: 'Brand three' }, { name: 'Brand four' }, { name: 'Brand five' }, { name: 'Brand six' },
-  ];
+  // Work shown in the welcome carousel: cards from the three MMGA verticals (brand building, digital marketing, websites).
+  const BRANDS = [11,12,13,14,15,16,21,22,23,24,25,26,31,32,33,34,35,36].map((n) => ({ name: 'MMGA work', logo: `brands/b${n}.jpg` }));
   function buildBrandCarousel() {
     const host = $('bc'); if (!host) return;
-    const tints = [['#141414', '#fffcef'], ['#fe8e1c', '#141414'], ['#ffd466', '#141414'], ['#fff', '#141414']];
-    const card = (b, k) => { const [bg, fg] = tints[k % tints.length]; return `<div class="bc-card" style="--bg:${bg};--fg:${fg}">${b.logo ? `<img src="${esc(b.logo)}" alt="${esc(b.name)}">` : `<b>${esc(b.name)}</b>`}</div>`; };
-    host.innerHTML = [0, 1, 2].map((c) => {
-      const set = BRANDS.map((_, i) => BRANDS[(i + c * 2) % BRANDS.length]).map((b, i) => card(b, i + c));
-      return `<div class="bc-col"><div class="bc-track" style="--d:${36 + c * 9}s">${set.join('')}${set.join('')}</div></div>`;
+    const cols = [[0, 3, 6, 9, 12, 15], [1, 4, 7, 10, 13, 16], [2, 5, 8, 11, 14, 17]];
+    host.innerHTML = cols.map((ids, c) => {
+      const set = ids.map((i) => `<div class="bc-card"><img src="${esc(BRANDS[i].logo)}" alt="" loading="lazy" decoding="async"></div>`).join('');
+      return `<div class="bc-col"><div class="bc-track" style="--d:${44 + c * 10}s">${set}${set}</div></div>`;
     }).join('');
   }
 
