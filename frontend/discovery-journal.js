@@ -187,7 +187,7 @@
       if (!d.moved && Math.abs(dx) > 8) {
         d.moved = true; tween = null; after = null;
         // on the open spread a sideways drag turns the page; at the end of a section it slides on to the next one
-        const dir = dx < 0 ? 1 : -1, st = d.onOpen && opts.turnStep ? opts.turnStep(dir) : null;
+        const dir = dx < 0 ? 1 : -1, st = d.onOpen && !single && opts.turnStep ? opts.turnStep(dir) : null;
         const c = st ? startFlip(dir, st.mid, st.done) : null;
         if (c) { d.mode = 'peel'; d.peel = c; d.dir = dir; d.st = st; } else d.mode = 'slide';
         stage.setAttribute('data-drag', '');
@@ -253,6 +253,52 @@
     }, { passive: true });
 
     setCurrent(0);
+
+    // phones: a top-bound notepad. The sheet lifts from the bottom, swings up over its top edge and lands behind.
+    function startNotepad(dir, mid, done) {
+      const item = items[target], rp = pages[target] && pages[target][1];
+      if (!item || !rp || !w || tween || flipping || reduce) return null;
+      flipping = true;
+      const base = rp.style.transform || '';
+      const fresh = () => {
+        const c = rp.cloneNode(true);
+        c.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+        c.querySelectorAll('[for]').forEach((n) => n.removeAttribute('for'));
+        const a = rp.querySelectorAll('textarea,input'), b = c.querySelectorAll('textarea,input');
+        a.forEach((n, i) => { if (b[i]) { b[i].value = n.value; b[i].tabIndex = -1; } });
+        c.classList.add('jr-fl'); c.setAttribute('aria-hidden', 'true'); c.inert = true;
+        c.style.transformOrigin = '50% 0';
+        return c;
+      };
+      item.classList.add('flipping');
+      let under = null;
+      if (dir < 0) { under = fresh(); under.style.transform = base + ' translateZ(1px)'; item.appendChild(under); }
+      const front = dir > 0 ? fresh() : null;
+      mid();
+      const sheet = front || fresh();
+      const back = rp.cloneNode(false);
+      back.classList.add('jr-fl', 'jr-fl-back', 'jr-fl-sheetback');
+      back.style.transformOrigin = '50% 0';
+      item.appendChild(sheet); item.appendChild(back);
+      let ended = false;
+      const cleanup = () => {
+        if (ended) return false;
+        ended = true;
+        [under, sheet, back].forEach((n) => n && n.remove());
+        item.classList.remove('flipping'); flipping = false;
+        return true;
+      };
+      const set = (t) => {
+        if (ended) return;
+        t = clamp(t, 0, 1);
+        const ang = dir > 0 ? 180 * t : 180 * (1 - t);
+        sheet.style.transform = base + ' translateZ(3px) rotateX(' + ang.toFixed(2) + 'deg)';
+        back.style.transform = base + ' translateZ(3px) rotateX(' + (ang + 180).toFixed(2) + 'deg)';
+        sheet.style.filter = 'brightness(' + (1 - 0.18 * Math.sin(Math.PI * Math.min(1, ang / 180))).toFixed(3) + ')';
+      };
+      set(0);
+      return { W: w, set, complete() { if (cleanup() && done) done(); }, cancel(revert) { if (cleanup() && revert) revert(); }, alive: () => !ended };
+    }
 
     function startFlip(dir, mid, done) {
         const item = items[target], rp = pages[target] && pages[target][1];
@@ -332,7 +378,7 @@
       measure,
       /** Turn the open spread's right page like a sheet of paper. dir 1 = forward. `mid` swaps the content, `done` runs at the end. */
       flip(dir, mid, done) {
-        const c = startFlip(dir, mid, done);
+        const c = single ? startNotepad(dir, mid, done) : startFlip(dir, mid, done);
         if (!c) { mid(); if (done) done(); return; }
         const t0 = performance.now(), dur = 720;
         const e2 = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
