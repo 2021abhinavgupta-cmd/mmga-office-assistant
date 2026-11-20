@@ -681,6 +681,7 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
             if (depth > reach - fray) { pixels[i] = 0; continue; }
             h -= depth * 0.12;
           }
+          if (!inZone && h < th[0]) h = th[0] + 0.01;            // no holes in the body, only the drips fray
           if (h < th[0]) { pixels[i] = 0; continue; }
           let band = th.length - 1;
           while (band > 0 && h < th[band]) band--;
