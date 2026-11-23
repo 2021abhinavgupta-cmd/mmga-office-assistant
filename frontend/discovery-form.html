@@ -348,6 +348,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr.single .jr-qs .q-group label{font-size:17px}
 .jr-qs .q-input{flex:none;height:clamp(110px,24dvh,200px);min-height:0;resize:none;line-height:1.5;padding-top:14px}
 .jr-qs input.q-input{height:clamp(110px,24dvh,200px)}
+.q-hint{margin-top:10px;color:var(--body);font-size:clamp(12.5px,calc(var(--jw)*.0135),15px);line-height:1.45;letter-spacing:-.005em;text-wrap:pretty}
+.jr.single .q-hint{font-size:13.5px}
 .jr-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px calc(var(--jw)*.04) calc(var(--jw)*.03);color:var(--muted)}
 .jr.single .jr-pager{padding:6px 22px 16px}
 .jr-dots{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
@@ -867,6 +869,28 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
     clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3000);
   }
 
+  // Plain-language help shown under each answer box: what the question means, with a short example.
+  const HINTS = {
+    q1: 'Your name or your company name, the way you want us to use it. Example: Sharma Interiors.',
+    q2: 'What you sell or do, in a line or two. Example: We make handmade leather bags for working women.',
+    q3: 'What your brand stands for and promises people. Example: Quality that lasts, fair prices, honest service.',
+    q4: 'Who you want to sell to, most important first. Example: 1. Working mothers in Mumbai. 2. College students. 3. Gift buyers.',
+    q5: 'Who your buyers are (age, gender, income, city) and what they care about or enjoy. Example: Women 25 to 40, working, city-based, love fashion and value comfort.',
+    q6: 'Everything you sell or offer today. Example: Leather bags, wallets, belts, custom orders.',
+    q7: 'What makes you different from others, something they cannot easily copy. Example: Every bag is handmade and comes with a lifetime repair promise.',
+    q8: 'Any ads, offers or posts you have run so far. Example: Diwali discount on Instagram, Google ads last year. Write "none" if there is nothing yet.',
+    q9: 'People or groups who help spread the word or work with you. Example: A local fashion blogger, a gifting store, a supplier. Write "none" if not.',
+    q10: 'What you already have that we can use. Example: Website, Instagram page, logo, product photos, a shop, happy customers.',
+    q11: 'Other brands that sell something similar to yours. Example: Brand A and Brand B, plus the local shops nearby.',
+    q12: 'What you want to achieve with us. Example: More people know our name, 30% more sales, launch a new product.',
+    q13: 'Where your customers live and who they are. Example: Mostly Pune and Mumbai, families, first-time home owners.',
+    q14: 'Basic details about them: age, gender, income, job. Example: Men and women 28 to 45, salaried, mid to high income.',
+    q15: 'What people think of your brand today and how they buy. Example: They see us as affordable but not trendy, and they compare prices before buying.',
+    q16: 'How your own team sees the brand and how they work. Example: Proud of the quality, but unsure how to explain it to customers.',
+    q17: 'What the wider public or customers say about you. Example: Good reviews on Google, people talk about us in local groups.',
+    q1795084697816: 'Anything else you would like us to know, ask or discuss. Example: We are planning a new shop next year.'
+  };
+
   function renderQuestions() {
     const by = {};
     questions.forEach(q => { const s = q.section || 'General'; (by[s] = by[s] || []).push(q); });
@@ -882,7 +906,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         const input = q.type === 'textarea'
           ? `<textarea id="${id}" class="q-input" placeholder="Type your answer here..."></textarea>`
           : `<input type="text" id="${id}" class="q-input" placeholder="Type your answer here...">`;
-        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)}</span><span>${noWidow(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}</div>`;
+        const hint = HINTS[q.id] ? `<p class="q-hint" id="${id}_h">${esc(HINTS[q.id])}</p>` : '';
+        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)}</span><span>${noWidow(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}${hint}</div>`;
       }).join('');
       return `<div class="jr-item" data-i="${k}" role="group" aria-roledescription="spread" aria-label="${esc(s.title)}, section ${k + 2} of ${total}">
         <div class="jr-page" data-side="l"><div class="jr-pg jr-left">
