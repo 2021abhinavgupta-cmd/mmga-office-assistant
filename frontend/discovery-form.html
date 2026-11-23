@@ -350,6 +350,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-qs input.q-input{height:clamp(110px,24dvh,200px)}
 .q-hint{margin-top:10px;color:var(--body);font-size:clamp(12.5px,calc(var(--jw)*.0135),15px);line-height:1.45;letter-spacing:-.005em;text-wrap:pretty}
 .jr.single .q-hint{font-size:13.5px}
+.q-hint{overflow-wrap:anywhere}
+.q-ex{display:block;margin-top:4px}
+.q-ex b{font-weight:600;color:var(--ink)}
 .jr-pager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px calc(var(--jw)*.04) calc(var(--jw)*.03);color:var(--muted)}
 .jr.single .jr-pager{padding:6px 22px 16px}
 .jr-dots{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0}
@@ -906,7 +909,8 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
         const input = q.type === 'textarea'
           ? `<textarea id="${id}" class="q-input" placeholder="Type your answer here..."></textarea>`
           : `<input type="text" id="${id}" class="q-input" placeholder="Type your answer here...">`;
-        const hint = HINTS[q.id] ? `<p class="q-hint" id="${id}_h">${esc(HINTS[q.id])}</p>` : '';
+        const hp = HINTS[q.id] ? HINTS[q.id].split(' Example: ') : null;
+        const hint = hp ? `<p class="q-hint" id="${id}_h">${esc(hp[0])}${hp[1] ? `<span class="q-ex"><b>Example:</b> ${esc(hp[1])}</span>` : ''}</p>` : '';
         return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)}</span><span>${noWidow(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}${hint}</div>`;
       }).join('');
       return `<div class="jr-item" data-i="${k}" role="group" aria-roledescription="spread" aria-label="${esc(s.title)}, section ${k + 2} of ${total}">
