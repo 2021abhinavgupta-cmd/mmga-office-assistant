@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Content Test | Link and Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="auth.js"></script>
+  <style>
+    :root { --bg:#0a0a0f; --surface:#12121a; --surface2:#1a1a26; --border:rgba(255,255,255,0.08); --text:#e8e8f0; --muted:#8a8aa8; --accent:#ff8a1f; --red:#ef4444; --green:#34d399; --amber:#fbbf24; --radius:14px; --radius-sm:8px; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
+    .container { max-width:1180px; margin:0 auto; padding:32px 24px; }
+    .top { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+    .top a, .btn { background:transparent; color:var(--text); border:1px solid var(--border); padding:8px 18px; border-radius:100px; font:500 .85rem 'Inter',sans-serif; cursor:pointer; text-decoration:none; transition:all .2s; display:inline-block; }
+    .top a:hover, .btn:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.2); }
+    .btn.primary { background:var(--accent); color:#1a1000; border-color:var(--accent); font-weight:700; }
+    h1 { font-size:2.1rem; font-weight:700; color:#fff; margin-bottom:6px; }
+    .sub { color:var(--muted); margin-bottom:22px; }
+    .linkbox { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px 20px; margin-bottom:24px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .linkbox b.lb { font-size:.8rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); width:100%; }
+    .linkbox input { flex:1; min-width:240px; background:var(--surface2); color:#fff; border:1px solid var(--border); border-radius:10px; padding:11px 14px; font:500 .95rem 'Inter',sans-serif; }
+    .note { color:var(--muted); font-size:.82rem; width:100%; }
+    .grid { display:grid; grid-template-columns:320px 1fr; gap:24px; align-items:start; }
+    .list { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; max-height:calc(100vh - 160px); display:flex; flex-direction:column; }
+    .list-h { padding:14px 16px; background:var(--surface2); border-bottom:1px solid var(--border); font-weight:600; color:#fff; }
+    .items { overflow-y:auto; }
+    .it { padding:14px 16px; border-bottom:1px solid var(--border); cursor:pointer; }
+    .it:hover { background:rgba(255,255,255,.03); }
+    .it.on { background:rgba(255,138,31,.1); border-left:3px solid var(--accent); padding-left:13px; }
+    .it b { display:block; color:#fff; font-size:.95rem; margin-bottom:3px; }
+    .it small { color:var(--muted); font-size:.78rem; }
+    .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:7px; }
+    .chip { font-size:.72rem; font-weight:600; padding:3px 9px; border-radius:99px; background:rgba(255,255,255,.07); color:var(--text); }
+    .chip.ok { background:rgba(52,211,153,.15); color:var(--green); }
+    .chip.warn { background:rgba(251,191,36,.15); color:var(--amber); }
+    .chip.bad { background:rgba(239,68,68,.16); color:#ff8f8f; }
+    .detail { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:28px; min-height:360px; }
+    .empty { color:var(--muted); display:flex; align-items:center; justify-content:center; min-height:300px; }
+    .dh { margin-bottom:22px; padding-bottom:16px; border-bottom:1px solid var(--border); }
+    .dh h2 { font-size:1.7rem; color:#fff; margin-bottom:6px; }
+    .meta { display:flex; gap:16px; flex-wrap:wrap; color:var(--muted); font-size:.88rem; margin-bottom:12px; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:14px 0; }
+    .stat { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; }
+    .stat span { display:block; font-size:.72rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
+    .stat b { font-size:1.15rem; color:#fff; }
+    .sec { margin:26px 0 10px; font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+    .qa { margin-bottom:18px; }
+    .ql { font-size:.92rem; color:#fff; font-weight:600; margin-bottom:6px; }
+    .qm { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+    .at { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:var(--radius-sm); padding:14px; line-height:1.55; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .rub { margin-top:8px; font-size:.8rem; color:var(--muted); }
+    .rub i { color:var(--amber); font-style:normal; font-weight:600; }
+    @media (max-width:860px){ .grid{grid-template-columns:1fr;} .list{max-height:340px;} }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="top">
+    <a href="dashboard.html">← Dashboard</a>
+    <button class="btn" onclick="window.authLogout?.()">Sign Out</button>
+  </div>
+
+  <h1>Content Writing Test</h1>
+  <p class="sub">Send candidates the link below. Their answers, scores and Excel sheet show up here, and are also emailed to Kshitij and Noorish.</p>
+
+  <div class="linkbox">
+    <b class="lb">Test link for candidates</b>
+    <input id="test-link" readonly />
+    <button class="btn primary" id="copy-btn" onclick="copyLink()">Copy link</button>
+    <a class="btn" id="open-link" target="_blank" rel="noopener">Open test</a>
+    <p class="note">Each browser can take the test once. Add <b>?retake=1</b> to the link only if you want to try it yourself.</p>
+  </div>
+
+  <div class="grid">
+    <div class="list">
+      <div class="list-h">Submissions <span id="count" style="color:var(--muted);font-weight:400"></span></div>
+      <div class="items" id="items"><div class="empty" style="min-height:120px">Loading...</div></div>
+    </div>
+    <div class="detail" id="detail"><div class="empty">Select a candidate on the left.</div></div>
+  </div>
+</div>
+
+<script>
+  const API = (location.protocol === 'file:' || !location.hostname) ? 'http://localhost:5000'
+    : (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:5000' : location.origin;
+  const TEST_URL = (location.protocol === 'file:' ? 'https://lumina.mmga.agency' : location.origin) + '/content-test.html';
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const STATUS = {
+    'answered': ['Answered', 'ok'], 'timed-out': ['Time ran out (kept what was typed)', 'warn'],
+    'skipped-tab': ['SKIPPED: left the tab', 'bad'], 'skipped-time': ['Skipped: time ran out, nothing typed', 'warn'],
+    'skipped-blank': ['Skipped: nothing typed', 'warn'], 'skipped-left': ['Not reached: page closed', 'bad'],
+    'left-page': ['Page closed during this question', 'bad']
+  };
+  const SECTION = { Q: 'Warm up', P: 'The basics', A: 'Gut check', B: 'The real you', C: 'Show us the work' };
+  let subs = [];
+
+  $('test-link').value = TEST_URL;
+  $('open-link').href = TEST_URL;
+  function copyLink() {
+    const done = () => { const b = $('copy-btn'); b.textContent = 'Copied'; setTimeout(() => b.textContent = 'Copy link', 1800); };
+    const old = () => { $('test-link').select(); document.execCommand('copy'); done(); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(TEST_URL).then(done, old);
+    else old();
+  }
+
+  const when = (s) => { const d = new Date(String(s || '').replace(' ', 'T') + 'Z'); return isNaN(d) ? '' : d.toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+  const secOf = (id) => SECTION[String(id).charAt(0)] || 'Questions';
+
+  async function init() {
+    try {
+      const r = await fetch(`${API}/api/content-test-submissions`, { credentials: 'same-origin' });
+      if (r.status === 403) { $('items').innerHTML = '<div class="empty" style="min-height:120px">Please sign in again.</div>'; return; }
+      const d = await r.json();
+      subs = d.submissions || [];
+      $('count').textContent = subs.length ? `(${subs.length})` : '';
+      renderList();
+    } catch (e) { $('items').innerHTML = '<div class="empty" style="min-height:120px">Network error.</div>'; }
+  }
+
+  function renderList() {
+    if (!subs.length) { $('items').innerHTML = '<div class="empty" style="min-height:120px">No submissions yet.</div>'; return; }
+    $('items').innerHTML = subs.map(s => {
+      const m = s.summary || {};
+      return `<div class="it" id="it-${s.id}" onclick="show(${s.id})"><b>${esc(s.name)}</b><small>${esc(when(s.submitted_at))}</small>
+        <div class="chips"><span class="chip ${s.partial ? 'bad' : 'ok'}">${s.partial ? 'Incomplete' : 'Finished'}</span>
+        <span class="chip">${m.answered}/${m.total} answered</span>
+        <span class="chip ${m.attitude_pct < 60 ? 'bad' : 'ok'}">Attitude ${m.attitude_pct}%</span>
+        ${m.tab_leaves ? `<span class="chip bad">Left tab ${m.tab_leaves}x</span>` : ''}${m.pastes ? `<span class="chip warn">Paste ${m.pastes}x</span>` : ''}</div></div>`;
+    }).join('');
+  }
+
+  function show(id) {
+    document.querySelectorAll('.it').forEach(e => e.classList.remove('on'));
+    const el = $('it-' + id); if (el) el.classList.add('on');
+    const s = subs.find(x => x.id === id); if (!s) return;
+    const m = s.summary || {}, qs = (s.meta && s.meta.questions) || [];
+    const used = qs.reduce((a, q) => a + (Number(q.used) || 0), 0);
+    let html = `<div class="dh"><h2>${esc(s.name)}</h2>
+      <div class="meta"><span>${esc(s.email)}</span><span>${esc(when(s.submitted_at))}</span>${s.partial ? `<span style="color:#ff8f8f">Incomplete: ${esc((s.meta && s.meta.reason) || 'page was closed')}</span>` : ''}</div>
+      <a class="btn" href="${API}/api/content-test-submissions/${s.id}/xlsx">Download Excel</a>
+      <div class="stats">
+        <div class="stat"><span>Answered</span><b>${m.answered} of ${m.total}</b></div>
+        <div class="stat"><span>Attitude (auto)</span><b>${m.attitude_points}/15 · ${m.attitude_pct}%</b></div>
+        <div class="stat"><span>C4 hook pick</span><b>${m.c4_points == null ? 'n/a' : m.c4_points + ' of 2'}</b></div>
+        <div class="stat"><span>Typing speed</span><b>${m.wpm == null ? 'n/a' : m.wpm + ' wpm · ' + m.accuracy + '%'}</b></div>
+        <div class="stat"><span>Left the tab</span><b>${m.tab_leaves}</b></div>
+        <div class="stat"><span>Paste attempts</span><b>${m.pastes}</b></div>
+        <div class="stat"><span>Time used</span><b>${Math.floor(used / 60)}m ${used % 60}s</b></div>
+      </div>
+      <p class="rub">Sections B and C need a person to score them. Use the rubric under each answer: 0 missing, generic or blames others. 1 fine, anyone could have written it. 2 specific and theirs. 3 specific and surprising.</p></div>`;
+    let last = '';
+    qs.forEach(q => {
+      const sec = secOf(q.id);
+      if (sec !== last) { html += `<div class="sec">${esc(sec)}</div>`; last = sec; }
+      const st = STATUS[q.status] || [q.status, ''];
+      const ans = (s.answers || {})[q.id] || '';
+      html += `<div class="qa"><div class="ql">${esc(q.id)} · ${esc(q.label)}</div>
+        <div class="qm"><span class="chip ${st[1]}">${esc(st[0])}</span><span class="chip">${q.used}s of ${q.seconds}s</span>
+        ${q.pastes ? `<span class="chip warn">Paste attempts ${q.pastes}</span>` : ''}${q.auto_points != null ? `<span class="chip ok">Auto points: ${q.auto_points}</span>` : ''}</div>
+        <div class="at">${ans ? esc(ans) : '<span style="color:var(--muted)">(no answer)</span>'}</div>
+        ${q.rubric ? `<div class="rub"><i>Scorer:</i> ${esc(q.rubric)}</div>` : ''}</div>`;
+    });
+    $('detail').innerHTML = html;
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

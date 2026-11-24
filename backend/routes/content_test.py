@@ -265,6 +265,45 @@ def list_content_test_submissions():
     rows = conn.execute("SELECT id, form_id, candidate_name, email, answers_json, meta_json, partial, submitted_at "
                         "FROM content_test_submissions ORDER BY id DESC").fetchall()
     conn.close()
-    return jsonify({"success": True, "submissions": [
-        {"id": r[0], "form_id": r[1], "name": r[2], "email": r[3], "answers": json.loads(r[4] or "{}"),
-         "meta": json.loads(r[5] or "{}"), "partial": bool(r[6]), "submitted_at": r[7]} for r in rows]})
+    import content_test_key as key
+    out = []
+    for r in rows:
+        meta = json.loads(r[5] or "{}")
+        answers = json.loads(r[4] or "{}")
+        qs = meta.get("questions") or []
+        by_id = {q.get("id"): q for q in qs}
+        for q in qs:                                   # points and rubric are added here, never stored
+            q["auto_points"] = key.auto_points(q.get("id"), q.get("fields"))
+            q["rubric"] = key.RUBRIC.get(q.get("id"), "")
+        a_pts = sum(key.auto_points(i, (by_id.get(i) or {}).get("fields")) or 0 for i in key.A_KEY)
+        wpm, acc = key.typing_speed(answers.get("Q0"), (by_id.get("Q0") or {}).get("used"))
+        summary = {"attitude_points": a_pts, "attitude_pct": round(a_pts / 15 * 100),
+                   "c4_points": key.auto_points("C4", (by_id.get("C4") or {}).get("fields")),
+                   "wpm": wpm, "accuracy": acc,
+                   "answered": sum(1 for q in qs if q.get("status") in ("answered", "timed-out", "left-page")),
+                   "total": len(qs),
+                   "tab_leaves": sum(1 for q in qs if q.get("status") == "skipped-tab"),
+                   "pastes": sum(int(q.get("pastes") or 0) for q in qs)}
+        out.append({"id": r[0], "form_id": r[1], "name": r[2], "email": r[3], "answers": answers,
+                    "meta": meta, "partial": bool(r[6]), "submitted_at": r[7], "summary": summary})
+    return jsonify({"success": True, "submissions": out})
+
+
+@content_test_bp.route("/api/content-test-submissions/<int:sub_id>/xlsx", methods=["GET"])
+def download_content_test_xlsx(sub_id):
+    from flask import Response
+    from routes.auth import _verify_session
+    if not _verify_session(request.cookies.get("session_token", "")):
+        return jsonify({"error": "Unauthorized"}), 403
+    _ensure()
+    conn = get_connection()
+    row = conn.execute("SELECT candidate_name, email, answers_json, meta_json, partial, form_id FROM content_test_submissions WHERE id=?", (sub_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+    attempt = conn.execute("SELECT COUNT(*) FROM content_test_submissions WHERE lower(email)=lower(?) AND form_id=? AND id<=?",
+                           (row[1], row[5], sub_id)).fetchone()[0]
+    conn.close()
+    data = build_xlsx(row[0], row[1], attempt, json.loads(row[2] or "{}"), json.loads(row[3] or "{}"), bool(row[4]))
+    return Response(data, mimetype=XLSX_MIME,
+                    headers={"Content-Disposition": f"attachment;filename={safe_name(row[0])}"})
