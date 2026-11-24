@@ -2,7 +2,7 @@
 
 A candidate fills it in on the public page; when it ends (or the page is closed
 part-way) the answers are stored here and sent as WhatsApp messages to the leads
-who review it (Kshitij and Noorish by default) -- no email involved.
+who review it (Kshitij and Noorish by default) as an emailed Excel sheet.
 
   POST /api/content-test              public; one submission per run_id
   GET  /api/content-test-submissions  employee session; list of stored results
@@ -104,23 +104,102 @@ def build_messages(name, email, attempt, answers, meta, partial):
     return [f"({i}/{n})\n{m}" if n > 1 else m for i, m in enumerate(out, 1)]
 
 
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+def build_xlsx(name, email, attempt, answers, meta, partial):
+    """One workbook: a summary block, then one row per question."""
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+
+    qs = (meta or {}).get("questions") or []
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Test result"
+    orange = PatternFill("solid", fgColor="FF6A00")
+    side = Side(style="thin", color="D9D9D9")
+    box = Border(left=side, right=side, top=side, bottom=side)
+    wrap = Alignment(wrap_text=True, vertical="top")
+    answered = sum(1 for q in qs if q.get("status") in ("answered", "timed-out", "left-page"))
+    tabs = sum(1 for q in qs if q.get("status") == "skipped-tab")
+    pastes = sum(int(q.get("pastes") or 0) for q in qs)
+    used = sum(int(q.get("used") or 0) for q in qs)
+
+    ws.merge_cells("A1:G1")
+    ws["A1"] = f"Content writing test: {name}"
+    ws["A1"].font = Font(bold=True, size=15, color="FFFFFF")
+    ws["A1"].fill = orange
+    ws.row_dimensions[1].height = 28
+    info = [("Email", email), ("Attempt", attempt),
+            ("Answered", f"{answered} of {len(qs)}"),
+            ("Times left the tab", tabs), ("Paste / copy attempts", pastes),
+            ("Time used", f"{used // 60}m {used % 60}s"),
+            ("Finished", "Incomplete: " + ((meta or {}).get("reason") or "page was closed") if partial else "Yes, submitted")]
+    r = 2
+    for k, v in info:
+        ws.cell(r, 1, k).font = Font(bold=True)
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
+        ws.cell(r, 2, v)
+        r += 1
+    r += 1
+    heads = ["#", "Question", "Status", "Seconds allowed", "Seconds used", "Paste attempts", "Answer"]
+    for c, t in enumerate(heads, 1):
+        cell = ws.cell(r, c, t)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill("solid", fgColor="1A1A1F")
+        cell.alignment = Alignment(vertical="center", wrap_text=True)
+        cell.border = box
+    r += 1
+    for i, q in enumerate(qs, 1):
+        text = str((answers or {}).get(q.get("id"), "") or "").strip()
+        row = [i, q.get("label") or q.get("id"), _STATUS_LABEL.get(q.get("status"), q.get("status") or ""),
+               q.get("seconds", 0), q.get("used", 0), q.get("pastes", 0), text or "(no answer)"]
+        for c, v in enumerate(row, 1):
+            cell = ws.cell(r, c, v)
+            cell.alignment = wrap
+            cell.border = box
+        if q.get("status") == "skipped-tab":
+            ws.cell(r, 3).font = Font(bold=True, color="D92D20")
+        ws.row_dimensions[r].height = max(30, min(400, 15 * (1 + len(text) // 70 + text.count("\n"))))
+        r += 1
+    for col, w in zip("ABCDEFG", (5, 42, 30, 12, 12, 12, 80)):
+        ws.column_dimensions[col].width = w
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()
+
+
+def safe_name(name):
+    base = re.sub(r"[^A-Za-z0-9]+", "_", name or "candidate").strip("_") or "candidate"
+    return f"Content_test_{base[:40]}.xlsx"
+
+
 def notify(name, email, attempt, answers, meta, partial):
+    """Email the result sheet to the reviewers (no WhatsApp, no client mail)."""
     try:
-        import wa_outbox
-        want = set(_recipients())
-        sent = 0
-        msgs = build_messages(name, email, attempt, answers, meta, partial)
-        for e in wa_outbox._employees():
-            if e.get("id") not in want:
-                continue
-            jid = wa_outbox.wa_jid(e.get("whatsapp", ""))
-            if not jid:
-                logger.warning("content_test: %s has no WhatsApp number", e.get("id"))
-                continue
-            for m in msgs:
-                if wa_outbox.enqueue(jid, m):
-                    sent += 1
-        logger.info("content_test: queued %s WhatsApp message(s) for %s", sent, name)
+        import mailer
+        to = [e for e in (mailer.email_for(i) for i in _recipients()) if e]
+        if not to:
+            logger.warning("content_test: no reviewer email addresses")
+            return
+        data = build_xlsx(name, email, attempt, answers, meta, partial)
+        qs = (meta or {}).get("questions") or []
+        done = sum(1 for q in qs if q.get("status") in ("answered", "timed-out", "left-page"))
+        tabs = sum(1 for q in qs if q.get("status") == "skipped-tab")
+        pastes = sum(int(q.get("pastes") or 0) for q in qs)
+        body = (f"{name} has taken the content writing test.\n\n"
+                f"Email: {email}\n"
+                f"Attempt: {attempt}\n"
+                f"Answered: {done} of {len(qs)}\n"
+                f"Left the tab: {tabs} time(s)\n"
+                f"Paste / copy attempts: {pastes}\n"
+                + (f"\nINCOMPLETE: {(meta or {}).get('reason') or 'the page was closed before the end'}\n" if partial else "")
+                + "\nThe full answers are in the attached Excel sheet.")
+        mailer.send(to, f"Content writing test: {name}" + (" (incomplete)" if partial else ""), body,
+                    reply_to=email, from_name="Lumina",
+                    attachments=[(safe_name(name), data, XLSX_MIME)])
+        logger.info("content_test: emailed result for %s to %s", name, to)
     except Exception:
         logger.exception("content_test: notify failed")
 

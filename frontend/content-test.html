@@ -448,6 +448,14 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .ct-timer small{font-family:var(--f-sans);font-size:.7rem;color:var(--muted);letter-spacing:.02em}
 .ct-timer.warn{color:#d92d20;border-color:#d92d20;animation:ct-pulse 1s ease-in-out infinite}
 @keyframes ct-pulse{50%{box-shadow:0 0 0 5px rgb(217 45 32/.16)}}
+.ct-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:18px;background:rgb(20 20 20/.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.ct-modal[hidden]{display:none}
+.ct-modal-card{width:100%;max-width:540px;max-height:calc(100dvh - 36px);overflow:auto;background:var(--page);border:1px solid var(--line-box);border-radius:24px;padding:clamp(22px,4vw,34px);box-shadow:0 30px 80px -30px rgb(20 20 20/.5)}
+.ct-modal-card .mono{color:var(--muted)}
+.ct-modal-card h3{margin-top:4px;font-family:var(--f-display);font-weight:800;text-transform:uppercase;line-height:.95;font-size:clamp(1.9rem,1.4rem + 2vw,2.8rem)}
+.ct-modal-card .ct-rules li b{color:var(--ink);font-weight:600}
+.ct-modal-total{margin-top:14px;color:var(--muted);font-size:.9rem}
+.ct-modal-card .lq-btn{margin-top:18px;width:100%}
 .ct-rules{margin:14px 0 4px;padding-left:1.15em;color:var(--body);font-size:.92rem;line-height:1.45}
 .ct-rules li{margin-top:6px}
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -506,14 +514,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
           <div class="q-card" id="details-card">
             <div class="q-card-head">
               <h3>Your <em>details</em></h3>
-              <p class="lede">Start here, then read the rules. The clock for the first question starts as soon as it appears.</p>
-              <ul class="ct-rules">
-                <li>Every question has its own countdown. When it ends, your answer is saved and the next one opens.</li>
-                <li>Copy and paste are switched off, everywhere on this page.</li>
-                <li>Do not switch tabs or windows, and keep the cursor on this page. If you leave, that question is skipped.</li>
-                <li>You cannot go back. Closing or reloading the page ends the test.</li>
-                <li>Finished early? Press the Next button, or Ctrl + Enter.</li>
-              </ul>
+              <p class="lede">Start here. The rules of the test are shown before the first question, and the clock starts only after you agree to them.</p>
             </div>
             <div class="q-group">
               <label for="company_name">Full name <span class="required">*</span></label>
@@ -564,6 +565,22 @@ input,textarea{-webkit-user-select:text;user-select:text}
   <nav class="kln-tabs" aria-label="Sections"><ul id="tabs"><span class="kln-marker" id="marker" aria-hidden="true"></span></ul></nav>
   <span class="kln-bar-label" id="bar-count"></span>
 </div>
+</div>
+
+<div class="ct-modal" id="ct-rules-modal" hidden role="dialog" aria-modal="true" aria-labelledby="ct-rules-h">
+  <div class="ct-modal-card">
+    <p class="mono">Before you begin</p>
+    <h3 id="ct-rules-h">Test rules</h3>
+    <ul class="ct-rules">
+      <li><b>Do not switch tabs or windows.</b> Keep the cursor on this page. If you leave, that question is skipped and your answer to it is thrown away.</li>
+      <li><b>Copy and paste are switched off</b>, everywhere on this page. Every attempt is counted.</li>
+      <li><b>Every question has its own countdown.</b> When it ends, your answer is saved and the next question opens.</li>
+      <li><b>You cannot go back.</b> Closing or reloading the page ends the test and sends what you have written.</li>
+      <li>Finished a question early? Press Next, or Ctrl + Enter.</li>
+    </ul>
+    <p class="ct-modal-total" id="ct-total"></p>
+    <button type="button" class="lq-btn" id="ct-go"><span class="lq-ring" aria-hidden="true"></span><span class="lq-glass" aria-hidden="true"></span><span class="lq-txt">I understand, start the test</span></button>
+  </div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -1109,7 +1126,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (d < 0) return;
     if (d > 0) concludeCurrent();
     const last = steps.length - 1;
-    if (d > 0 && cur === 0 && !detailsValid(true)) return;
+    if (d > 0 && cur === 0) { if (!detailsValid(true)) return; if (!T.ack) { openRules(); return; } }
     if (cur > 0) {                       // questions first, sections after
       const k = cur - 1, m = sections[k].qs.length;
       if (d > 0 && qpos[k] < m - 1) { turnQ(k, qpos[k] + 1, 1, true); updateChrome(); return; }
@@ -1265,6 +1282,16 @@ input,textarea{-webkit-user-select:text;user-select:text}
     const body = payload(true, 'the page was closed or reloaded during the test');
     try { navigator.sendBeacon(`${API}/api/content-test`, new Blob([JSON.stringify(body)], { type: 'application/json' })); saveLocal({ state: 'sent' }); } catch (_) { /* resume check will resend */ }
   });
+
+  // the rules screen: shown once, right before the first question; the clock starts only after "start"
+  function openRules() {
+    const secs = questions.reduce((a, q) => a + (q.seconds || 60), 0), mins = Math.floor(secs / 60), rest = secs % 60;
+    $('ct-total').textContent = `${questions.length} questions, ${mins ? mins + ' min ' : ''}${rest ? rest + ' sec ' : ''}in total.`;
+    const m = $('ct-rules-modal');
+    m.hidden = false;
+    $('ct-go').focus();
+  }
+  $('ct-go').addEventListener('click', () => { $('ct-rules-modal').hidden = true; T.ack = true; go(1); });
 
   function showThanks(text) {
     stopTimer();
