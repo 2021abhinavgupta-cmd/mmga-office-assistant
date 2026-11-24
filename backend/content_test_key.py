@@ -59,6 +59,107 @@ def auto_points(qid, fields):
     return None
 
 
+B_IDS = ["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "B9"]
+REV = B_IDS + ["C1", "C2", "C4", "C5", "C6", "C7", "C8", "C9", "C10"]     # scored 0-3 by a person or the AI (C4 reason is 0-1)
+PASS_MARK = 60
+
+
+def _words(s):
+    return len((s or "").split())
+
+
+def estimate_scores(answers):
+    """Last-resort scores from answer length only (the live site does the same when its AI is down)."""
+    out = {}
+    for i in REV:
+        w = _words((answers or {}).get(i))
+        out[i] = {"s": (1 if w > 3 else 0) if i == "C4" else (0 if w < 3 else 1 if w < 12 else 2),
+                  "why": "Estimated from length. Reviewer to confirm."}
+    return out
+
+
+def ai_scores(questions, answers):
+    """Ask the cheap model to score each reviewer question 0-3 with its rubric. Returns {id:{s,why}} or raises."""
+    import json
+    import re
+    import llm_openrouter as lo
+    if not lo.enabled():
+        raise RuntimeError("no AI model configured")
+    items = [{"id": i, "question": (questions.get(i) or {}).get("label", i), "rubric": RUBRIC.get(i, ""),
+              "answer": (answers or {}).get(i) or "(no answer)"} for i in REV]
+    prompt = ("You are scoring a hiring screening test for MMGA, a creative and marketing agency in Mumbai, for a "
+              "Creative Producer / Campaign Lead role. Be strict and fair. Score each answer 0 to 3 using its rubric and "
+              "these anchors: 0 = missing, generic, corporate, or blames others. 1 = fine, but anyone could have written it. "
+              "2 = specific, sound, clearly theirs. 3 = specific and surprising, you would remember it tomorrow. "
+              "For C4 score only 0 or 1. An empty answer is 0. Typos do not matter.\n\n"
+              'Return ONLY a JSON array, no prose: [{"id":"B1","score":2,"why":"max 14 words, plain English"}]\n\n'
+              + json.dumps(items, ensure_ascii=False))
+    resp = lo.create(system="You score hiring tests. Reply with JSON only.", tools=[],
+                     messages=[{"role": "user", "content": prompt}], max_tokens=3000)
+    txt = "".join(getattr(b, "text", "") for b in resp.content if getattr(b, "type", "") == "text")
+    arr = json.loads(re.search(r"\[[\s\S]*\]", txt).group(0))
+    out = {}
+    for r in arr:
+        if isinstance(r, dict) and r.get("id") in REV:
+            top = 1 if r["id"] == "C4" else 3
+            try:
+                out[r["id"]] = {"s": max(0, min(top, int(round(float(r.get("score") or 0))))), "why": str(r.get("why") or "")[:140]}
+            except (TypeError, ValueError):
+                pass
+    if not out:
+        raise ValueError("no scores in the AI reply")
+    return out
+
+
+def compute(scores, by_id):
+    """The screening result, same formulas as the MMGA Proof test (attitude 35%, personality 25%, skill 40%)."""
+    S = lambda i: (scores.get(i) or {}).get("s", 0)
+    auto = {i: (auto_points(i, (by_id.get(i) or {}).get("fields")) or 0) for i in A_KEY}
+    c4auto = auto_points("C4", (by_id.get("C4") or {}).get("fields")) or 0
+    att = sum(auto.values()) / 15
+    pers = sum(S(i) for i in B_IDS) / (len(B_IDS) * 3)
+    c4 = c4auto + S("C4")
+    script = (S("C1") + c4) / 6
+    ideas = (S("C2") + S("C6") + S("C9") + S("C10")) / 12
+    execu = (S("C5") + S("C7") + S("C8")) / 9
+    skill = 0.45 * script + 0.35 * ideas + 0.20 * execu
+    score = round(100 * (0.35 * att + 0.25 * pers + 0.40 * skill))
+    gate = (S("C1") + c4) / 2 < 2
+    if att < 0.6:
+        verdict, reason, ok = "Do not advance", "Attitude is below 60%. Hard stop, whatever the total.", False
+    elif gate:
+        verdict, reason, ok = "Do not advance", "Script gate: C1 and C4 average below 2.", False
+    elif score >= PASS_MARK:
+        verdict, reason, ok = "Advance to Stage 2", "Above the pass mark. Book the live sprint.", True
+    elif score >= PASS_MARK - 10 and skill >= 0.75:
+        verdict, reason, ok = "Advance to Stage 2", "Borderline total, but skill is strong enough.", True
+    else:
+        verdict, reason, ok = "Do not advance", f"Below the pass mark of {PASS_MARK}.", False
+    return {"score": score, "att": round(att, 3), "pers": round(pers, 3), "script": round(script, 3), "ideas": round(ideas, 3),
+            "exec": round(execu, 3), "skill": round(skill, 3), "gate": gate, "verdict": verdict, "reason": reason, "advance": ok,
+            "scores": scores}
+
+
+def score_submission(answers, meta):
+    """Full result for one stored test: AI scores when a model is configured, else length estimates. Never raises."""
+    qs = (meta or {}).get("questions") or []
+    by_id = {q.get("id"): q for q in qs}
+    source = "ai"
+    try:
+        scores = ai_scores(by_id, answers)
+    except Exception:
+        scores, source = {}, "estimate"
+    missing = [i for i in REV if i not in scores]
+    if missing:
+        est = estimate_scores(answers)
+        for i in missing:
+            scores[i] = est[i]
+        source = "estimate" if source == "estimate" else "ai+estimate"
+    res = compute(scores, by_id)
+    res["source"] = source
+    return res
+
+
 def typing_speed(text, seconds_used):
     """(words per minute, accuracy %) for the typing question, or (None, None) when there is nothing to measure."""
     text = (text or "").strip()

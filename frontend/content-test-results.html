@@ -126,7 +126,7 @@
     $('items').innerHTML = subs.map(s => {
       const m = s.summary || {};
       return `<div class="it" id="it-${s.id}" onclick="show(${s.id})"><b>${esc(s.name)}</b><small>${esc(when(s.submitted_at))}</small>
-        <div class="chips"><span class="chip ${s.partial ? 'bad' : 'ok'}">${s.partial ? 'Incomplete' : 'Finished'}</span>
+        <div class="chips">${s.result ? `<span class="chip ${s.result.advance ? 'ok' : 'bad'}">${s.result.score}/100 · ${esc(s.result.verdict)}</span>` : '<span class="chip warn">Not scored yet</span>'}<span class="chip ${s.partial ? 'bad' : 'ok'}">${s.partial ? 'Incomplete' : 'Finished'}</span>
         <span class="chip">${m.answered}/${m.total} answered</span>
         <span class="chip ${m.attitude_pct < 60 ? 'bad' : 'ok'}">Attitude ${m.attitude_pct}%</span>
         ${m.tab_leaves ? `<span class="chip bad">Left tab ${m.tab_leaves}x</span>` : ''}${m.pastes ? `<span class="chip warn">Paste ${m.pastes}x</span>` : ''}</div></div>`;
@@ -142,6 +142,8 @@
     let html = `<div class="dh"><h2>${esc(s.name)}</h2>
       <div class="meta"><span>${esc(s.email)}</span><span>${esc(when(s.submitted_at))}</span>${s.partial ? `<span style="color:#ff8f8f">Incomplete: ${esc((s.meta && s.meta.reason) || 'page was closed')}</span>` : ''}</div>
       <a class="btn" href="${API}/api/content-test-submissions/${s.id}/xlsx">Download Excel</a>
+      <button class="btn" onclick="rescore(${s.id}, this)">${s.result ? 'Score again' : 'Score now'}</button>
+      ${resultBlock(s.result)}
       <div class="stats">
         <div class="stat"><span>Answered</span><b>${m.answered} of ${m.total}</b></div>
         <div class="stat"><span>Attitude (auto)</span><b>${m.attitude_points}/15 · ${m.attitude_pct}%</b></div>
@@ -160,11 +162,33 @@
       const ans = (s.answers || {})[q.id] || '';
       html += `<div class="qa"><div class="ql">${esc(q.id)} · ${esc(q.label)}</div>
         <div class="qm"><span class="chip ${st[1]}">${esc(st[0])}</span><span class="chip">${q.used}s of ${q.seconds}s</span>
-        ${q.pastes ? `<span class="chip warn">Paste attempts ${q.pastes}</span>` : ''}${q.auto_points != null ? `<span class="chip ok">Auto points: ${q.auto_points}</span>` : ''}</div>
+        ${q.pastes ? `<span class="chip warn">Paste attempts ${q.pastes}</span>` : ''}${q.auto_points != null ? `<span class="chip ok">Auto points: ${q.auto_points}</span>` : ''}${q.suggested != null ? `<span class="chip warn">Suggested score: ${q.suggested}</span>` : ''}</div>
         <div class="at">${ans ? esc(ans) : '<span style="color:var(--muted)">(no answer)</span>'}</div>
+        ${q.why ? `<div class="rub"><i>Why:</i> ${esc(q.why)}</div>` : ''}
         ${q.rubric ? `<div class="rub"><i>Scorer:</i> ${esc(q.rubric)}</div>` : ''}</div>`;
     });
     $('detail').innerHTML = html;
+  }
+
+  function resultBlock(R) {
+    if (!R) return '<div class="stat" style="margin:14px 0"><span>Result</span><b>Not scored yet. Press "Score now".</b></div>';
+    const pc = (x) => Math.round((x || 0) * 100) + '%';
+    const src = { 'ai': 'Scored by AI against the rubric', 'ai+estimate': 'Partly scored by AI, partly estimated from length', 'estimate': 'Estimated from answer length only (AI was not available)' }[R.source] || '';
+    return `<div class="stat" style="margin:16px 0;border-color:${R.advance ? 'rgba(52,211,153,.5)' : 'rgba(239,68,68,.5)'}">
+      <span>Screening result</span><b style="font-size:1.6rem">${R.score} / 100 · ${esc(R.verdict)}</b>
+      <div class="rub" style="color:var(--text);margin-top:6px">${esc(R.reason)}</div>
+      <div class="chips"><span class="chip">Attitude ${pc(R.att)}</span><span class="chip">Personality ${pc(R.pers)}</span><span class="chip">Script ${pc(R.script)}</span><span class="chip">Ideas ${pc(R.ideas)}</span><span class="chip">Execution ${pc(R.exec)}</span><span class="chip">Skill ${pc(R.skill)}</span></div>
+      <div class="rub">${esc(src)}. A person should confirm before deciding.</div></div>`;
+  }
+
+  async function rescore(id, btn) {
+    btn.disabled = true; btn.textContent = 'Scoring...';
+    try {
+      const r = await fetch(`${API}/api/content-test-submissions/${id}/score`, { method: 'POST', credentials: 'same-origin' });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error || 'failed');
+      await init(); show(id);
+    } catch (e) { btn.disabled = false; btn.textContent = 'Could not score, try again'; }
   }
 
   document.addEventListener('DOMContentLoaded', init);

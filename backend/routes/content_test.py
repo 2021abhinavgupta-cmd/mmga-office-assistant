@@ -47,7 +47,26 @@ def _ensure():
             partial INTEGER DEFAULT 0,
             submitted_at TEXT DEFAULT CURRENT_TIMESTAMP
         )""")
+        try:
+            conn.execute("ALTER TABLE content_test_submissions ADD COLUMN result_json TEXT")
+        except Exception:
+            pass                                   # column already there
     conn.close()
+
+
+def _score_and_save(sub_id, answers, meta):
+    """Score a stored test (AI when configured, length estimate otherwise), keep the result, return it."""
+    import content_test_key as key
+    result = key.score_submission(answers, meta)
+    if sub_id:
+        try:
+            conn = get_connection()
+            with conn:
+                conn.execute("UPDATE content_test_submissions SET result_json=? WHERE id=?", (json.dumps(result), sub_id))
+            conn.close()
+        except Exception:
+            logger.exception("content_test: could not save the result")
+    return result
 
 
 def _recipients():
@@ -107,7 +126,7 @@ def build_messages(name, email, attempt, answers, meta, partial):
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
-def build_xlsx(name, email, attempt, answers, meta, partial):
+def build_xlsx(name, email, attempt, answers, meta, partial, result=None):
     """One workbook: a summary block, then one row per question."""
     import io
     from openpyxl import Workbook
@@ -132,12 +151,22 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
     wpm, acc = key.typing_speed((answers or {}).get("Q0"), (by_id.get("Q0") or {}).get("used"))
     c4 = key.auto_points("C4", (by_id.get("C4") or {}).get("fields"))
 
-    ws.merge_cells("A1:I1")
+    ws.merge_cells("A1:K1")
     ws["A1"] = f"Content writing test: {name}"
     ws["A1"].font = Font(bold=True, size=15, color="FFFFFF")
     ws["A1"].fill = orange
     ws.row_dimensions[1].height = 28
-    info = [("Email", email), ("Attempt", attempt),
+    res_rows = []
+    if result:
+        pc = lambda x: f"{round((x or 0) * 100)}%"
+        src = {"ai": "scored by AI against the rubric", "ai+estimate": "partly scored by AI, partly estimated from length",
+               "estimate": "estimated from answer length only (AI was not available)"}.get(result.get("source"), "")
+        res_rows = [("RESULT", f"{result.get('score')} / 100 — {result.get('verdict')}"),
+                    ("Why", result.get("reason")),
+                    ("Pillars", f"Attitude {pc(result.get('att'))} · Personality {pc(result.get('pers'))} · Script {pc(result.get('script'))} · "
+                                f"Ideas {pc(result.get('ideas'))} · Execution {pc(result.get('exec'))} · Skill {pc(result.get('skill'))}"),
+                    ("How it was scored", f"{src}. A person should confirm before deciding.")]
+    info = res_rows + [("Email", email), ("Attempt", attempt),
             ("Answered", f"{answered} of {len(qs)}"),
             ("Times left the tab", tabs), ("Paste / copy attempts", pastes),
             ("Time used", f"{used // 60}m {used % 60}s"),
@@ -149,11 +178,15 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
     r = 2
     for k, v in info:
         ws.cell(r, 1, k).font = Font(bold=True)
-        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=9)
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=11)
         ws.cell(r, 2, v)
+        if k == "RESULT":
+            ws.cell(r, 1).font = Font(bold=True, size=13, color="FF6A00")
+            ws.cell(r, 2).font = Font(bold=True, size=13)
         r += 1
     r += 1
-    heads = ["#", "Question", "Status", "Seconds allowed", "Seconds used", "Paste attempts", "Answer", "Auto points", "Rubric (for the scorer)"]
+    heads = ["#", "Question", "Status", "Seconds allowed", "Seconds used", "Paste attempts", "Answer", "Auto points", "Rubric (for the scorer)",
+             "Suggested score", "Why"]
     for c, t in enumerate(heads, 1):
         cell = ws.cell(r, c, t)
         cell.font = Font(bold=True, color="FFFFFF")
@@ -166,7 +199,9 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
         row = [i, q.get("label") or q.get("id"), _STATUS_LABEL.get(q.get("status"), q.get("status") or ""),
                q.get("seconds", 0), q.get("used", 0), q.get("pastes", 0), text or "(no answer)",
                ("" if key.auto_points(q.get("id"), q.get("fields")) is None else key.auto_points(q.get("id"), q.get("fields"))),
-               key.RUBRIC.get(q.get("id"), "")]
+               key.RUBRIC.get(q.get("id"), ""),
+               ((result or {}).get("scores", {}).get(q.get("id")) or {}).get("s", ""),
+               ((result or {}).get("scores", {}).get(q.get("id")) or {}).get("why", "")]
         for c, v in enumerate(row, 1):
             cell = ws.cell(r, c, v)
             cell.alignment = wrap
@@ -175,7 +210,7 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
             ws.cell(r, 3).font = Font(bold=True, color="D92D20")
         ws.row_dimensions[r].height = max(30, min(400, 15 * (1 + len(text) // 70 + text.count("\n"))))
         r += 1
-    for col, w in zip("ABCDEFGHI", (5, 42, 30, 12, 12, 12, 80, 10, 55)):
+    for col, w in zip("ABCDEFGHIJK", (5, 42, 30, 12, 12, 12, 80, 10, 55, 12, 40)):
         ws.column_dimensions[col].width = w
     buf = io.BytesIO()
     wb.save(buf)
@@ -187,21 +222,27 @@ def safe_name(name):
     return f"Content_test_{base[:40]}.xlsx"
 
 
-def notify(name, email, attempt, answers, meta, partial):
-    """Email the result sheet to the reviewers (no WhatsApp, no client mail)."""
+def notify(name, email, attempt, answers, meta, partial, sub_id=None):
+    """Score the test, keep the result, email the result sheet to the reviewers (no WhatsApp, no client mail)."""
     try:
+        result = None
+        try:
+            result = _score_and_save(sub_id, answers, meta)
+        except Exception:
+            logger.exception("content_test: scoring failed")
         import mailer
         to = [e for e in (mailer.email_for(i) for i in _recipients()) if e]
         if not to:
             logger.warning("content_test: no reviewer email addresses")
             return
-        data = build_xlsx(name, email, attempt, answers, meta, partial)
+        data = build_xlsx(name, email, attempt, answers, meta, partial, result)
         qs = (meta or {}).get("questions") or []
         done = sum(1 for q in qs if q.get("status") in ("answered", "timed-out", "left-page"))
         tabs = sum(1 for q in qs if q.get("status") == "skipped-tab")
         pastes = sum(int(q.get("pastes") or 0) for q in qs)
         body = (f"{name} has taken the content writing test.\n\n"
-                f"Email: {email}\n"
+                + (f"RESULT: {result.get('score')} / 100 — {result.get('verdict')}\n{result.get('reason')}\n\n" if result else "")
+                + f"Email: {email}\n"
                 f"Attempt: {attempt}\n"
                 f"Answered: {done} of {len(qs)}\n"
                 f"Left the tab: {tabs} time(s)\n"
@@ -242,13 +283,14 @@ def submit_content_test():
                 "SELECT COUNT(*) FROM content_test_submissions WHERE lower(email)=lower(?) AND form_id=?",
                 (email, form_id)).fetchone()[0] + 1
             with conn:
-                conn.execute(
+                cur = conn.execute(
                     "INSERT INTO content_test_submissions (run_id, form_id, candidate_name, email, answers_json, meta_json, partial) "
                     "VALUES (?,?,?,?,?,?,?)",
                     (run_id or None, form_id, name, email, json.dumps(answers), json.dumps(meta), 1 if partial else 0))
+                sub_id = cur.lastrowid
         finally:
             conn.close()
-        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial), daemon=True).start()
+        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id), daemon=True).start()
         return jsonify({"success": True})
     except Exception:
         logger.exception("content_test submit failed")
@@ -262,7 +304,7 @@ def list_content_test_submissions():
         return jsonify({"error": "Unauthorized"}), 403
     _ensure()
     conn = get_connection()
-    rows = conn.execute("SELECT id, form_id, candidate_name, email, answers_json, meta_json, partial, submitted_at "
+    rows = conn.execute("SELECT id, form_id, candidate_name, email, answers_json, meta_json, partial, submitted_at, result_json "
                         "FROM content_test_submissions ORDER BY id DESC").fetchall()
     conn.close()
     import content_test_key as key
@@ -284,9 +326,32 @@ def list_content_test_submissions():
                    "total": len(qs),
                    "tab_leaves": sum(1 for q in qs if q.get("status") == "skipped-tab"),
                    "pastes": sum(int(q.get("pastes") or 0) for q in qs)}
+        try:
+            result = json.loads(r[8]) if r[8] else None
+        except Exception:
+            result = None
+        for q in qs:
+            q["suggested"] = ((result or {}).get("scores", {}).get(q.get("id")) or {}).get("s")
+            q["why"] = ((result or {}).get("scores", {}).get(q.get("id")) or {}).get("why", "")
         out.append({"id": r[0], "form_id": r[1], "name": r[2], "email": r[3], "answers": answers,
-                    "meta": meta, "partial": bool(r[6]), "submitted_at": r[7], "summary": summary})
+                    "meta": meta, "partial": bool(r[6]), "submitted_at": r[7], "summary": summary, "result": result})
     return jsonify({"success": True, "submissions": out})
+
+
+@content_test_bp.route("/api/content-test-submissions/<int:sub_id>/score", methods=["POST"])
+def score_content_test(sub_id):
+    """(Re)score one stored test now: use it when the AI was down at submit time."""
+    from routes.auth import _verify_session
+    if not _verify_session(request.cookies.get("session_token", "")):
+        return jsonify({"error": "Unauthorized"}), 403
+    _ensure()
+    conn = get_connection()
+    row = conn.execute("SELECT answers_json, meta_json FROM content_test_submissions WHERE id=?", (sub_id,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "Not found"}), 404
+    result = _score_and_save(sub_id, json.loads(row[0] or "{}"), json.loads(row[1] or "{}"))
+    return jsonify({"success": True, "result": result})
 
 
 @content_test_bp.route("/api/content-test-submissions/<int:sub_id>/xlsx", methods=["GET"])
@@ -297,13 +362,17 @@ def download_content_test_xlsx(sub_id):
         return jsonify({"error": "Unauthorized"}), 403
     _ensure()
     conn = get_connection()
-    row = conn.execute("SELECT candidate_name, email, answers_json, meta_json, partial, form_id FROM content_test_submissions WHERE id=?", (sub_id,)).fetchone()
+    row = conn.execute("SELECT candidate_name, email, answers_json, meta_json, partial, form_id, result_json FROM content_test_submissions WHERE id=?", (sub_id,)).fetchone()
     if not row:
         conn.close()
         return jsonify({"error": "Not found"}), 404
     attempt = conn.execute("SELECT COUNT(*) FROM content_test_submissions WHERE lower(email)=lower(?) AND form_id=? AND id<=?",
                            (row[1], row[5], sub_id)).fetchone()[0]
     conn.close()
-    data = build_xlsx(row[0], row[1], attempt, json.loads(row[2] or "{}"), json.loads(row[3] or "{}"), bool(row[4]))
+    try:
+        saved = json.loads(row[6]) if row[6] else None
+    except Exception:
+        saved = None
+    data = build_xlsx(row[0], row[1], attempt, json.loads(row[2] or "{}"), json.loads(row[3] or "{}"), bool(row[4]), saved)
     return Response(data, mimetype=XLSX_MIME,
                     headers={"Content-Disposition": f"attachment;filename={safe_name(row[0])}"})
