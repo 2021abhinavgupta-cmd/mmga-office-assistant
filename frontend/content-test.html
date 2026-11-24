@@ -348,6 +348,37 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr.single .jr-qs .q-group label{font-size:17px}
 .jr-qs .q-input{flex:none;height:clamp(110px,24dvh,200px);min-height:0;resize:none;line-height:1.5;padding-top:14px}
 .jr-qs input.q-input{height:clamp(110px,24dvh,200px)}
+/* answer types: several boxes, multiple choice, ranking, mood boards, budget split */
+.jr-qs .ct-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding:2px 6px 8px 2px;scrollbar-width:thin}
+.jr-qs .ct-body.one .q-input{height:clamp(110px,24dvh,200px)}
+.jr-qs .ct-body.one input.q-input{height:54px}
+.jr-qs .ct-body .q-input{height:auto;min-height:0;padding:11px 13px}
+.jr-qs .ct-body textarea.q-input{line-height:1.45}
+.jr-qs .ct-body input.q-input{height:46px}
+.ct-fld{display:flex;flex-direction:column;gap:5px}
+.jr-qs .q-group label.ct-fl,.jr-qs .q-group p.ct-fl{display:block;margin:0;font-size:clamp(12.5px,calc(var(--jw)*.0135),14.5px);font-weight:600;letter-spacing:0;color:var(--body)}
+.ct-pick{font:inherit;text-align:left;color:var(--ink);cursor:pointer}
+.ct-pick i{flex:none;width:16px;height:16px;border-radius:99px;border:2px solid #b9b5c4;background:#fff;box-sizing:border-box;transition:border-color .2s,background-color .2s}
+.ct-pick[aria-checked=true] i{border-color:var(--heat-1);background:radial-gradient(circle,var(--heat-1) 0 45%,#fff 50%)}
+.ct-pick:disabled{cursor:default}
+.ct-star{display:flex;align-items:center;gap:8px;align-self:flex-start;padding:2px 0;border:0;background:none;font-size:.82rem;font-weight:500;color:#e87a0c}
+.ct-opts{display:flex;flex-direction:column;gap:6px}
+.ct-o{display:flex;align-items:center;gap:11px;width:100%;padding:8px 13px;border:1px solid var(--line-box);border-radius:13px;background:#fff;font-size:clamp(13.5px,calc(var(--jw)*.0155),16.5px);font-weight:400;letter-spacing:-.005em;line-height:1.35;transition:border-color .2s,box-shadow .2s}
+.ct-o:hover{border-color:#c9c9c9}
+.ct-o[aria-checked=true],.ct-tile[aria-checked=true]{border-color:var(--heat-1);box-shadow:0 0 0 3px rgb(254 142 28/.2)}
+.ct-rank{display:flex;flex-direction:column;gap:8px}
+.ct-rk{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--line-box);border-radius:13px;background:#fff;font-size:clamp(13.5px,calc(var(--jw)*.0155),16.5px)}
+.ct-rk b{flex:none;width:24px;height:24px;border-radius:99px;background:var(--heat-3);display:grid;place-items:center;font-size:.78rem}
+.ct-rk span{flex:1}
+.ct-mv{flex:none;width:34px;height:34px;border:1px solid var(--line-box);border-radius:10px;background:#faf8f3;cursor:pointer;font-size:1rem;line-height:1}
+.ct-mv:disabled{opacity:.4;cursor:default}
+.ct-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ct-tile{display:flex;align-items:center;gap:9px;aspect-ratio:16/9;padding:10px 12px;border:1px solid var(--line-box);border-radius:13px;background:linear-gradient(135deg,#fff,#f6efe2);font-size:.9rem;font-weight:500}
+.ct-split>div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.ct-sp{display:flex;flex-direction:column;gap:4px;margin:0}
+.jr-qs .q-group label.ct-sp{display:flex;flex-direction:column;margin:0;font-size:.8rem;font-weight:500;gap:4px}
+.ct-tot{margin-top:6px;font-size:.8rem;color:var(--muted)}
+.ct-tot.bad{color:#d92d20}
 .q-hint{margin-top:10px;color:var(--body);font-size:clamp(12.5px,calc(var(--jw)*.0135),15px);line-height:1.45;letter-spacing:-.005em;text-wrap:pretty}
 .jr.single .q-hint{font-size:13.5px}
 .q-hint{overflow-wrap:anywhere}
@@ -925,12 +956,29 @@ input,textarea{-webkit-user-select:text;user-select:text}
       const nn = pad(k + 2), count = s.qs.length;
       const qs = s.qs.map((q, j) => {
         const id = `q_${esc(q.id)}`;
-        const input = q.type === 'textarea'
-          ? `<textarea id="${id}" class="q-input" placeholder="Type your answer here..." autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-lpignore="true"></textarea>`
-          : `<input type="text" id="${id}" class="q-input" placeholder="Type your answer here..." autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-lpignore="true">`;
+        const off = 'autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-lpignore="true"';
+        const fl = q.fields || [];
+        let firstId = '';
+        const fieldHtml = fl.map((f, x) => {
+          const fid = `${id}__${esc(f.k)}`;
+          if (!firstId) firstId = fid;
+          const ph = esc(f.placeholder || (fl.length === 1 ? 'Type your answer here...' : ''));
+          const mx = f.max ? ` maxlength="${Number(f.max)}"` : '';
+          const paste = f.allow ? ' data-paste="on"' : '';
+          const box = f.multi
+            ? `<textarea id="${fid}" class="q-input ct-f" data-k="${esc(f.k)}" rows="${f.rows || 3}" placeholder="${ph}"${mx}${paste} ${off}></textarea>`
+            : `<input type="text" id="${fid}" class="q-input ct-f" data-k="${esc(f.k)}" placeholder="${ph}"${mx}${paste} ${off}>`;
+          const star = f.star ? `<button type="button" class="ct-f ct-pick ct-star" role="radio" aria-checked="false" data-grp="star_${esc(q.id)}" data-k="star" data-v="${esc(f.k)}"><i></i>I'd shoot this one</button>` : '';
+          return `<div class="ct-fld">${f.label ? `<label class="ct-fl" for="${fid}">${esc(f.label)}</label>` : ''}${box}${star}</div>`;
+        }).join('');
+        const optHtml = q.opts ? `<div class="ct-opts" role="radiogroup">${q.opts.map(o => `<button type="button" class="ct-f ct-pick ct-o" role="radio" aria-checked="false" data-grp="opt_${esc(q.id)}" data-k="choice" data-v="${esc(o[0])}"><i></i><span>${esc(o[1])}</span></button>`).join('')}</div>` : '';
+        const rankHtml = q.rank ? `<div class="ct-rank" data-touched="0">${q.rank.map((r, x) => `<div class="ct-rk" data-v="${esc(r)}"><b>${x + 1}</b><span>${esc(r)}</span><button type="button" class="ct-mv" data-d="-1" aria-label="Move up">↑</button><button type="button" class="ct-mv" data-d="1" aria-label="Move down">↓</button></div>`).join('')}</div>` : '';
+        const tileHtml = q.tiles ? `<div class="ct-tiles">${[1, 2, 3, 4].map(n => `<button type="button" class="ct-f ct-pick ct-tile" role="radio" aria-checked="false" data-grp="board_${esc(q.id)}" data-k="board" data-v="${n}"><i></i><span>Mood board 0${n}</span></button>`).join('')}</div>` : '';
+        const splitHtml = q.split ? `<div class="ct-split"><p class="ct-fl">Split the budget (percent, should add up to 100)</p><div>${[['inf', 'Influencers'], ['paid', 'Paid ads'], ['off', 'Offline'], ['prod', 'Production']].map(s => `<label class="ct-sp"><span>${s[1]}</span><input type="number" min="0" max="100" inputmode="numeric" class="q-input ct-f" data-k="split_${s[0]}" placeholder="0" ${off}></label>`).join('')}</div><p class="ct-tot" aria-live="off">Total 0%</p></div>` : '';
+        const input = `<div class="ct-body${fl.length === 1 && !q.opts && !q.rank && !q.tiles && !q.split ? ' one' : ''}">${optHtml}${rankHtml}${tileHtml}${splitHtml}${fieldHtml}</div>`;
         const hp = q.hint ? String(q.hint).split(' Example: ') : null;
         const hint = hp ? `<p class="q-hint" id="${id}_h">${esc(hp[0])}${hp[1] ? `<span class="q-ex"><b>Example:</b> ${esc(hp[1])}</span>` : ''}</p>` : '';
-        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}"><label for="${id}"><span class="qn">Question ${pad(j + 1)} of ${pad(count)} · ${q.seconds} sec</span><span>${noWidow(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}${hint}</div>`;
+        return `<div class="q-group${j === 0 ? ' on' : ''}" data-q="${j}" data-id="${esc(q.id)}"><label${firstId ? ` for="${firstId}"` : ''}><span class="qn">Question ${pad(j + 1)} of ${pad(count)} · ${q.seconds} sec</span><span>${noWidow(q.label)}${q.reference_link ? ` <a href="${esc(q.reference_link)}" target="_blank" rel="noopener">Link</a>` : ''}</span></label>${input}${hint}</div>`;
       }).join('');
       return `<div class="jr-item" data-i="${k}" role="group" aria-roledescription="spread" aria-label="${esc(s.title)}, section ${k + 2} of ${total}">
         <div class="jr-page" data-side="l"><div class="jr-pg jr-left">
@@ -1067,14 +1115,12 @@ input,textarea{-webkit-user-select:text;user-select:text}
     const item = itemEl(k); if (!item) return;
     const groups = item.querySelectorAll('.jr-page:not(.jr-fl) .q-group');
     item.querySelectorAll('.jr-page:not(.jr-fl) .jr-dot').forEach((d, j) => {
-      const g = groups[j], el = g && g.querySelector('.q-input');
       d.classList.toggle('on', j === qpos[k]);
-      d.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
+      d.classList.toggle('has', j !== qpos[k] && hasAnswer(qAt(k, j)));
     });
     item.querySelectorAll('.jr-page:not(.jr-fl) .jr-qlist button').forEach((b, j) => {
-      const el = groups[j] && groups[j].querySelector('.q-input');
       b.classList.toggle('on', j === qpos[k]);
-      b.classList.toggle('has', j !== qpos[k] && !!(el && el.value.trim()));
+      b.classList.toggle('has', j !== qpos[k] && hasAnswer(qAt(k, j)));
     });
     item.querySelectorAll('.jr-page:not(.jr-fl) .jr-qnum').forEach(n => { n.textContent = pad(qpos[k] + 1); });
     item.querySelector('.jr-page:not(.jr-fl) .jr-pos').textContent = `${qpos[k] + 1} / ${groups.length}`;
@@ -1097,6 +1143,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (mode === 'journal' && scene === 'form' && journal && j !== qpos[k] && k === cur - 1 && !reduce) {
       journal.flip(dir, () => setQ(k, j, dir, false), () => { if (focus && fine) { const el = groups[j].querySelector('.q-input'); if (el) el.focus({ preventScroll: true }); } }, { ringNew: focus && fine });
     } else setQ(k, j, dir, focus);
+    // belt and braces: if the page-turn swallowed the focus, put the cursor in the new box so the clock is not wasted
+    if (focus && fine) setTimeout(() => { const el = groups[j] && groups[j].querySelector('.q-input'); if (el && !el.readOnly && qpos[k] === j && document.activeElement !== el) el.focus({ preventScroll: true }); }, 1100);
   }
   $('jr-scene').addEventListener('input', (e) => { const it = e.target.closest('.jr-item'); if (it) paintDots(Number(it.dataset.i)); });
   $('jr-scene').addEventListener('click', (e) => {
@@ -1124,6 +1172,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
   function jump(i) { /* locked: the test only moves forward */ }
   function go(d) {
     if (d < 0) return;
+    // a double-click (or a held Ctrl+Enter) must not burn through the next question the moment it opens
+    if (d > 0 && T.key && Date.now() - T.startedAt < 1200) return;
     if (d > 0) concludeCurrent();
     const last = steps.length - 1;
     if (d > 0 && cur === 0) { if (!detailsValid(true)) return; if (!T.ack) { openRules(); return; } }
@@ -1171,7 +1221,43 @@ input,textarea{-webkit-user-select:text;user-select:text}
   const T = { run: Math.random().toString(36).slice(2) + Date.now().toString(36), key: '', startedAt: 0, tick: 0, res: {}, done: false, started: false, wait: null, lastSave: 0, notice: '' };
   const STORE = 'ct_' + formId, retake = /[?&]retake=1/.test(location.search);
   const qAt = (k, j) => sections[k] && sections[k].qs[j];
-  const elOf = (q) => document.getElementById('q_' + q.id);
+  const grpOf = (q) => q && document.querySelector('.q-group[data-id="' + String(q.id).replace(/"/g, '') + '"]');
+  const SPLIT_NAMES = { split_inf: 'Influencers', split_paid: 'Paid ads', split_off: 'Offline', split_prod: 'Production' };
+  // what the person has put into one question: structured fields, a readable text, and whether it counts as answered
+  function readQ(q) {
+    const g = grpOf(q), fields = {};
+    if (!g) return { fields, text: '', any: false };
+    g.querySelectorAll('.ct-f').forEach(el => {
+      const k = el.dataset.k;
+      if (el.classList.contains('ct-pick')) { if (el.getAttribute('aria-checked') === 'true') fields[k] = el.dataset.v; return; }
+      const v = el.value.trim();
+      if (v !== '') fields[k] = v;
+    });
+    const rk = g.querySelector('.ct-rank'), touched = !!rk && rk.dataset.touched === '1';
+    if (rk) fields.order = [...rk.querySelectorAll('.ct-rk')].map(r => r.dataset.v);
+    const lines = [];
+    if (fields.choice != null) { const o = (q.opts || []).find(x => String(x[0]) === String(fields.choice)); lines.push('Choice: ' + (o ? o[1] : fields.choice)); }
+    if (fields.board) lines.push('Picked mood board 0' + fields.board);
+    if (rk) lines.push('Ranking: ' + fields.order.join(' > ') + (touched ? '' : ' (not changed)'));
+    const sp = Object.keys(SPLIT_NAMES).filter(k => fields[k] != null);
+    if (sp.length) lines.push('Budget split: ' + Object.keys(SPLIT_NAMES).map(k => SPLIT_NAMES[k] + ' ' + (fields[k] || 0) + '%').join(' · '));
+    (q.fields || []).forEach(f => {
+      if (fields[f.k] == null) return;
+      lines.push((f.label ? f.label + ': ' : '') + fields[f.k] + (f.star && fields.star === f.k ? '  [STARRED: would shoot this one]' : ''));
+    });
+    const any = Object.keys(fields).some(k => k !== 'star' && k !== 'order') || touched;
+    return { fields, text: lines.join('\n'), any };
+  }
+  const hasAnswer = (q) => readQ(q).any;
+  function lockQ(q) {
+    const g = grpOf(q); if (!g) return;
+    g.querySelectorAll('.ct-f').forEach(el => { if (el.classList.contains('ct-pick')) el.disabled = true; else el.readOnly = true; });
+    g.querySelectorAll('.ct-mv').forEach(b => { b.disabled = true; });
+  }
+  function clearQ(q) {
+    const g = grpOf(q); if (!g) return;
+    g.querySelectorAll('.ct-f').forEach(el => { if (el.classList.contains('ct-pick')) el.setAttribute('aria-checked', 'false'); else { el.value = ''; el._ctLen = 0; el._ctVal = ''; } });
+  }
   const fineDesktop = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const resFor = (q) => T.res[q.id] || (T.res[q.id] = { id: q.id, label: q.label, seconds: q.seconds || 60, used: 0, status: 'skipped-left', pastes: 0 });
   const post = (body) => ({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -1182,9 +1268,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
     const qs = [], answers = {};
     questions.forEach(q => {
       const r = T.res[q.id] || { id: q.id, label: q.label, seconds: q.seconds || 60, used: 0, status: 'skipped-left', pastes: 0 };
-      const el = elOf(q);
-      answers[q.id] = r.status === 'skipped-tab' ? '' : (el ? el.value.trim() : '');
-      qs.push({ id: q.id, label: q.label, seconds: r.seconds, used: r.used, status: r.status, pastes: r.pastes });
+      const a = r.status === 'skipped-tab' ? { fields: {}, text: '' } : readQ(q);
+      answers[q.id] = a.text;
+      qs.push({ id: q.id, label: q.label, seconds: r.seconds, used: r.used, status: r.status, pastes: r.pastes, fields: a.fields, variant: q.variant || null });
     });
     return { form_id: formId, run_id: T.run, name: $('company_name').value.trim(), email: $('email').value.trim(), answers, meta: { questions: qs, reason: reason || '' }, partial: !!partial };
   }
@@ -1197,11 +1283,11 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (!T.key) return;
     const [k, j] = T.key.split(':').map(Number), q = qAt(k, j);
     if (!q) { stopTimer(); return; }
-    const el = elOf(q), r = resFor(q), txt = el ? el.value.trim() : '';
+    const r = resFor(q), a = readQ(q);
     r.used = Math.min(r.seconds, Math.round((Date.now() - T.startedAt) / 1000));
-    r.status = status || (txt ? 'answered' : 'skipped-blank');
-    if (r.status === 'skipped-tab' && el) { r.discarded = txt.length; el.value = ''; }
-    if (el) el.readOnly = true;
+    r.status = status || (a.any ? 'answered' : 'skipped-blank');
+    if (r.status === 'skipped-tab') { r.discarded = a.text.length; clearQ(q); }
+    lockQ(q);
     stopTimer();
     persist();
   }
@@ -1230,8 +1316,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
   function timeUp() {
     if (!T.key) return;
-    const [k, j] = T.key.split(':').map(Number), q = qAt(k, j), el = q && elOf(q);
-    concludeCurrent(el && el.value.trim() ? 'timed-out' : 'skipped-time');
+    const [k, j] = T.key.split(':').map(Number), q = qAt(k, j);
+    concludeCurrent(q && hasAnswer(q) ? 'timed-out' : 'skipped-time');
     showToast('Time is up for that question.', true);
     go(1);
   }
@@ -1255,19 +1341,45 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (T.key) { const [k, j] = T.key.split(':').map(Number), q = qAt(k, j); if (q) resFor(q).pastes++; }
     showToast(msg || 'Copy and paste are turned off for this test.', true);
   }
-  ['copy', 'cut', 'paste', 'drop'].forEach(t => document.addEventListener(t, (e) => { e.preventDefault(); blocked(); }, true));
+  // only the reference-link boxes (data-paste="on") may receive a paste
+  const pasteOk = (e) => !!(e.target && e.target.closest && e.target.closest('[data-paste="on"]'));
+  ['copy', 'cut', 'paste', 'drop'].forEach(t => document.addEventListener(t, (e) => { if ((t === 'paste' || t === 'drop') && pasteOk(e)) return; e.preventDefault(); blocked(); }, true));
   ['dragstart', 'dragover', 'contextmenu'].forEach(t => document.addEventListener(t, (e) => e.preventDefault(), true));
   document.addEventListener('beforeinput', (e) => {
-    if (/^insertFrom(Paste|Drop|Yank)/.test(e.inputType || '')) { e.preventDefault(); blocked(); }
+    if (/^insertFrom(Paste|Drop|Yank)/.test(e.inputType || '') && !pasteOk(e)) { e.preventDefault(); blocked(); }
   }, true);
   document.addEventListener('keydown', (e) => {
     const k = (e.key || '').toLowerCase(), mod = e.ctrlKey || e.metaKey;
+    const paste = (mod && (k === 'v' || k === 'insert')) || (e.shiftKey && k === 'insert');
+    if (paste && pasteOk(e)) return;
     if ((mod && (k === 'v' || k === 'c' || k === 'x' || k === 'insert')) || (e.shiftKey && k === 'insert')) { e.preventDefault(); blocked(); }
   }, true);
+  // rank buttons, split total, radio picks
+  $('jr-scene').addEventListener('click', (e) => {
+    const b = e.target.closest('.ct-mv'); if (!b || b.disabled) return;
+    const row = b.closest('.ct-rk'), list = row.parentNode, d = Number(b.dataset.d);
+    const sib = d < 0 ? row.previousElementSibling : row.nextElementSibling;
+    if (!sib) return;
+    if (d < 0) list.insertBefore(row, sib); else list.insertBefore(sib, row);
+    list.dataset.touched = '1';
+    list.querySelectorAll('.ct-rk b').forEach((n, x) => { n.textContent = x + 1; });
+    const it = list.closest('.jr-item'); if (it) paintDots(Number(it.dataset.i));
+  });
+  $('jr-scene').addEventListener('input', (e) => {
+    const el = e.target; if (!el.matches || !el.matches('input[data-k^="split_"]')) return;
+    const box = el.closest('.ct-split'), sum = [...box.querySelectorAll('input')].reduce((a, i) => a + (Number(i.value) || 0), 0);
+    const t = box.querySelector('.ct-tot'); t.textContent = 'Total ' + sum + '%'; t.classList.toggle('bad', sum !== 100);
+  });
+  // choice cards: one pick per group; plain buttons, so the page-flip clones cannot un-pick them
+  $('jr-scene').addEventListener('click', (e) => {
+    const b = e.target.closest('.ct-pick'); if (!b || b.disabled) return;
+    b.closest('.q-group').querySelectorAll('.ct-pick[data-grp="' + b.dataset.grp + '"]').forEach(x => x.setAttribute('aria-checked', x === b ? 'true' : 'false'));
+    const it = b.closest('.jr-item'); if (it) paintDots(Number(it.dataset.i));
+  });
   // a big block of text appearing in one go did not come from the keyboard
   document.addEventListener('input', (e) => {
     const el = e.target;
-    if (!el || !el.matches || !el.matches('.jr-qs .q-input')) return;
+    if (!el || !el.matches || !el.matches('.jr-qs .q-input') || el.dataset.paste === 'on' || el.type === 'number') return;
     const prev = el._ctLen || 0, now = el.value.length;
     if (!e.isComposing && now - prev > 25) { el.value = el._ctVal || ''; blocked(); return; }
     el._ctLen = now; el._ctVal = el.value;
@@ -1343,7 +1455,15 @@ input,textarea{-webkit-user-select:text;user-select:text}
   async function loadForm() {
     const loading = $('loading'), cfg = window.CONTENT_TEST;
     if (!cfg || !cfg.questions || !cfg.questions.length) { loading.textContent = 'No test has been set up yet.'; return; }
-    questions = cfg.questions.map(q => Object.assign({ seconds: 60, type: 'textarea', section: 'Questions' }, q));
+    questions = cfg.questions.map(q => {
+      const v = q.pool && q.pool.length ? q.pool[Math.floor(Math.random() * q.pool.length)] : null;
+      const text = String(q.prompt || q.label || '').replace(/\{(\w+)\}/g, (_, k) => (v && v[k]) || '');
+      const sec = q.section || (cfg.sections && cfg.sections[q.sec]) || 'Questions';
+      const fields = q.fields || [{ k: 'text', multi: q.type !== 'text' }];
+      const opts = !q.opts ? null : q.fixed ? q.opts.slice() : q.opts.slice().sort(() => Math.random() - .5);
+      const rank = !q.rank ? null : q.rank.slice().sort(() => Math.random() - .5);
+      return Object.assign({}, q, { seconds: q.t || q.seconds || 60, section: sec, label: text, variant: v, fields, opts, rank });
+    });
     renderQuestions();
     loading.style.display = 'none';
     $('wrap').style.display = '';

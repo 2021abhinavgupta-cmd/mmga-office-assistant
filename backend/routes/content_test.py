@@ -126,7 +126,13 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
     pastes = sum(int(q.get("pastes") or 0) for q in qs)
     used = sum(int(q.get("used") or 0) for q in qs)
 
-    ws.merge_cells("A1:G1")
+    import content_test_key as key
+    by_id = {q.get("id"): q for q in qs}
+    a_pts = sum(key.auto_points(i, (by_id.get(i) or {}).get("fields")) or 0 for i in key.A_KEY)
+    wpm, acc = key.typing_speed((answers or {}).get("Q0"), (by_id.get("Q0") or {}).get("used"))
+    c4 = key.auto_points("C4", (by_id.get("C4") or {}).get("fields"))
+
+    ws.merge_cells("A1:I1")
     ws["A1"] = f"Content writing test: {name}"
     ws["A1"].font = Font(bold=True, size=15, color="FFFFFF")
     ws["A1"].fill = orange
@@ -135,15 +141,19 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
             ("Answered", f"{answered} of {len(qs)}"),
             ("Times left the tab", tabs), ("Paste / copy attempts", pastes),
             ("Time used", f"{used // 60}m {used % 60}s"),
+            ("Attitude (Section A, automatic)", f"{a_pts} of 15 = {round(a_pts / 15 * 100)}%  (below 60% is a no-hire on attitude)"),
+            ("C4 hook pick, automatic", "n/a" if c4 is None else f"{c4} of 2 (the reason needs a person: 0 or 1)"),
+            ("Typing speed (Q0)", "n/a" if wpm is None else f"{wpm} words per minute, {acc}% accurate"),
+            ("How to score the rest", "Sections B and C need a person. " + key.SCALE),
             ("Finished", "Incomplete: " + ((meta or {}).get("reason") or "page was closed") if partial else "Yes, submitted")]
     r = 2
     for k, v in info:
         ws.cell(r, 1, k).font = Font(bold=True)
-        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=9)
         ws.cell(r, 2, v)
         r += 1
     r += 1
-    heads = ["#", "Question", "Status", "Seconds allowed", "Seconds used", "Paste attempts", "Answer"]
+    heads = ["#", "Question", "Status", "Seconds allowed", "Seconds used", "Paste attempts", "Answer", "Auto points", "Rubric (for the scorer)"]
     for c, t in enumerate(heads, 1):
         cell = ws.cell(r, c, t)
         cell.font = Font(bold=True, color="FFFFFF")
@@ -154,7 +164,9 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
     for i, q in enumerate(qs, 1):
         text = str((answers or {}).get(q.get("id"), "") or "").strip()
         row = [i, q.get("label") or q.get("id"), _STATUS_LABEL.get(q.get("status"), q.get("status") or ""),
-               q.get("seconds", 0), q.get("used", 0), q.get("pastes", 0), text or "(no answer)"]
+               q.get("seconds", 0), q.get("used", 0), q.get("pastes", 0), text or "(no answer)",
+               ("" if key.auto_points(q.get("id"), q.get("fields")) is None else key.auto_points(q.get("id"), q.get("fields"))),
+               key.RUBRIC.get(q.get("id"), "")]
         for c, v in enumerate(row, 1):
             cell = ws.cell(r, c, v)
             cell.alignment = wrap
@@ -163,7 +175,7 @@ def build_xlsx(name, email, attempt, answers, meta, partial):
             ws.cell(r, 3).font = Font(bold=True, color="D92D20")
         ws.row_dimensions[r].height = max(30, min(400, 15 * (1 + len(text) // 70 + text.count("\n"))))
         r += 1
-    for col, w in zip("ABCDEFG", (5, 42, 30, 12, 12, 12, 80)):
+    for col, w in zip("ABCDEFGHI", (5, 42, 30, 12, 12, 12, 80, 10, 55)):
         ws.column_dimensions[col].width = w
     buf = io.BytesIO()
     wb.save(buf)
