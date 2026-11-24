@@ -175,7 +175,7 @@
     // ---- drag / swipe ----
     const NO_DRAG = 'input,textarea,select,button,a,label,.jr-toc,.jr-dots,.jr-qlist';
     stage.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0 || n < 1) return;
+      if (opts.locked || e.button !== 0 || n < 1) return;
       const hitItem = e.target.closest('.jr-item');
       if (hitItem && hitItem.classList.contains('on') && e.target.closest(NO_DRAG)) return;
       drag = { id: e.pointerId, x: e.clientX, y: e.clientY, from: pos, lastX: e.clientX, lastT: e.timeStamp, v: 0, moved: false, peel: null, mode: '', onOpen: !!(hitItem && hitItem.classList.contains('on')) };
@@ -234,7 +234,7 @@
 
     // ---- keys and sideways trackpad swipes ----
     root.addEventListener('keydown', (e) => {
-      if (e.target !== root) return;
+      if (opts.locked || e.target !== root) return;
       const map = { ArrowRight: 1, ArrowDown: 1, PageDown: 1, ArrowLeft: -1, ArrowUp: -1, PageUp: -1 };
       if (e.key in map) go(target + map[e.key]);
       else if (e.key === 'Home') go(0);
@@ -244,7 +244,7 @@
     });
     const wheel = { acc: 0, at: 0 };
     stage.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      if (opts.locked || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
       wheel.acc += e.deltaX;
       if (Math.abs(wheel.acc) < 40 || e.timeStamp - wheel.at < 340) return;
       wheel.at = e.timeStamp;

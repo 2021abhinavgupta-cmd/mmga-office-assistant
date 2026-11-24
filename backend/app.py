@@ -140,6 +140,8 @@ from routes.group_proposals import group_proposals_bp
 app.register_blueprint(group_proposals_bp)
 from routes.mood import mood_bp
 app.register_blueprint(mood_bp)
+from routes.content_test import content_test_bp
+app.register_blueprint(content_test_bp)
 
 
 @app.route("/l/<code>")
