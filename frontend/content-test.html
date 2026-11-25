@@ -1051,6 +1051,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), {
       locked: true,
       wide: true,
+      only: true,
       onIndex: (k) => { cur = k + 1; updateChrome(); },
       // a drag on the open spread turns the page; null at the end of a section so the drag slides on to the next one
       turnStep: (dir) => {

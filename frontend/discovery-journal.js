@@ -119,7 +119,7 @@
       for (let i = 0; i < n; i++) {
         const el = items[i], p = i - pos;
         const q = single ? poseSingle(p, w) : poseSpread(p, w);
-        if (q.hidden) { el.style.visibility = 'hidden'; continue; }
+        if (q.hidden || (opts.only && Math.abs(p) > 0.5)) { el.style.visibility = 'hidden'; continue; }
         el.style.visibility = 'visible';
         el.style.opacity = String(q.opacity);
         el.style.transform = `translate3d(${q.x.toFixed(2)}px,0,${q.z.toFixed(2)}px)`;
