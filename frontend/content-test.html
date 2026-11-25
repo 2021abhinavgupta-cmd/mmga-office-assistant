@@ -473,10 +473,10 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .st-ic{display:none!important}
 
 /* Content writing test */
-.ct-timer{flex:none;display:flex;align-items:baseline;gap:6px;padding:5px 13px;border-radius:999px;background:var(--card);border:1px solid var(--line-box);color:var(--ink);font-family:var(--f-display);transition:color .2s,border-color .2s}
+.ct-timer{flex:none;display:flex;align-items:baseline;gap:8px;padding:10px 24px;border-radius:999px;background:var(--card);border:2px solid var(--line-box);color:var(--ink);font-family:var(--f-display);transition:color .2s,border-color .2s}
 .ct-timer[hidden]{display:none}
-.ct-timer b{font-weight:800;font-size:1.15rem;line-height:1;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
-.ct-timer small{font-family:var(--f-sans);font-size:.7rem;color:var(--muted);letter-spacing:.02em}
+.ct-timer b{font-weight:800;font-size:2.4rem;line-height:1;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
+.ct-timer small{font-family:var(--f-sans);font-size:.95rem;color:var(--muted);letter-spacing:.02em}
 .ct-timer.warn{color:#d92d20;border-color:#d92d20;animation:ct-pulse 1s ease-in-out infinite}
 @keyframes ct-pulse{50%{box-shadow:0 0 0 5px rgb(217 45 32/.16)}}
 .ct-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:18px;background:rgb(20 20 20/.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -1035,6 +1035,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     // the journal: sections as spreads
     if (window.MMGAJournal) journal = MMGAJournal.create($('journal'), {
       locked: true,
+      wide: true,
       onIndex: (k) => { cur = k + 1; updateChrome(); },
       // a drag on the open spread turns the page; null at the end of a section so the drag slides on to the next one
       turnStep: (dir) => {
@@ -1297,7 +1298,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     const q = qAt(k, j), key = k + ':' + j;
     if (!q || T.key === key || mode !== 'journal' || scene !== 'form') return;
     if (T.res[q.id] && T.res[q.id].status !== 'skipped-left') return; // a question never runs twice
-    if (document.hidden) { T.wait = { k, j }; return; }
+    if (document.hidden || T.away) { T.wait = { k, j }; return; }
     stopTimer();
     T.key = key; T.started = true; T.wait = null;
     T.startedAt = Date.now();
@@ -1323,12 +1324,16 @@ input,textarea{-webkit-user-select:text;user-select:text}
   }
 
   function leftThePage() {
-    if (!T.key || T.done) return;
+    if (!T.key || T.done || T.away) return;
+    T.away = true;   // blur and visibilitychange both fire on a tab switch: skip only once, and hold the next question until they are back
     concludeCurrent('skipped-tab');
     T.notice = 'You left the test page, so that question was skipped.';
     go(1);
   }
   function comeBack() {
+    if (document.hidden) return;
+    if (T.away && (!fineDesktop || document.hasFocus())) T.away = false;
+    if (T.away) return;
     if (T.notice) { showToast(T.notice, true); T.notice = ''; }
     if (T.wait && !document.hidden) { const w = T.wait; T.wait = null; testStart(w.k, w.j); }
   }

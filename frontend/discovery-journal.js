@@ -22,14 +22,14 @@
   const durationFor = (steps) => (steps <= 0 ? 0 : Math.round(620 * Math.sqrt(Math.min(steps, 12))));
   const settle = (pos, v, n) => clamp(Math.round(pos + clamp(v * 0.18, -1.5, 1.5)), 0, Math.max(0, n - 1));
 
-  function sizeFor(sw, sh) {
+  function sizeFor(sw, sh, wide) {
     if (sw <= 0 || sh <= 0) return null;
     if (sw < 760) {
       const w = Math.round(Math.min(sw * 0.86, 560));
       return { single: true, w, h: Math.round(Math.min(sh * 0.94, w * 1.55)) };
     }
-    const ar = 1.36;
-    const w = Math.round(Math.min(sw * 0.62, sh * 0.96 * ar, 1060));
+    const ar = wide ? 1.72 : 1.36;
+    const w = Math.round(Math.min(sw * (wide ? 0.8 : 0.62), sh * 0.96 * ar, wide ? 1400 : 1060));
     return { single: false, w, h: Math.round(w / ar) };
   }
 
@@ -162,7 +162,7 @@
     }
 
     function measure() {
-      const s = sizeFor(stage.clientWidth, stage.clientHeight); // layout size, unaffected by the view's fade-in transform
+      const s = sizeFor(stage.clientWidth, stage.clientHeight, opts.wide); // layout size, unaffected by the view's fade-in transform
       if (!s) return;
       w = s.w; single = s.single;
       root.classList.toggle('single', single);
