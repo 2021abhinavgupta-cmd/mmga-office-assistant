@@ -1192,7 +1192,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (d > 0 && T.key && Date.now() - T.startedAt < 1200) return;
     if (d > 0) concludeCurrent();
     const last = steps.length - 1;
-    if (d > 0 && cur === 0) { if (!detailsValid(true)) return; if (!T.ack) { openRules(); return; } }
+    if (d > 0 && cur === 0) { if (!detailsValid(true)) return; if (!T.ack) { checkEmailThenRules(); return; } }
     if (cur > 0) {                       // questions first, sections after
       const k = cur - 1, m = sections[k].qs.length;
       if (d > 0 && qpos[k] < m - 1) { turnQ(k, qpos[k] + 1, 1, true); updateChrome(); return; }
@@ -1415,6 +1415,21 @@ input,textarea{-webkit-user-select:text;user-select:text}
     try { navigator.sendBeacon(`${API}/api/content-test`, new Blob([JSON.stringify(body)], { type: 'application/json' })); saveLocal({ state: 'sent' }); } catch (_) { /* resume check will resend */ }
   });
 
+  // one test per email: ask the server before the rules screen (it also refuses at submit)
+  let checking = false;
+  async function checkEmailThenRules() {
+    if (checking) return;
+    checking = true;
+    try {
+      const email = $('email').value.trim();
+      const r = await fetch(`${API}/api/content-test-check?form_id=${encodeURIComponent(formId)}&email=${encodeURIComponent(email)}`);
+      const d = await r.json();
+      if (d && d.taken) { showToast('This email has already taken the test. A test can be taken only once.', true); return; }
+    } catch (_) { /* server will still refuse a repeat at submit */ }
+    finally { checking = false; }
+    openRules();
+  }
+
   // the rules screen: shown once, right before the first question; the clock starts only after "start"
   function openRules() {
     const secs = questions.reduce((a, q) => a + (q.seconds || 60), 0), mins = Math.floor(secs / 60), rest = secs % 60;
@@ -1452,6 +1467,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
       if (data.success) {
         saveLocal({ state: 'done' });
         showThanks('Your test has reached the MMGA team. Thank you.');
+      } else if (data.taken) {
+        saveLocal({ state: 'done' });
+        showThanks('This email has already taken the test, so this attempt was not counted.');
       } else {
         showToast(data.error || 'Failed to submit the test.', true);
         btn.disabled = false; $('nextTxt').textContent = 'Submit test';

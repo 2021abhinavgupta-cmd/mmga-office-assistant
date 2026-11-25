@@ -257,6 +257,23 @@ def notify(name, email, attempt, answers, meta, partial, sub_id=None):
         logger.exception("content_test: notify failed")
 
 
+@content_test_bp.route("/api/content-test-check", methods=["GET"])
+def check_content_test_email():
+    """Has this email already taken the test? Only a yes/no is returned."""
+    email = _clean(request.args.get("email"), 160)
+    form_id = _clean(request.args.get("form_id"), 60) or "content_writing_test"
+    if not email or "@" not in email:
+        return jsonify({"taken": False})
+    _ensure()
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT 1 FROM content_test_submissions WHERE lower(email)=lower(?) AND form_id=?",
+                           (email, form_id)).fetchone()
+    finally:
+        conn.close()
+    return jsonify({"taken": bool(row)})
+
+
 @content_test_bp.route("/api/content-test", methods=["POST"])
 def submit_content_test():
     try:
@@ -279,6 +296,10 @@ def submit_content_test():
         try:
             if run_id and conn.execute("SELECT 1 FROM content_test_submissions WHERE run_id=?", (run_id,)).fetchone():
                 return jsonify({"success": True, "duplicate": True})
+            # one test per email: a second run with the same email is refused (the same run may save again, handled above)
+            if conn.execute("SELECT 1 FROM content_test_submissions WHERE lower(email)=lower(?) AND form_id=?",
+                            (email, form_id)).fetchone():
+                return jsonify({"success": False, "taken": True, "error": "This email has already taken the test."}), 409
             attempt = conn.execute(
                 "SELECT COUNT(*) FROM content_test_submissions WHERE lower(email)=lower(?) AND form_id=?",
                 (email, form_id)).fetchone()[0] + 1
