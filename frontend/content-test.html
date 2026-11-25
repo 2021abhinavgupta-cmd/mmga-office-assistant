@@ -494,6 +494,21 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .kln-tab,.jr-dots,.jr-qlist{pointer-events:none}
 #home-btn{visibility:hidden}
 </style>
+<script>
+// laptop / desktop only: phones and tablets are refused
+(function () {
+  var ua = navigator.userAgent || '';
+  var ipad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+  var mob = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle|CriOS|FxiOS/i.test(ua) || ipad
+    || (matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches)
+    || Math.min(screen.width, screen.height) < 700;
+  if (!mob) return;
+  window.__ctMobile = true;
+  document.addEventListener('DOMContentLoaded', function () {
+    document.body.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;text-align:center;background:#fbf7ee;color:#1d1a26;font-family:system-ui,sans-serif"><div style="max-width:380px"><h1 style="font-size:1.5rem;margin:0 0 12px">Please use a laptop or desktop</h1><p style="margin:0;line-height:1.5;color:#555">This test can only be taken on a laptop or desktop computer. Open this link on one to start.</p></div></div>';
+  });
+})();
+</script>
 </head>
 <body>
 
@@ -1496,6 +1511,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (scene === 'intro' && !a.matches('.kln-svc,.kln-tab')) setScene('form');
   });
 
+  if (window.__ctMobile) return;
   buildTitle();
   setCrawl('MMGA content writing test');
   buildBrandCarousel();
