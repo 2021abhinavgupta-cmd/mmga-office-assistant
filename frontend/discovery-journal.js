@@ -22,8 +22,12 @@
   const durationFor = (steps) => (steps <= 0 ? 0 : Math.round(620 * Math.sqrt(Math.min(steps, 12))));
   const settle = (pos, v, n) => clamp(Math.round(pos + clamp(v * 0.18, -1.5, 1.5)), 0, Math.max(0, n - 1));
 
-  function sizeFor(sw, sh, wide) {
+  function sizeFor(sw, sh, wide, flat) {
     if (sw <= 0 || sh <= 0) return null;
+    if (flat) {                     // no book: just the question page, on the background
+      const w = Math.round(Math.min(sw * 0.9, 1100));
+      return { single: true, w, h: Math.round(sh * 0.96) };
+    }
     if (sw < 760) {
       const w = Math.round(Math.min(sw * 0.86, 560));
       return { single: true, w, h: Math.round(Math.min(sh * 0.94, w * 1.55)) };
@@ -96,6 +100,7 @@
 
   function create(root, opts) {
     opts = opts || {};
+    if (opts.flat) root.classList.add('flat');
     const stage = root.querySelector('.jr-stage');
     const items = Array.from(root.querySelectorAll('.jr-item'));
     const pages = items.map((it) => [it.querySelector('.jr-page[data-side=l]'), it.querySelector('.jr-page[data-side=r]')]);
@@ -162,7 +167,7 @@
     }
 
     function measure() {
-      const s = sizeFor(stage.clientWidth, stage.clientHeight, opts.wide); // layout size, unaffected by the view's fade-in transform
+      const s = sizeFor(stage.clientWidth, stage.clientHeight, opts.wide, opts.flat); // layout size, unaffected by the view's fade-in transform
       if (!s) return;
       w = s.w; single = s.single;
       root.classList.toggle('single', single);

@@ -292,6 +292,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-shade{background:#3a3152;opacity:calc(var(--js,0)*.5)}
 .jr-item:not(.on) .jr-page{cursor:default}
 .jr-pg{position:absolute;inset:0;display:flex;flex-direction:column}
+/* flat: no book, only the question on the page background */
+.jr.flat .jr-page,.jr.flat .jr-item.on .jr-page{background:transparent!important;box-shadow:none!important;border-radius:0!important}
+.jr.flat .jr-gutter,.jr.flat .jr-shade,.jr.flat .jr-floor{display:none}
 /* left page: what the section is */
 .jr-left{padding:calc(var(--jw)*.042) calc(var(--jw)*.04) calc(var(--jw)*.036);user-select:none;-webkit-user-select:none;
   background-image:linear-gradient(to right,transparent 13px,rgb(30 20 50/.035) 0),linear-gradient(to bottom,transparent 13px,rgb(30 20 50/.035) 0);background-size:14px 14px}
@@ -473,11 +476,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .st-ic{display:none!important}
 
 /* Content writing test */
-.ct-timer{flex:none;display:flex;align-items:baseline;gap:8px;padding:10px 24px;border-radius:999px;background:var(--card);border:2px solid var(--line-box);color:var(--ink);font-family:var(--f-display);transition:color .2s,border-color .2s}
+.ct-timer{flex:none;display:flex;align-items:baseline;gap:10px;padding:12px 30px;border-radius:999px;background:var(--ink);border:3px solid var(--heat-1);color:#fff;font-family:var(--f-display);box-shadow:0 8px 26px -10px rgb(240 120 0/.7);transition:color .2s,border-color .2s}
 .ct-timer[hidden]{display:none}
-.ct-timer b{font-weight:800;font-size:2.4rem;line-height:1;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
-.ct-timer small{font-family:var(--f-sans);font-size:.95rem;color:var(--muted);letter-spacing:.02em}
-.ct-timer.warn{color:#d92d20;border-color:#d92d20;animation:ct-pulse 1s ease-in-out infinite}
+.ct-timer b{font-weight:800;font-size:3.6rem;line-height:1;min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
+.ct-timer small{font-family:var(--f-sans);font-size:1.1rem;color:rgb(255 255 255/.75);letter-spacing:.02em}
+.ct-timer.warn{background:#d92d20;border-color:#ff8a80;animation:ct-pulse 1s ease-in-out infinite}
 @keyframes ct-pulse{50%{box-shadow:0 0 0 5px rgb(217 45 32/.16)}}
 .ct-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:18px;background:rgb(20 20 20/.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 .ct-modal[hidden]{display:none}
@@ -1052,6 +1055,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       locked: true,
       wide: true,
       only: true,
+      flat: true,
       onIndex: (k) => { cur = k + 1; updateChrome(); },
       // a drag on the open spread turns the page; null at the end of a section so the drag slides on to the next one
       turnStep: (dir) => {
@@ -1191,6 +1195,10 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (d < 0) return;
     // a double-click (or a held Ctrl+Enter) must not burn through the next question the moment it opens
     if (d > 0 && T.key && Date.now() - T.startedAt < 1200) return;
+    if (d > 0 && T.key && !T.auto) {     // answers are mandatory: only the timer or leaving the page may move on without one
+      const [k0, j0] = T.key.split(':').map(Number), q0 = qAt(k0, j0);
+      if (q0 && !hasAnswer(q0)) { showToast('Please answer this question first. Every question is required.', true); return; }
+    }
     if (d > 0) concludeCurrent();
     const last = steps.length - 1;
     if (d > 0 && cur === 0) { if (!detailsValid(true)) return; if (!T.ack) { checkEmailThenRules(); return; } }
@@ -1336,7 +1344,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     const [k, j] = T.key.split(':').map(Number), q = qAt(k, j);
     concludeCurrent(q && hasAnswer(q) ? 'timed-out' : 'skipped-time');
     showToast('Time is up for that question.', true);
-    go(1);
+    T.auto = true; try { go(1); } finally { T.auto = false; }
   }
 
   function leftThePage() {
@@ -1344,7 +1352,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     T.away = true;   // blur and visibilitychange both fire on a tab switch: skip only once, and hold the next question until they are back
     concludeCurrent('skipped-tab');
     T.notice = 'You left the test page, so that question was skipped.';
-    go(1);
+    T.auto = true; try { go(1); } finally { T.auto = false; }
   }
   function comeBack() {
     if (document.hidden) return;
