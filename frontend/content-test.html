@@ -1453,6 +1453,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
   }
   $('ct-go').addEventListener('click', () => { $('ct-rules-modal').hidden = true; T.ack = true; go(1); });
 
+  const DONE_TEXT = "Noorish will get back to you within 3 working days. Whatever the answer, you'll hear from us.";
   function showThanks(text, result) {
     stopTimer();
     document.getElementById('ct-result') && document.getElementById('ct-result').remove();
@@ -1462,7 +1463,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
     $('q-title').textContent = 'All done';
     $('q-pct').textContent = '100%'; $('q-fill').style.width = '100%';
     document.querySelectorAll('.kln-tab').forEach(t => t.classList.add('done'));
-    retitle([[{ text: 'Thank' }], [{ text: 'you' }, { text: '.' }]]);
+    const fn = (($('company_name').value || '').trim().split(/\s+/)[0] || '').slice(0, 12);
+    retitle([[{ text: "That's it" + (fn ? ', ' + fn : '') + '.' }], [{ text: 'Breathe.' }]]);
+    const eye = $('copy').querySelector('.mono'); if (eye) eye.textContent = 'All done';
     $('copy').querySelector('.kln-sub').textContent = text;
     if (result && result.score != null) {
       const P = [['Attitude', 'att'], ['Personality', 'pers'], ['Script', 'script'], ['Ideas', 'ideas'], ['Execution', 'exec']];
@@ -1485,13 +1488,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
     concludeCurrent();
     T.done = true; stopTimer();
     const btn = $('nextBtn');
-    btn.disabled = true; $('nextTxt').textContent = 'Scoring your answers...';
+    btn.disabled = true; $('nextTxt').textContent = 'Submitting...';
     try {
       const res = await fetch(`${API}/api/content-test`, post(payload(false, '')));
       const data = await res.json();
       if (data.success) {
         saveLocal({ state: 'done' });
-        showThanks('Your test has reached the MMGA team. Here is how you did.', data.result);
+        showThanks(DONE_TEXT);
       } else if (data.taken) {
         saveLocal({ state: 'done' });
         showThanks('This email has already taken the test, so this attempt was not counted.');
@@ -1512,7 +1515,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (s.state === 'running' && s.payload) {         // it ended without being sent: send it now
       try { const r = await fetch(`${API}/api/content-test`, post(s.payload)); const d = await r.json(); if (d.success) saveLocal({ state: 'sent' }); } catch (_) { /* try again next visit */ }
     }
-    if (loadLocal()) showThanks('This test was already taken in this browser, and the MMGA team has the answers.');
+    if (loadLocal()) showThanks(DONE_TEXT);
   }
 
   async function loadForm() {

@@ -311,20 +311,9 @@ def submit_content_test():
                 sub_id = cur.lastrowid
         finally:
             conn.close()
-        result = None
-        if not partial:      # the candidate sees their result on the last screen, so a finished test is scored now
-            try:
-                result = _score_and_save(sub_id, answers, meta)
-            except Exception:
-                logger.exception("content_test: scoring failed")
-        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id, result), daemon=True).start()
-        out = {"success": True}
-        if result:
-            import content_test_key as key
-            out["result"] = {"score": result.get("score"), "advance": result.get("advance"),
-                             "pillars": {k: result.get(k) for k in ("att", "pers", "script", "ideas", "exec", "skill")},
-                             "fit": key.fit(result)}
-        return jsonify(out)
+        # the candidate is not shown a score: it is scored in the background and goes to the reviewers
+        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id), daemon=True).start()
+        return jsonify({"success": True})
     except Exception:
         logger.exception("content_test submit failed")
         return jsonify({"success": False, "error": "Could not save the test"}), 500
@@ -361,6 +350,9 @@ def list_content_test_submissions():
                    "pastes": sum(int(q.get("pastes") or 0) for q in qs)}
         try:
             result = json.loads(r[8]) if r[8] else None
+            if result:
+                import content_test_key as key
+                result["fit"] = key.fit(result)
         except Exception:
             result = None
         for q in qs:

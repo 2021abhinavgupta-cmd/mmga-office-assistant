@@ -177,6 +177,7 @@
     return `<div class="stat" style="margin:16px 0;border-color:${R.advance ? 'rgba(52,211,153,.5)' : 'rgba(239,68,68,.5)'}">
       <span>Screening result</span><b style="font-size:1.6rem">${R.score} / 100 · ${esc(R.verdict)}</b>
       <div class="rub" style="color:var(--text);margin-top:6px">${esc(R.reason)}</div>
+      ${R.fit ? `<div class="rub" style="color:var(--text);margin-top:8px"><b>Type of fit: ${esc(R.fit.label)}.</b> ${esc(R.fit.text)}</div>` : ''}
       <div class="chips"><span class="chip">Attitude ${pc(R.att)}</span><span class="chip">Personality ${pc(R.pers)}</span><span class="chip">Script ${pc(R.script)}</span><span class="chip">Ideas ${pc(R.ideas)}</span><span class="chip">Execution ${pc(R.exec)}</span><span class="chip">Skill ${pc(R.skill)}</span></div>
       <div class="rub">${esc(src)}. A person should confirm before deciding.</div></div>`;
   }
