@@ -298,8 +298,19 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 /* flat: the question page scrolls as one, so long questions are never squeezed */
 .jr.flat .jr-qs .q-group.on{overflow-y:auto;scrollbar-width:thin;padding-right:6px}
 .jr.flat .jr-qs .ct-body{flex:none;overflow:visible;min-height:auto}
-.jr.flat .jr-qs .q-group label{flex:none}
+.jr.flat.single .jr-qs .q-group label{flex:none;font-size:clamp(22px,2.3vw,36px);font-weight:600;line-height:1.22;margin-bottom:22px}
+.jr.flat.single .jr-qs .q-group label.ct-fl,.jr.flat.single .jr-qs .q-group p.ct-fl{font-size:1rem;font-weight:600;margin:0}
+.jr.flat .ct-o,.jr.flat .ct-rk{font-size:1.1rem;padding:13px 16px}
+.jr.flat .jr-qs .q-input{font-size:1.08rem}
 .jr.flat .jr-qs .ct-body textarea.q-input{min-height:120px}
+.jr.flat.single .jr-qs .q-group label.ct-sp{font-size:1rem;font-weight:600;margin:0}
+.jr.flat .jr-qs{padding-top:4px}
+.jr.flat .jr-mhead{padding:0;margin-bottom:2px}
+.jr.flat .jr-mhead .jr-title{font-size:1.25rem;margin-top:2px}
+.jr.flat .jr-mhead .jr-kick{font-size:.62rem}
+.jr.flat .ct-tiles{grid-template-columns:repeat(4,1fr)}
+.jr.flat .ct-tile{aspect-ratio:4/3}
+.jr.flat .jr-qs .ct-body{gap:16px}
 /* flat: no book, only the question on the page background */
 .jr.flat .jr-page,.jr.flat .jr-item.on .jr-page{background:transparent!important;box-shadow:none!important;border-radius:0!important}
 .jr.flat .jr-gutter,.jr.flat .jr-shade,.jr.flat .jr-floor{display:none}
