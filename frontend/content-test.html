@@ -1453,8 +1453,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
   }
   $('ct-go').addEventListener('click', () => { $('ct-rules-modal').hidden = true; T.ack = true; go(1); });
 
-  function showThanks(text) {
+  function showThanks(text, result) {
     stopTimer();
+    document.getElementById('ct-result') && document.getElementById('ct-result').remove();
     $('wrap').style.display = 'none';
     $('loading').style.display = 'none';
     $('success-view').style.display = 'block';
@@ -1463,6 +1464,17 @@ input,textarea{-webkit-user-select:text;user-select:text}
     document.querySelectorAll('.kln-tab').forEach(t => t.classList.add('done'));
     retitle([[{ text: 'Thank' }], [{ text: 'you' }, { text: '.' }]]);
     $('copy').querySelector('.kln-sub').textContent = text;
+    if (result && result.score != null) {
+      const P = [['Attitude', 'att'], ['Personality', 'pers'], ['Script', 'script'], ['Ideas', 'ideas'], ['Execution', 'exec']];
+      const f = result.fit || {}, pc = (v) => Math.round(Math.max(0, Math.min(1, v || 0)) * 100);
+      const box = document.createElement('div');
+      box.id = 'ct-result';
+      box.style.cssText = 'margin-top:22px;max-width:520px;padding:22px 24px;border:1px solid var(--line-box);border-radius:20px;background:var(--card)';
+      box.innerHTML = '<div style="display:flex;align-items:baseline;gap:10px"><b style="font-family:var(--f-display);font-size:3.4rem;line-height:1">' + esc(result.score) + '</b><span style="color:var(--muted)">/ 100</span></div>'
+        + (f.label ? '<p style="margin-top:10px;font-weight:700;font-size:1.1rem">' + esc(f.label) + '</p><p style="margin-top:6px;color:var(--body);line-height:1.5">' + esc(f.text || '') + '</p>' : '')
+        + '<div style="margin-top:16px;display:grid;gap:8px">' + P.map(x => '<div style="display:grid;grid-template-columns:100px 1fr 40px;align-items:center;gap:10px;font-size:.85rem"><span>' + x[0] + '</span><span style="height:7px;border-radius:99px;background:var(--chrome);overflow:hidden"><i style="display:block;height:100%;width:' + pc((result.pillars || {})[x[1]]) + '%;background:linear-gradient(90deg,var(--heat-1),var(--heat-3))"></i></span><span style="text-align:right;color:var(--muted)">' + pc((result.pillars || {})[x[1]]) + '%</span></div>').join('') + '</div>';
+      $('copy').querySelector('.kln-sub').insertAdjacentElement('afterend', box);
+    }
     $('start-btn').style.display = 'none';
     setScene('intro');
   }
@@ -1473,13 +1485,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
     concludeCurrent();
     T.done = true; stopTimer();
     const btn = $('nextBtn');
-    btn.disabled = true; $('nextTxt').textContent = 'Submitting...';
+    btn.disabled = true; $('nextTxt').textContent = 'Scoring your answers...';
     try {
       const res = await fetch(`${API}/api/content-test`, post(payload(false, '')));
       const data = await res.json();
       if (data.success) {
         saveLocal({ state: 'done' });
-        showThanks('Your test has reached the MMGA team. Thank you.');
+        showThanks('Your test has reached the MMGA team. Here is how you did.', data.result);
       } else if (data.taken) {
         saveLocal({ state: 'done' });
         showThanks('This email has already taken the test, so this attempt was not counted.');

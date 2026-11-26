@@ -222,14 +222,14 @@ def safe_name(name):
     return f"Content_test_{base[:40]}.xlsx"
 
 
-def notify(name, email, attempt, answers, meta, partial, sub_id=None):
+def notify(name, email, attempt, answers, meta, partial, sub_id=None, result=None):
     """Score the test, keep the result, email the result sheet to the reviewers (no WhatsApp, no client mail)."""
     try:
-        result = None
-        try:
-            result = _score_and_save(sub_id, answers, meta)
-        except Exception:
-            logger.exception("content_test: scoring failed")
+        if result is None:
+            try:
+                result = _score_and_save(sub_id, answers, meta)
+            except Exception:
+                logger.exception("content_test: scoring failed")
         import mailer
         to = [e for e in (mailer.email_for(i) for i in _recipients()) if e]
         if not to:
@@ -311,8 +311,20 @@ def submit_content_test():
                 sub_id = cur.lastrowid
         finally:
             conn.close()
-        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id), daemon=True).start()
-        return jsonify({"success": True})
+        result = None
+        if not partial:      # the candidate sees their result on the last screen, so a finished test is scored now
+            try:
+                result = _score_and_save(sub_id, answers, meta)
+            except Exception:
+                logger.exception("content_test: scoring failed")
+        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id, result), daemon=True).start()
+        out = {"success": True}
+        if result:
+            import content_test_key as key
+            out["result"] = {"score": result.get("score"), "advance": result.get("advance"),
+                             "pillars": {k: result.get(k) for k in ("att", "pers", "script", "ideas", "exec", "skill")},
+                             "fit": key.fit(result)}
+        return jsonify(out)
     except Exception:
         logger.exception("content_test submit failed")
         return jsonify({"success": False, "error": "Could not save the test"}), 500

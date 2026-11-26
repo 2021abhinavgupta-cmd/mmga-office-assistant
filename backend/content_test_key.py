@@ -160,6 +160,29 @@ def score_submission(answers, meta):
     return res
 
 
+def fit(result):
+    """A short, candidate-facing message about what kind of fit they are, from the pillar scores."""
+    r = result or {}
+    att, pers = r.get("att", 0), r.get("pers", 0)
+    area = {"script": r.get("script", 0), "ideas": r.get("ideas", 0), "exec": r.get("exec", 0)}
+    top = max(area, key=area.get)
+    if att < 0.6:
+        return {"label": "A different working style",
+                "text": "Your gut-check answers point to a working style that is not quite what this role needs right now. That is a fit question, not a verdict on your talent."}
+    if r.get("advance") and min(area.values()) >= 0.6 and pers >= 0.5:
+        return {"label": "The all-rounder",
+                "text": "You are strong across script, ideas and execution, and your answers sound like a person we would enjoy working with. A rare mix."}
+    base = {
+        "script": ("The storyteller", "Your strength is the line and the script: sharp angles, a good ear, and a feel for what makes people stop scrolling."),
+        "ideas": ("The ideas engine", "Your strength is thinking: you find the tension in a brief and turn it into campaigns and series that go beyond the obvious."),
+        "exec": ("The operator", "Your strength is making it happen: budgets, shoots, negotiations and the order things must be done in. Producers like you keep a campaign alive."),
+    }[top]
+    extra = " We also liked how you showed up as a person." if pers >= 0.6 else ""
+    if not r.get("advance"):
+        return {"label": base[0], "text": base[1] + " For this particular role the overall score fell short of what we need right now." + extra}
+    return {"label": base[0], "text": base[1] + extra}
+
+
 def typing_speed(text, seconds_used):
     """(words per minute, accuracy %) for the typing question, or (None, None) when there is nothing to measure."""
     text = (text or "").strip()
