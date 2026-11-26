@@ -295,6 +295,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-shade{background:#3a3152;opacity:calc(var(--js,0)*.5)}
 .jr-item:not(.on) .jr-page{cursor:default}
 .jr-pg{position:absolute;inset:0;display:flex;flex-direction:column}
+/* flat: the question page scrolls as one, so long questions are never squeezed */
+.jr.flat .jr-qs .q-group.on{overflow-y:auto;scrollbar-width:thin;padding-right:6px}
+.jr.flat .jr-qs .ct-body{flex:none;overflow:visible;min-height:auto}
+.jr.flat .jr-qs .q-group label{flex:none}
+.jr.flat .jr-qs .ct-body textarea.q-input{min-height:120px}
 /* flat: no book, only the question on the page background */
 .jr.flat .jr-page,.jr.flat .jr-item.on .jr-page{background:transparent!important;box-shadow:none!important;border-radius:0!important}
 .jr.flat .jr-gutter,.jr.flat .jr-shade,.jr.flat .jr-floor{display:none}
@@ -378,8 +383,11 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .ct-rk span{flex:1}
 .ct-mv{flex:none;width:34px;height:34px;border:1px solid var(--line-box);border-radius:10px;background:#faf8f3;cursor:pointer;font-size:1rem;line-height:1}
 .ct-mv:disabled{opacity:.4;cursor:default}
-.ct-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.ct-tile{display:flex;align-items:center;gap:9px;aspect-ratio:16/9;padding:10px 12px;border:1px solid var(--line-box);border-radius:13px;background:linear-gradient(135deg,#fff,#f6efe2);font-size:.9rem;font-weight:500}
+.ct-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ct-tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ct-tile span{position:relative;z-index:1;padding:4px 10px;border-radius:99px;background:rgb(255 255 255/.92);color:var(--ink);font-size:.8rem;font-weight:600}
+.ct-tile[aria-checked=true] span{background:var(--heat-1);color:#fff}
+.ct-tile{position:relative;overflow:hidden;display:flex;align-items:flex-end;gap:9px;aspect-ratio:16/10;padding:10px 12px;border:1px solid var(--line-box);border-radius:13px;background:linear-gradient(135deg,#fff,#f6efe2);font-size:.9rem;font-weight:500}
 .ct-split>div{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .ct-sp{display:flex;flex-direction:column;gap:4px;margin:0}
 .jr-qs .q-group label.ct-sp{display:flex;flex-direction:column;margin:0;font-size:.8rem;font-weight:500;gap:4px}
@@ -995,7 +1003,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
         }).join('');
         const optHtml = q.opts ? `<div class="ct-opts" role="radiogroup">${q.opts.map(o => `<button type="button" class="ct-f ct-pick ct-o" role="radio" aria-checked="false" data-grp="opt_${esc(q.id)}" data-k="choice" data-v="${esc(o[0])}"><i></i><span>${esc(o[1])}</span></button>`).join('')}</div>` : '';
         const rankHtml = q.rank ? `<div class="ct-rank" data-touched="0">${q.rank.map((r, x) => `<div class="ct-rk" data-v="${esc(r)}"><b>${x + 1}</b><span>${esc(r)}</span><button type="button" class="ct-mv" data-d="-1" aria-label="Move up">↑</button><button type="button" class="ct-mv" data-d="1" aria-label="Move down">↓</button></div>`).join('')}</div>` : '';
-        const tileHtml = q.tiles ? `<div class="ct-tiles">${[1, 2, 3, 4].map(n => `<button type="button" class="ct-f ct-pick ct-tile" role="radio" aria-checked="false" data-grp="board_${esc(q.id)}" data-k="board" data-v="${n}"><i></i><span>Mood board 0${n}</span></button>`).join('')}</div>` : '';
+        const tileHtml = q.tiles ? `<div class="ct-tiles">${[1, 2, 3, 4].map(n => `<button type="button" class="ct-f ct-pick ct-tile" role="radio" aria-checked="false" data-grp="board_${esc(q.id)}" data-k="board" data-v="${n}">${Array.isArray(q.tiles) && q.tiles[n - 1] ? `<img src="${esc(q.tiles[n - 1])}" alt="Mood board 0${n}" loading="eager" draggable="false" referrerpolicy="no-referrer">` : '<i></i>'}<span>Mood board 0${n}</span></button>`).join('')}</div>` : '';
         const splitHtml = q.split ? `<div class="ct-split"><p class="ct-fl">Split the budget (percent, should add up to 100)</p><div>${[['inf', 'Influencers'], ['paid', 'Paid ads'], ['off', 'Offline'], ['prod', 'Production']].map(s => `<label class="ct-sp"><span>${s[1]}</span><input type="number" min="0" max="100" inputmode="numeric" class="q-input ct-f" data-k="split_${s[0]}" placeholder="0" ${off}></label>`).join('')}</div><p class="ct-tot" aria-live="off">Total 0%</p></div>` : '';
         const input = `<div class="ct-body${fl.length === 1 && !q.opts && !q.rank && !q.tiles && !q.split ? ' one' : ''}">${optHtml}${rankHtml}${tileHtml}${splitHtml}${fieldHtml}</div>`;
         const hp = q.hint ? String(q.hint).split(' Example: ') : null;
@@ -1453,6 +1461,62 @@ input,textarea{-webkit-user-select:text;user-select:text}
   }
   $('ct-go').addEventListener('click', () => { $('ct-rules-modal').hidden = true; T.ack = true; go(1); });
 
+  // ----- the result the candidate sees at the end -----
+  function buildView(pl, R) {
+    const qs = (pl.meta && pl.meta.questions) || [];
+    const rows = qs.map(q => {
+      let pts = null, note = '';
+      if (q.id === 'C4') { const rs = (R.scores || {}).C4; pts = ((R.auto || {}).C4 || 0) + (rs ? rs.s : 0) + '/3'; note = 'Pick ' + ((R.auto || {}).C4 || 0) + '/2 auto. Reason ' + (rs ? rs.s : 0) + '/1' + (rs && rs.why ? ': ' + rs.why : '') + '.'; }
+      else if (R.auto && R.auto[q.id] !== undefined) { pts = R.auto[q.id] + '/3'; note = 'Auto scored.'; }
+      else if ((R.scores || {})[q.id]) { const sc = R.scores[q.id]; pts = sc.s + '/3'; note = sc.why || ''; }
+      else note = 'Not scored.';
+      return { id: q.id, label: q.label, text: (pl.answers || {})[q.id] || '', used: q.used, seconds: q.seconds, status: q.status, pastes: q.pastes || 0, pts, note };
+    });
+    const sig = [];
+    rows.forEach(r => { if (r.status === 'skipped-tab') sig.push(['TAB_AWAY', 'Left the test window during ' + r.id + '.']); });
+    const pastes = rows.reduce((a, r) => a + r.pastes, 0);
+    if (pastes) sig.push(['PASTE', pastes + ' copy or paste attempt' + (pastes > 1 ? 's were' : ' was') + ' blocked.']);
+    if (R.typing && R.typing.wpm != null) sig.push(['NOTE', 'Typing speed ' + R.typing.wpm + ' wpm at ' + R.typing.acc + '% accuracy.']);
+    return { name: pl.name, email: pl.email, R, rows, sig };
+  }
+
+  function openResult(v) {
+    const R = v.R, pc = (x) => Math.round(Math.max(0, Math.min(1, x || 0)) * 100);
+    const P = [['Attitude', 'att'], ['Personality', 'pers'], ['Script', 'script'], ['Ideas', 'ideas'], ['Execution', 'exec']];
+    const ok = !!R.advance, f = R.fit || {};
+    const card = 'padding:24px 28px;border:1px solid var(--line-box);border-radius:22px;background:var(--card)';
+    const old = document.getElementById('ct-res'); if (old) old.remove();
+    const el = document.createElement('div');
+    el.id = 'ct-res';
+    el.style.cssText = 'position:fixed;inset:0;z-index:300;overflow:auto;background:var(--page);color:var(--ink);padding:28px clamp(16px,6vw,90px) 60px';
+    const head = '<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><p class="mono" style="color:var(--heat-1)">MMGA Proof &middot; Your result</p>'
+      + '<h2 style="font-family:var(--f-display);font-size:clamp(1.5rem,3vw,2.2rem);margin-top:6px">' + esc(v.name) + ' scored ' + esc(R.score) + '/100 on MMGA Proof.</h2>'
+      + '<p style="color:var(--body);margin-top:4px">Sent to Noorish (HR) and Kshitij.</p></div>'
+      + '<div style="display:flex;gap:10px;align-items:center"><span style="padding:10px 18px;border-radius:999px;font-weight:700;letter-spacing:.06em;font-size:.8rem;color:#fff;background:' + (ok ? '#16a34a' : '#e2553d') + '">' + (ok ? 'PASSED' : 'NOT PASSED') + '</span>'
+      + '<button type="button" id="ct-res-x" class="mt-btn" style="padding:10px 18px;border:1px solid var(--line-box);border-radius:999px">Close</button></div></div>';
+    const left = '<div style="' + card + ';text-align:center"><div style="font-family:var(--f-display);font-size:5rem;line-height:1;font-weight:800">' + esc(R.score) + '</div><div class="mono" style="color:var(--muted);margin-top:4px">out of 100</div>'
+      + '<p style="margin-top:18px;font-size:1.4rem;font-weight:700">' + esc(R.verdict) + '</p><p style="margin-top:6px;color:var(--body);line-height:1.5">' + esc(R.reason) + '</p>'
+      + (f.label ? '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line-box);text-align:left"><b>Type of fit: ' + esc(f.label) + '</b><p style="margin-top:6px;color:var(--body);line-height:1.5;font-size:.92rem">' + esc(f.text || '') + '</p></div>' : '')
+      + '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line-box);text-align:left;font-size:.88rem;display:grid;gap:6px"><div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Name</span><span>' + esc(v.name) + '</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--muted)">Email</span><span>' + esc(v.email) + '</span></div></div></div>';
+    const shape = '<div style="' + card + '"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3 style="font-family:var(--f-display);font-size:1.4rem">Shape</h3><span class="mono" style="color:var(--muted)">Pass mark ' + esc(R.pass_mark || 60) + '</span></div>'
+      + '<div style="margin-top:14px;display:grid;gap:12px">' + P.map(x => '<div style="display:grid;grid-template-columns:110px 1fr 46px;align-items:center;gap:12px"><span>' + x[0] + '</span><span style="height:9px;border-radius:99px;background:var(--chrome);overflow:hidden"><i style="display:block;height:100%;width:' + pc((R.pillars || {})[x[1]]) + '%;background:linear-gradient(90deg,var(--heat-1),var(--heat-3))"></i></span><b style="text-align:right">' + pc((R.pillars || {})[x[1]]) + '%</b></div>').join('') + '</div>'
+      + '<p style="margin-top:14px;color:var(--muted);font-size:.85rem">Screen score = 35% attitude + 25% personality + 40% skill. Skill = 45% script, 35% ideas, 20% execution.</p></div>';
+    const sigs = (v.sig && v.sig.length) ? '<div style="' + card + '"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3 style="font-family:var(--f-display);font-size:1.2rem">Ask about these in the interview</h3><span class="mono" style="color:var(--muted)">Signals, never automatic rejections</span></div><div style="margin-top:12px;display:grid;gap:10px">'
+      + v.sig.map(x => '<div style="display:grid;grid-template-columns:110px 1fr;gap:12px"><span class="mono" style="color:var(--heat-1)">' + esc(x[0]) + '</span><span>' + esc(x[1]) + '</span></div>').join('') + '</div></div>' : '';
+    const srcNote = { 'ai': 'Open answers scored by AI against the rubric', 'ai+estimate': 'Some open answers estimated; a reviewer will score them', 'estimate': 'Open answers estimated; a reviewer will score them' }[R.source] || '';
+    const every = '<div style="' + card + '"><div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px"><h3 style="font-family:var(--f-display);font-size:1.4rem">Every answer</h3><span class="mono" style="color:var(--muted)">' + esc(srcNote) + '</span></div>'
+      + v.rows.map(r => '<div style="display:grid;grid-template-columns:48px 1fr 110px;gap:14px;padding:16px 0;border-top:1px solid var(--line-box)"><b style="color:var(--heat-1)">' + esc(r.id) + '</b><div><div style="font-weight:600;line-height:1.4">' + esc(r.label) + '</div>'
+        + '<div style="margin-top:6px;white-space:pre-wrap;color:var(--body);line-height:1.5">' + (r.text ? esc(r.text) : 'No answer.') + '</div>'
+        + '<div style="margin-top:6px;font-size:.82rem;color:var(--muted)">' + esc(r.note) + '</div></div>'
+        + '<div style="text-align:right"><div style="font-weight:700">' + esc(r.pts || '-') + '</div><div class="mono" style="color:var(--muted);margin-top:4px">' + esc(r.used) + 's/' + esc(r.seconds) + 's</div></div></div>').join('')
+      + '</div>';
+    el.innerHTML = '<div style="max-width:1100px;margin:0 auto;display:grid;gap:18px">' + head
+      + '<div class="ct-res-grid" style="display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:18px">' + left + '<div style="display:grid;gap:18px;align-content:start">' + shape + sigs + '</div></div>' + every + '</div>'
+      + '<style>@media(max-width:860px){.ct-res-grid{grid-template-columns:1fr!important}}</style>';
+    document.body.appendChild(el);
+    document.getElementById('ct-res-x').addEventListener('click', () => el.remove());
+  }
+
   const DONE_TEXT = "Noorish will get back to you within 3 working days. Whatever the answer, you'll hear from us.";
   function showThanks(text, result) {
     stopTimer();
@@ -1467,16 +1531,12 @@ input,textarea{-webkit-user-select:text;user-select:text}
     retitle([[{ text: "That's it" + (fn ? ', ' + fn : '') + '.' }], [{ text: 'Breathe.' }]]);
     const eye = $('copy').querySelector('.mono'); if (eye) eye.textContent = 'All done';
     $('copy').querySelector('.kln-sub').textContent = text;
-    if (result && result.score != null) {
-      const P = [['Attitude', 'att'], ['Personality', 'pers'], ['Script', 'script'], ['Ideas', 'ideas'], ['Execution', 'exec']];
-      const f = result.fit || {}, pc = (v) => Math.round(Math.max(0, Math.min(1, v || 0)) * 100);
-      const box = document.createElement('div');
-      box.id = 'ct-result';
-      box.style.cssText = 'margin-top:22px;max-width:520px;padding:22px 24px;border:1px solid var(--line-box);border-radius:20px;background:var(--card)';
-      box.innerHTML = '<div style="display:flex;align-items:baseline;gap:10px"><b style="font-family:var(--f-display);font-size:3.4rem;line-height:1">' + esc(result.score) + '</b><span style="color:var(--muted)">/ 100</span></div>'
-        + (f.label ? '<p style="margin-top:10px;font-weight:700;font-size:1.1rem">' + esc(f.label) + '</p><p style="margin-top:6px;color:var(--body);line-height:1.5">' + esc(f.text || '') + '</p>' : '')
-        + '<div style="margin-top:16px;display:grid;gap:8px">' + P.map(x => '<div style="display:grid;grid-template-columns:100px 1fr 40px;align-items:center;gap:10px;font-size:.85rem"><span>' + x[0] + '</span><span style="height:7px;border-radius:99px;background:var(--chrome);overflow:hidden"><i style="display:block;height:100%;width:' + pc((result.pillars || {})[x[1]]) + '%;background:linear-gradient(90deg,var(--heat-1),var(--heat-3))"></i></span><span style="text-align:right;color:var(--muted)">' + pc((result.pillars || {})[x[1]]) + '%</span></div>').join('') + '</div>';
-      $('copy').querySelector('.kln-sub').insertAdjacentElement('afterend', box);
+    if (result && result.R) {
+      const b = document.createElement('button');
+      b.id = 'ct-result'; b.type = 'button'; b.className = 'lq-btn'; b.style.marginTop = '22px';
+      b.innerHTML = '<span class="lq-ring" aria-hidden="true"></span><span class="lq-glass" aria-hidden="true"></span><span class="lq-txt">See your result</span>';
+      b.addEventListener('click', () => openResult(result));
+      $('copy').querySelector('.kln-sub').insertAdjacentElement('afterend', b);
     }
     $('start-btn').style.display = 'none';
     setScene('intro');
@@ -1490,11 +1550,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
     const btn = $('nextBtn');
     btn.disabled = true; $('nextTxt').textContent = 'Submitting...';
     try {
-      const res = await fetch(`${API}/api/content-test`, post(payload(false, '')));
+      const pl = payload(false, '');
+      const res = await fetch(`${API}/api/content-test`, post(pl));
       const data = await res.json();
       if (data.success) {
-        saveLocal({ state: 'done' });
-        showThanks(DONE_TEXT);
+        const view = data.result ? buildView(pl, data.result) : null;
+        saveLocal({ state: 'done', view });
+        showThanks(DONE_TEXT, view);
       } else if (data.taken) {
         saveLocal({ state: 'done' });
         showThanks('This email has already taken the test, so this attempt was not counted.');
@@ -1515,7 +1577,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (s.state === 'running' && s.payload) {         // it ended without being sent: send it now
       try { const r = await fetch(`${API}/api/content-test`, post(s.payload)); const d = await r.json(); if (d.success) saveLocal({ state: 'sent' }); } catch (_) { /* try again next visit */ }
     }
-    if (loadLocal()) showThanks(DONE_TEXT);
+    if (loadLocal()) showThanks(DONE_TEXT, (loadLocal() || {}).view);
   }
 
   async function loadForm() {

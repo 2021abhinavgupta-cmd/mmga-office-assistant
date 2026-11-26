@@ -257,6 +257,24 @@ def notify(name, email, attempt, answers, meta, partial, sub_id=None, result=Non
         logger.exception("content_test: notify failed")
 
 
+def _candidate_view(result, answers, meta):
+    """What the candidate may see: score, verdict, pillars, per-question points and notes (no rubrics)."""
+    import content_test_key as key
+    qs = {q.get("id"): q for q in ((meta or {}).get("questions") or [])}
+    auto = {}
+    for qid in list(key.A_KEY) + ["C4"]:
+        v = key.auto_points(qid, (qs.get(qid) or {}).get("fields"))
+        if v is not None:
+            auto[qid] = v
+    q0 = qs.get("Q0") or {}
+    wpm, acc = key.typing_speed((answers or {}).get("Q0"), q0.get("used"))
+    return {"score": result.get("score"), "advance": result.get("advance"), "verdict": result.get("verdict"),
+            "reason": result.get("reason"), "gate": result.get("gate"), "source": result.get("source"),
+            "pillars": {k: result.get(k) for k in ("att", "pers", "script", "ideas", "exec", "skill")},
+            "scores": result.get("scores") or {}, "auto": auto, "typing": {"wpm": wpm, "acc": acc},
+            "pass_mark": key.PASS_MARK, "fit": key.fit(result)}
+
+
 @content_test_bp.route("/api/content-test-check", methods=["GET"])
 def check_content_test_email():
     """Has this email already taken the test? Only a yes/no is returned."""
@@ -311,9 +329,18 @@ def submit_content_test():
                 sub_id = cur.lastrowid
         finally:
             conn.close()
-        # the candidate is not shown a score: it is scored in the background and goes to the reviewers
-        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id), daemon=True).start()
-        return jsonify({"success": True})
+        # a finished test is scored now so the candidate can see the result; the reviewers get the sheet in the background
+        result = None
+        if not partial:
+            try:
+                result = _score_and_save(sub_id, answers, meta)
+            except Exception:
+                logger.exception("content_test: scoring failed")
+        threading.Thread(target=notify, args=(name, email, attempt, answers, meta, partial, sub_id, result), daemon=True).start()
+        out = {"success": True}
+        if result:
+            out["result"] = _candidate_view(result, answers, meta)
+        return jsonify(out)
     except Exception:
         logger.exception("content_test submit failed")
         return jsonify({"success": False, "error": "Could not save the test"}), 500
