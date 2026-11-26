@@ -86,7 +86,7 @@
 <script>
   const API = (location.protocol === 'file:' || !location.hostname) ? 'http://localhost:5000'
     : (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:5000' : location.origin;
-  const TEST_URL = (location.protocol === 'file:' ? 'https://lumina.mmga.agency' : location.origin) + '/content-test.html';
+  const TEST_URL = (location.protocol === 'file:' ? 'https://lumina.mmga.agency' : location.origin) + '/mmga-proof';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const STATUS = {

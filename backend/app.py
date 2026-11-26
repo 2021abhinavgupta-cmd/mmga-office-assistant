@@ -174,6 +174,13 @@ def serve_index():
     from flask import send_from_directory
     return send_from_directory(FRONTEND_DIR, "login.html")
 
+@app.route("/mmga-proof")
+@app.route("/mmga-proof/")
+def serve_mmga_proof():
+    # the content writing test lives at the short public link /mmga-proof
+    from flask import send_from_directory
+    return send_from_directory(FRONTEND_DIR, "content-test.html")
+
 @app.route("/<path:filename>")
 def serve_frontend(filename):
     from flask import send_from_directory
