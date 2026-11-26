@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Content Writing Test | MMGA</title>
+  <title>MMGA Proof</title>
+  <meta property="og:title" content="MMGA Proof" />
+  <meta property="og:site_name" content="MMGA Proof" />
+  <meta name="twitter:title" content="MMGA Proof" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://api.fontshare.com/v2/css?f[]=general-sans@500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&display=swap" rel="stylesheet" />
     <style>
 /* Pixel-heat theme (ported from the "kiln" hero). Classes are prefixed kln- / q- */
 :root{
@@ -122,6 +126,19 @@ button{font:inherit;color:inherit;background:none;border:0}
 .hc-face{font-family:var(--f-display);font-size:1em;font-style:normal;font-weight:800;letter-spacing:0}
 .px{font-family:var(--f-pixel);font-size:1em;font-weight:800;line-height:.84;letter-spacing:.02em}
 .kln-start{margin-top:26px}
+/* first page: MMGA Proof hero */
+.px-hero{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;justify-content:center;padding:0 clamp(24px,11vw,190px);border-radius:18px;overflow:hidden;color:#f7f1e8;
+  background:radial-gradient(ellipse 60% 55% at 22% 18%,#4a2410 0%,rgb(74 36 16/0) 70%),radial-gradient(ellipse 40% 45% at 96% 45%,#2b1c10 0%,rgb(43 28 16/0) 70%),linear-gradient(180deg,#1a0f08,#0c0806 70%,#080605)}
+.px-logo{position:absolute;left:clamp(16px,2vw,28px);top:22px;display:flex;align-items:baseline;gap:7px;font-family:var(--f-display);font-weight:700;font-size:1.25rem;letter-spacing:-.01em}
+.px-logo i{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400;font-size:1.6rem;color:#ff9a5a;letter-spacing:0}
+.px-eye{font-family:var(--f-mono);font-size:.8rem;letter-spacing:.16em;text-transform:uppercase;color:#ff9a5a}
+.px-h{margin-top:26px;font-family:var(--f-display);font-weight:700;font-size:clamp(3rem,8.4vw,8.2rem);line-height:.98;letter-spacing:-.045em;color:#f7f1e8;text-wrap:balance}
+.px-h em{font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-weight:400;letter-spacing:-.02em;color:#ff9a5a}
+.px-sub{margin-top:26px;max-width:34ch;font-size:clamp(1.1rem,1.9vw,1.6rem);line-height:1.4;color:#efe6da}
+.px-go{margin-top:34px;align-self:flex-start;display:inline-flex;align-items:center;gap:10px;padding:15px 30px;border-radius:999px;background:#ff9a5a;color:#1a0f08;font-weight:700;font-size:1.05rem;cursor:pointer;transition:transform .2s,background .2s}
+.px-go:hover{background:#ffb07c;transform:translateY(-2px)}
+.px-go svg{width:18px;height:18px}
+.app.thanks .px-hero{display:none}
 .kln-sub{margin-top:18px;max-width:46ch;color:var(--body);font-size:clamp(1rem,.95rem + .3vw,1.2rem);line-height:1.45;letter-spacing:-.01em}
 
 /* Sections card (the "services" card of the hero) */
@@ -541,13 +558,20 @@ input,textarea{-webkit-user-select:text;user-select:text}
       </div>
     </div>
   </section>
+  <div class="px-hero">
+    <div class="px-logo">MMGA <i>Proof</i></div>
+    <p class="px-eye">MMGA Proof &middot; Screening round</p>
+    <h2 class="px-h">First, <em>who are you?</em></h2>
+    <p class="px-sub">We want to know three things. Your taste. Your ethics. And whether we're right for each other. That's the whole test.</p>
+    <a href="#questionnaire" class="px-go">Start <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+  </div>
 </div>
 
 <!-- The questionnaire -->
 <div class="frame scene" id="scene-form" inert>
   <section id="questionnaire" class="q-panel grid-bg" aria-labelledby="q-title">
     <div class="q-head"><img class="mm-logo" src="mmga-logo.png" alt="MMGA" />
-      <p class="mono">Content writing test</p>
+      <p class="mono">MMGA Proof</p>
       <div class="q-bar"><i id="q-fill"></i></div>
       <div class="q-progress"><b id="q-pct">0%</b></div>
       <div class="ct-timer" id="ct-timer" hidden><b id="ct-sec">0</b><small>sec left</small></div>
@@ -1450,6 +1474,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
   $('ct-go').addEventListener('click', () => { $('ct-rules-modal').hidden = true; T.ack = true; go(1); });
 
   function showThanks(text) {
+    $('app').classList.add('thanks');
     stopTimer();
     $('wrap').style.display = 'none';
     $('loading').style.display = 'none';
