@@ -529,7 +529,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
   var ipad = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
   var mob = /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle|CriOS|FxiOS/i.test(ua) || ipad
     || (matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches)
-    || Math.min(screen.width, screen.height) < 700;
+    || Math.min(screen.width, screen.height) < 420; // CSS px: laptops at 150-200% Windows scaling report ~600-720, phones ~360-430
   if (!mob) return;
   window.__ctMobile = true;
   document.addEventListener('DOMContentLoaded', function () {
