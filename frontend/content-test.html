@@ -363,6 +363,9 @@ textarea.q-input{min-height:110px;resize:vertical;line-height:1.5}
 .jr-qs[data-dir=b] .q-group.on{animation-name:jr-q-b}
 @keyframes jr-q-f{from{opacity:0;transform:translateX(22px)}}
 @keyframes jr-q-b{from{opacity:0;transform:translateX(-22px)}}
+@keyframes ct-fade{from{opacity:0;transform:translateY(8px)}}
+.jr.flat .jr-qs .q-group.on{animation:ct-fade .28s ease-out both}
+.jr.flat .jr-item.on .jr-pg{animation:ct-fade .28s ease-out both}
 .jr-qs .q-group label{display:flex;flex-direction:column;gap:7px;margin-bottom:calc(var(--jw)*.022);color:var(--ink);font-size:clamp(15px,calc(var(--jw)*.0245),26px);font-weight:500;line-height:1.28;letter-spacing:-.018em}
 .jr-qs .q-group .qn{color:#e87a0c;font-family:var(--f-mono);font-size:.62rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase}
 .jr-qs .q-input{background:#fff;font-size:clamp(14px,calc(var(--jw)*.0165),18px)}
@@ -1181,10 +1184,11 @@ input,textarea{-webkit-user-select:text;user-select:text}
     if (focus && fine) { const el = groups[j].querySelector('.q-input'); if (el) el.focus({ preventScroll: true }); }
   }
   // a question change is a page turn when the book is open and at rest
+  const FLAT_TEST = true;   // no page-flip: a plain fade between questions
   function turnQ(k, j, dir, focus) {
     const item = itemEl(k), groups = item ? item.querySelectorAll('.jr-page:not(.jr-fl) .q-group') : [];
     j = Math.max(0, Math.min(groups.length - 1, j));
-    if (mode === 'journal' && scene === 'form' && journal && j !== qpos[k] && k === cur - 1 && !reduce) {
+    if (mode === 'journal' && scene === 'form' && journal && j !== qpos[k] && k === cur - 1 && !reduce && !FLAT_TEST) {
       journal.flip(dir, () => setQ(k, j, dir, false), () => { if (focus && fine) { const el = groups[j].querySelector('.q-input'); if (el) el.focus({ preventScroll: true }); } }, { ringNew: focus && fine });
     } else setQ(k, j, dir, focus);
     // belt and braces: if the page-turn swallowed the focus, put the cursor in the new box so the clock is not wasted

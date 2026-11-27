@@ -150,7 +150,7 @@
     const kick = () => { if (!raf) raf = requestAnimationFrame(frame); };
 
     function tweenTo(to, dur, ease) {
-      tween = { from: pos, to, t0: performance.now(), dur: reduce ? 0 : dur, ease: ease || easeInOut };
+      tween = { from: pos, to, t0: performance.now(), dur: (reduce || opts.flat) ? 0 : dur, ease: ease || easeInOut };
       kick();
     }
 
@@ -401,7 +401,7 @@
         measure();
         const next = clamp(i, 0, n - 1);
         target = next; setCurrent(next);
-        pos = reduce ? next : next - 4.5;
+        pos = (reduce || opts.flat) ? next : next - 4.5;
         paint();
         tweenTo(next, 1250, easeInOut);
       },
